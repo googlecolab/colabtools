@@ -1,0 +1,106 @@
+"""Colab-specific authentication helpers."""
+
+import getpass
+import logging
+import os
+import sqlite3  # pylint: disable=g-bad-import-order
+import subprocess
+import tempfile
+import time
+
+from IPython import display
+import google.auth
+import google.auth.transport.requests
+from google.colab import errors
+
+
+def _check_adc():
+  """Return whether the application default credential exists and is valid."""
+  try:
+    creds, _ = google.auth.default()
+  except google.auth.exceptions.DefaultCredentialsError:
+    return False
+  transport = google.auth.transport.requests.Request()
+  try:
+    creds.refresh(transport)
+  except Exception as e:  # pylint:disable=broad-except
+    logging.info('Failure refreshing credentials: %s', e)
+  return creds.valid
+
+
+def _gcloud_login(clear_output):
+  """Call `gcloud auth login` with custom input handling."""
+  # We want to run gcloud and provide user input on stdin; in order to do this,
+  # we explicitly buffer the gcloud output and print it ourselves.
+  gcloud_command = [
+      'gcloud',
+      'auth',
+      'login',
+      '--enable-gdrive-access',
+      '--no-launch-browser',
+      '--quiet',
+  ]
+  f, name = tempfile.mkstemp()
+  gcloud_process = subprocess.Popen(
+      gcloud_command, stdin=subprocess.PIPE, stdout=f, stderr=subprocess.STDOUT)
+  try:
+    while True:
+      time.sleep(0.2)
+      os.fsync(f)
+      prompt = open(name).read()
+      if 'https' in prompt:
+        break
+    print prompt.rstrip()
+    print
+    code = getpass.getpass('Enter verification code: ')
+    gcloud_process.communicate(code.strip())
+  finally:
+    os.close(f)
+    os.remove(name)
+  if gcloud_process.returncode:
+    raise errors.AuthorizationError('Error fetching credentials')
+  # TODO(b/67784756): Switch to using tagged outputs.
+  if clear_output:
+    display.clear_output(wait=False)
+
+
+def _install_adc():
+  """Install the gcloud token as the Application Default Credential."""
+  gcloud_db_path = os.path.join(
+      os.environ.get('DATALAB_ROOT', '/'),
+      'content/datalab/.config/credentials.db')
+  db = sqlite3.connect(gcloud_db_path)
+  c = db.cursor()
+  ls = list(c.execute('SELECT * FROM credentials;'))
+  adc_path = os.path.join(
+      os.environ.get('DATALAB_ROOT', '/'), 'content/datalab/adc.json')
+  with open(adc_path, 'w') as f:
+    f.write(ls[0][1])
+  os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = adc_path
+
+
+# pylint:disable=line-too-long
+def authenticate_user(clear_output=True):
+  """Ensures that the given user is authenticated.
+
+  Currently, this ensures that the Application Default Credentials
+  (https://developers.google.com/identity/protocols/application-default-credentials)
+  are available and valid.
+
+  Args:
+    clear_output: (optional, default: True) If True, clear the output after
+        successfully completing the authorization process. NOTE: this currently
+        clears ALL cell output.
+
+  Returns:
+    None.
+
+  Raises:
+    errors.AuthorizationError: If authorization fails.
+  """
+  if not _check_adc():
+    _gcloud_login(clear_output=clear_output)
+    _install_adc()
+  if _check_adc():
+    return
+  raise errors.AuthorizationError('Failed to fetch user credentials')
