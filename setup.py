@@ -16,12 +16,6 @@
 from setuptools import find_packages
 from setuptools import setup
 
-DEPENDENCIES = (
-    'google-auth',
-    'google-cloud-bigquery~=0.27.0',
-    'ipykernel',
-)
-
 setup(
     name='google-colab',
     version='0.0.1a1',
@@ -32,7 +26,6 @@ setup(
     url='https://colaboratory.research.google.com/',
     packages=find_packages(exclude=('tests*',)),
     namespace_packages=('google',),
-    install_requires=DEPENDENCIES,
     license='Apache 2.0',
     keywords='google colab ipython jupyter',
     classifiers=(
