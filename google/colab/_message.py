@@ -15,9 +15,9 @@
 
 import time
 import uuid
-import zmq
 
-from google.colab import _ipython as ipython
+from ipykernel import kernelapp
+import zmq
 from google.colab import errors
 
 _NOT_READY = object()
@@ -33,7 +33,7 @@ def _read_next_input_message():
   Returns:
     _NOT_READY if input is not available.
   """
-  kernel = ipython.get_kernel()
+  kernel = kernelapp.IPKernelApp.instance().kernel
   stdin_socket = kernel.stdin_socket
 
   reply = None
@@ -86,7 +86,8 @@ def read_reply_from_input(message_id, timeout_sec=None):
 def send_request(request_type, request_body, parent=None):
   """Sends the given message to the frontend."""
 
-  instance = ipython.get_kernelapp()
+  instance = kernelapp.IPKernelApp.instance()
+
   request_id = str(uuid.uuid4())
 
   metadata = {

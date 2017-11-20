@@ -12,24 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Colab helpers for interacting with JavaScript in outputframes."""
-from google.colab import _ipython
+
+from ipykernel import kernelapp
 from google.colab import _message
 
 
-def eval_js(script, ignore_result=False):
+def eval_script(script, ignore_result=False):
   """Evaluates the Javascript within the context of the current cell.
 
   Args:
     script: The javascript string to be evaluated
-    ignore_result: If true, will return immediately
-     and result from javascript side will be ignored.
+    ignore_result: If true, do not block waiting for a response.
 
   Returns:
     Result of the Javascript evaluation or None if ignore_result.
   """
   args = ['cell_javascript_eval', {'script': script}]
-  kernel = _ipython.get_kernel()
-  kwargs = {'parent': kernel.shell.parent_header}
+  kwargs = {
+      'parent': kernelapp.IPKernelApp.instance().kernel.shell.parent_header
+  }
   request_id = _message.send_request(*args, **kwargs)
   if ignore_result:
     return
