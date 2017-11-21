@@ -28,7 +28,7 @@ import uuid
 
 import IPython
 import portpicker
-from google.colab import _js
+from google.colab import output
 
 
 def upload():
@@ -54,13 +54,13 @@ def upload():
           input_id=input_id, output_id=output_id)))
 
   # First result is always an indication that the file picker has completed.
-  result = _js.eval_script(
+  result = output.eval_js(
       'google.colab._files._uploadFiles("{input_id}", "{output_id}")'.format(
           input_id=input_id, output_id=output_id))
   files = collections.defaultdict(str)
 
   while result['action'] != 'complete':
-    result = _js.eval_script(
+    result = output.eval_js(
         'google.colab._files._uploadFilesContinue("{output_id}")'.format(
             output_id=output_id))
     if result['action'] != 'append':
@@ -115,7 +115,7 @@ def download(filename):
   thread.start()
   started.wait()
 
-  _js.eval_script(
+  output.eval_js(
       """
       (async function() {
         const response = await fetch('https://localhost:%(port)d%(path)s');
