@@ -14,7 +14,7 @@
 """Colab-specific messaging helpers."""
 
 import time
-import uuid
+
 import zmq
 
 from google.colab import _ipython as ipython
@@ -82,12 +82,20 @@ def read_reply_from_input(message_id, timeout_sec=None):
         raise MessageError(reply['error'])
       return reply.get('data', None)
 
+# Global counter for message id.
+# Note: this is not thread safe, if we want to make this
+# thread sfe we should replace this with thread safe counter
+# And add appropriate thread handling logic to read_reply_from_input
+_msg_id = 0
+
 
 def send_request(request_type, request_body, parent=None):
   """Sends the given message to the frontend."""
 
   instance = ipython.get_kernelapp()
-  request_id = str(uuid.uuid4())
+  global _msg_id
+  _msg_id += 1
+  request_id = _msg_id
 
   metadata = {
       'colab_msg_id': request_id,
@@ -120,6 +128,10 @@ def send_request(request_type, request_body, parent=None):
 def blocking_request(request_type, request='', timeout_sec=5, parent=None):
   """Calls the front end with a request, and blocks until a reply is received.
 
+  Note: this function is not thread safe, e.g. if two threads
+  send blocking_request they will likely race with each other and consume
+  each other responses leaving another thread deadlocked.
+
   Args:
     request_type: type of request being made
     request: Jsonable object to send to front end as the request.
@@ -128,5 +140,8 @@ def blocking_request(request_type, request='', timeout_sec=5, parent=None):
   Returns:
     Reply by front end (Json'able object), or None if the timeout occurs.
   """
+  # If we want this thread safe we can make read_reply_from_input to
+  # not discard messages with unknown msg ids as well as making msg_ids globally
+  # unique.
   request_id = send_request(request_type, request, parent=parent)
   return read_reply_from_input(request_id, timeout_sec)
