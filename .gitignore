@@ -1,0 +1,15 @@
+*~
+*.py[cod]
+*.egg-info/
+.cache/
+build/
+dist/
+distribute-*
+
+# Test files
+.tox/
+
+# Coverage related
+.coverage
+coverage.xml
+htmlcov/

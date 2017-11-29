@@ -13,6 +13,10 @@
 # limitations under the License.
 """Common error types used across Colab python functions."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 
 class Error(Exception):
   """Base class for all Colab errors."""
