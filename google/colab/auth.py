@@ -13,6 +13,10 @@
 # limitations under the License.
 """Colab-specific authentication helpers."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import getpass
 import logging
 import os
@@ -63,8 +67,8 @@ def _gcloud_login(clear_output):
       prompt = open(name).read()
       if 'https' in prompt:
         break
-    print prompt.rstrip()
-    print
+    print(prompt.rstrip())
+    print()
     code = getpass.getpass('Enter verification code: ')
     gcloud_process.communicate(code.strip())
   finally:

@@ -20,14 +20,15 @@ from __future__ import print_function
 import base64
 import collections
 import os
-import SimpleHTTPServer
 import socket
-import SocketServer
 import threading
 import uuid
 
 import IPython
 import portpicker
+from six.moves import SimpleHTTPServer
+from six.moves import socketserver
+
 from google.colab import output
 
 
@@ -73,7 +74,7 @@ def upload():
   return dict(files)
 
 
-class _V6Server(SocketServer.TCPServer):
+class _V6Server(socketserver.TCPServer):
   address_family = socket.AF_INET6
 
 

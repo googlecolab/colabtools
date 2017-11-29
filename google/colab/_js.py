@@ -13,7 +13,12 @@
 # limitations under the License.
 """Colab helpers for interacting with JavaScript in outputframes."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from ipykernel import kernelapp
+
 from google.colab import _message
 
 
