@@ -29,8 +29,7 @@ def eval_js(script, ignore_result=False):
   """
   args = ['cell_javascript_eval', {'script': script}]
   kernel = _ipython.get_kernel()
-  kwargs = {'parent': kernel.shell.parent_header}
-  request_id = _message.send_request(*args, **kwargs)
+  request_id = _message.send_request(*args, parent=kernel.shell.parent_header)
   if ignore_result:
     return
   return _message.read_reply_from_input(request_id)
