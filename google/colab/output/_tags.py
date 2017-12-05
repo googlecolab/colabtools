@@ -161,6 +161,9 @@ def clear(wait=False, output_tags=()):
   sys.stderr.flush()
 
   ip = IPython.get_ipython()
+  if not ip or not hasattr(ip, 'kernel'):
+    return
+
   if not hasattr(ip.kernel, 'shell'):
     return
   display_pub = ip.kernel.shell.display_pub
