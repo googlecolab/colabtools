@@ -20,6 +20,7 @@ import contextlib
 
 import sys
 import threading
+import uuid
 
 import IPython
 from IPython import display
@@ -172,3 +173,18 @@ def clear(wait=False, output_tags=()):
       content,
       parent=display_pub.parent_header,
       ident=display_pub.topic)
+
+
+@contextlib.contextmanager
+def temporary():
+  """Outputs produced within this context will be cleared upon exiting.
+
+  Note: if context throws exception no output will be cleared.
+
+  Yields:
+    None
+  """
+  temptag = str(uuid.uuid4())
+  with use_tags(temptag):
+    yield temptag
+  clear(output_tags=temptag)
