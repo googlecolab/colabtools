@@ -38,16 +38,23 @@ def _add_or_remove_tags(tags_to_add=(), tags_to_remove=()):
   output_tags.update(tags_to_add)
   output_tags.difference_update(tags_to_remove)
 
+  sys.stdout.flush()
+  sys.stderr.flush()
+
+  metadata = {
+      'outputarea': {
+          'nodisplay': True,
+          'add_tags': tags_to_add,
+          'remove_tags': tags_to_remove
+      }
+  }
+
   if ipython.in_ipython():
-    display.publish_display_data(
-        'display', {},
-        metadata={
-            'outputarea': {
-                'nodisplay': True,
-                'add_tags': tags_to_add,
-                'remove_tags': tags_to_remove
-            }
-        })
+    if IPython.version_info[0] > 2:
+      display.publish_display_data({}, metadata=metadata)
+    else:
+      display.publish_display_data('display', {}, metadata=metadata)
+
   return output_tags
 
 
