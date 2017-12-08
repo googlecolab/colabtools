@@ -28,7 +28,6 @@ import time
 from IPython import display
 import google.auth
 import google.auth.transport.requests
-from google.colab import _compat
 from google.colab import errors
 
 
@@ -60,7 +59,11 @@ def _gcloud_login(clear_output):
   ]
   f, name = tempfile.mkstemp()
   gcloud_process = subprocess.Popen(
-      gcloud_command, stdin=subprocess.PIPE, stdout=f, stderr=subprocess.STDOUT)
+      gcloud_command,
+      stdin=subprocess.PIPE,
+      stdout=f,
+      stderr=subprocess.STDOUT,
+      universal_newlines=True)
   try:
     while True:
       time.sleep(0.2)
@@ -71,7 +74,7 @@ def _gcloud_login(clear_output):
     print(prompt.rstrip())
     print()
     code = getpass.getpass('Enter verification code: ')
-    gcloud_process.communicate(_compat.as_binary(code.strip()))
+    gcloud_process.communicate(code.strip())
   finally:
     os.close(f)
     os.remove(name)
