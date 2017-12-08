@@ -28,6 +28,7 @@ import time
 from IPython import display
 import google.auth
 import google.auth.transport.requests
+from google.colab import _compat
 from google.colab import errors
 
 
@@ -70,7 +71,7 @@ def _gcloud_login(clear_output):
     print(prompt.rstrip())
     print()
     code = getpass.getpass('Enter verification code: ')
-    gcloud_process.communicate(code.strip())
+    gcloud_process.communicate(_compat.as_binary(code.strip()))
   finally:
     os.close(f)
     os.remove(name)

@@ -26,6 +26,7 @@ import uuid
 
 import IPython
 import portpicker
+import six
 from six.moves import SimpleHTTPServer
 from six.moves import socketserver
 
@@ -58,7 +59,7 @@ def upload():
   result = output.eval_js(
       'google.colab._files._uploadFiles("{input_id}", "{output_id}")'.format(
           input_id=input_id, output_id=output_id))
-  files = collections.defaultdict(str)
+  files = collections.defaultdict(six.binary_type)
 
   while result['action'] != 'complete':
     result = output.eval_js(
