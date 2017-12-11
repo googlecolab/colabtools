@@ -30,42 +30,52 @@ def initialize():
     _CustomErrorHandlers(ip)
 
 
+class ColabTraceback(object):
+
+  def __init__(self, stb, error_details):
+    self.stb = stb
+    self.error_details = error_details
+
+
 class FormattedTracebackError(Exception):
 
-  def __init__(self, message, custom_message):
+  def __init__(self, message, stb, details):
     super(FormattedTracebackError, self).__init__(message)
-    self._full_traceback = custom_message
+    self._colab_traceback = ColabTraceback(stb, details)
 
   def _render_traceback_(self):
-    return self._full_traceback
+    return self._colab_traceback
 
 
 class _CustomErrorHandlers(object):
   """Custom error handler for the IPython shell.
 
-  Helps to add a _render_traceback_ method for errors that can't be wrapped
-  since they're too low-level (i.e. ImportError).
+  Allows us to add custom messaging for certain error types (i.e. ImportError).
   """
 
   def __init__(self, shell):
-    self.custom_message_getters = {
+    # The values for this map are functions which return
+    # (custom_message, additional error details).
+    self.custom_error_handlers = {
         ImportError: _CustomErrorHandlers.import_message,
     }
     shell.set_custom_exc(
-        tuple(self.custom_message_getters.keys()), self.handle_error)
+        tuple(self.custom_error_handlers.keys()), self.handle_error)
 
   def handle_error(self, shell, etype, exception, tb, tb_offset=None):
     """Invoked when the shell catches an error in custom_message_getters."""
-    if etype in self.custom_message_getters:
+    if etype in self.custom_error_handlers:
       message = str(exception)
-      custom_message = self.custom_message_getters[etype](message)
-      if custom_message:
+      result = self.custom_error_handlers[etype](message)
+      if result:
+        custom_message, details = result
         structured_traceback = shell.InteractiveTB.structured_traceback(
             etype, exception, tb, tb_offset=tb_offset)
         # Ensure a blank line appears between the standard traceback and custom
         # error messaging.
-        formatted_traceback_lines = structured_traceback + ['', custom_message]
-        wrapped = FormattedTracebackError(message, formatted_traceback_lines)
+        structured_traceback += ['', custom_message]
+        wrapped = FormattedTracebackError(message, structured_traceback,
+                                          details)
         return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
     return shell.showtraceback()
 
@@ -74,13 +84,25 @@ class _CustomErrorHandlers(object):
     """Return a helpful message for failed imports."""
     sep = _RED + '-' * 75
 
-    # TODO(b/68989501): Investigate displaying the example notebook link in a
-    # button, similar to our "Search StackOverflow" button.
-    return textwrap.dedent("""\
+    msg = textwrap.dedent("""\
         {sep}{green}
         NOTE: If your import is failing due to a missing package, you can
         manually install dependencies using either !pip or !apt.
 
-        Examples of installing some common dependencies can be found at:
-        https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/snippets/importing_libraries.ipynb
+        To view examples of installing some common dependencies, click the
+        "Open Examples" button below.
         {sep}{normal}\n""".format(sep=sep, green=_GREEN, normal=_NORMAL))
+
+    details = {
+        'actions': [
+            {
+                'action':
+                    'open_url',
+                'action_text':
+                    'Open Examples',
+                'url':
+                    '/notebook#fileId=/v2/external/notebooks/snippets/importing_libraries.ipynb',  # pylint:disable=line-too-long
+            },
+        ],
+    }
+    return msg, details
