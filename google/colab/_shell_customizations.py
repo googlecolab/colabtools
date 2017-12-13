@@ -13,6 +13,7 @@
 # limitations under the License.
 """Colab-specific shell customizations."""
 
+import re
 import textwrap
 
 from IPython.utils import coloransi
@@ -22,6 +23,19 @@ from google.colab import _ipython as ipython
 _GREEN = coloransi.TermColors.Green
 _RED = coloransi.TermColors.Red
 _NORMAL = coloransi.TermColors.Normal
+_SEP = _RED + '-' * 75
+
+# Set of modules that have snippets explaining how they can be installed. Any
+# ImportErrors for modules in this set will show a custom error message pointing
+# to the snippet.
+SNIPPET_MODULES = set([
+    'cv2',
+    'keras',
+    'libarchive',
+    'pydot',
+    'torch',
+    'xgboost',
+])
 
 
 def initialize():
@@ -80,9 +94,31 @@ class _CustomErrorHandlers(object):
     return shell.showtraceback()
 
   @staticmethod
-  def import_message(_):
+  def import_message(message):
     """Return a helpful message for failed imports."""
-    sep = _RED + '-' * 75
+    match = re.search(r'No module named (?P<name>\S+)', message)
+    module_name = match.groupdict()['name'].split('.')[0] if match else None
+    if module_name in SNIPPET_MODULES:
+      msg = textwrap.dedent("""\
+        {sep}{green}
+        NOTE: If your import is failing due to a missing package, you can
+        manually install dependencies using either !pip or !apt.
+
+        To install {snippet}, click the button below.
+        {sep}{normal}\n""".format(
+            sep=_SEP, green=_GREEN, normal=_NORMAL, snippet=module_name))
+      details = {
+          'actions': [
+              {
+                  'action': 'open_snippet',
+                  'action_text': 'Install {}'.format(module_name),
+                  # Snippets for installing a custom library always end with
+                  # an import of the library itself.
+                  'snippet_filter': 'import {}'.format(module_name),
+              },
+          ],
+      }
+      return msg, details
 
     msg = textwrap.dedent("""\
         {sep}{green}
@@ -91,7 +127,7 @@ class _CustomErrorHandlers(object):
 
         To view examples of installing some common dependencies, click the
         "Open Examples" button below.
-        {sep}{normal}\n""".format(sep=sep, green=_GREEN, normal=_NORMAL))
+        {sep}{normal}\n""".format(sep=_SEP, green=_GREEN, normal=_NORMAL))
 
     details = {
         'actions': [
