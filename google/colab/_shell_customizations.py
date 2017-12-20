@@ -76,27 +76,37 @@ class _CustomErrorHandlers(object):
     shell.set_custom_exc(
         tuple(self.custom_error_handlers.keys()), self.handle_error)
 
+  def _get_error_handler(self, etype):
+    for handled_type in self.custom_error_handlers:
+      if issubclass(etype, handled_type):
+        return self.custom_error_handlers[handled_type]
+    return None
+
   def handle_error(self, shell, etype, exception, tb, tb_offset=None):
     """Invoked when the shell catches an error in custom_message_getters."""
-    if etype in self.custom_error_handlers:
-      message = str(exception)
-      result = self.custom_error_handlers[etype](message)
-      if result:
-        custom_message, details = result
-        structured_traceback = shell.InteractiveTB.structured_traceback(
-            etype, exception, tb, tb_offset=tb_offset)
-        # Ensure a blank line appears between the standard traceback and custom
-        # error messaging.
-        structured_traceback += ['', custom_message]
-        wrapped = FormattedTracebackError(message, structured_traceback,
-                                          details)
-        return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
-    return shell.showtraceback()
+    handler = self._get_error_handler(etype)
+    if not handler:
+      return shell.showtraceback()
+
+    message = str(exception)
+    result = handler(message)
+    if result:
+      custom_message, details = result
+      structured_traceback = shell.InteractiveTB.structured_traceback(
+          etype, exception, tb, tb_offset=tb_offset)
+      # Ensure a blank line appears between the standard traceback and custom
+      # error messaging.
+      structured_traceback += ['', custom_message]
+      wrapped = FormattedTracebackError(message, structured_traceback, details)
+      return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
 
   @staticmethod
   def import_message(message):
     """Return a helpful message for failed imports."""
-    match = re.search(r'No module named (?P<name>\S+)', message)
+    # TODO(b/70887183): For Python 3 ModuleNotFoundError, use the "name"
+    # attribute rather than attempting to extract it from the error message.
+    match = re.search(r'No module named \'?(?P<name>[a-zA-Z0-9_\.]+)\'?',
+                      message)
     module_name = match.groupdict()['name'].split('.')[0] if match else None
     if module_name in SNIPPET_MODULES:
       msg = textwrap.dedent("""\
