@@ -87,6 +87,11 @@ def _gcloud_login(clear_output):
     display.clear_output(wait=False)
 
 
+def _get_adc_path():
+  return os.path.join(
+      os.environ.get('DATALAB_ROOT', '/'), 'content/datalab/adc.json')
+
+
 def _install_adc():
   """Install the gcloud token as the Application Default Credential."""
   gcloud_db_path = os.path.join(
@@ -95,11 +100,9 @@ def _install_adc():
   db = sqlite3.connect(gcloud_db_path)
   c = db.cursor()
   ls = list(c.execute('SELECT * FROM credentials;'))
-  adc_path = os.path.join(
-      os.environ.get('DATALAB_ROOT', '/'), 'content/datalab/adc.json')
+  adc_path = _get_adc_path()
   with open(adc_path, 'w') as f:
     f.write(ls[0][1])
-  os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = adc_path
 
 
 # pylint:disable=line-too-long
@@ -121,6 +124,9 @@ def authenticate_user(clear_output=True):
   Raises:
     errors.AuthorizationError: If authorization fails.
   """
+  if _check_adc():
+    return
+  os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
   if not _check_adc():
     _gcloud_login(clear_output=clear_output)
     _install_adc()
