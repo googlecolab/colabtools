@@ -88,8 +88,7 @@ class _CustomErrorHandlers(object):
     if not handler:
       return shell.showtraceback()
 
-    message = str(exception)
-    result = handler(message)
+    result = handler(exception)
     if result:
       custom_message, details = result
       structured_traceback = shell.InteractiveTB.structured_traceback(
@@ -97,17 +96,21 @@ class _CustomErrorHandlers(object):
       # Ensure a blank line appears between the standard traceback and custom
       # error messaging.
       structured_traceback += ['', custom_message]
-      wrapped = FormattedTracebackError(message, structured_traceback, details)
+      wrapped = FormattedTracebackError(
+          str(exception), structured_traceback, details)
       return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
 
   @staticmethod
-  def import_message(message):
+  def import_message(error):
     """Return a helpful message for failed imports."""
-    # TODO(b/70887183): For Python 3 ModuleNotFoundError, use the "name"
-    # attribute rather than attempting to extract it from the error message.
-    match = re.search(r'No module named \'?(?P<name>[a-zA-Z0-9_\.]+)\'?',
-                      message)
-    module_name = match.groupdict()['name'].split('.')[0] if match else None
+    # Python 3 ModuleNotFoundErrors have a "name" attribute. Preferring this
+    # over regex matching if the attribute is available.
+    module_name = getattr(error, 'name', None)
+    if not module_name:
+      match = re.search(r'No module named \'?(?P<name>[a-zA-Z0-9_\.]+)\'?',
+                        str(error))
+      module_name = match.groupdict()['name'].split('.')[0] if match else None
+
     if module_name in SNIPPET_MODULES:
       msg = textwrap.dedent("""\
         {sep}{green}
