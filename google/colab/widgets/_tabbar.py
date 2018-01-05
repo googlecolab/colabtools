@@ -25,10 +25,11 @@ class TabBar(_widget.OutputAreaWidget):
 
   Sample usage:
      tab = TabBar(['evening', 'morning'])
-     tab.SetActive('evening')
-     print 'hi'
-     tab.SetActive('morning')
-     print 'bye'
+     with tab.output_to('evening'):
+       print 'hi'
+
+     with tab.output_to('morning'):
+       print 'bye'
   """
   TABBAR_JS = '/nbextensions/google.colab/tabbar_main.min.js'
   TAB_CSS = '/nbextensions/google.colab/tabbar.css'
@@ -37,8 +38,7 @@ class TabBar(_widget.OutputAreaWidget):
     """Constructor.
 
     Args:
-      tab_names: list of strings, containing the tab title html.
-        No escaping is performed on the names.
+      tab_names: list of strings for the tab names.
 
       location: location of tabs.
       Acceptable values:
@@ -49,21 +49,12 @@ class TabBar(_widget.OutputAreaWidget):
     Raises:
       ValueError: if location is not valid
     """
-    super(TabBar, self).__init__()
     if location not in ('top', 'bottom', 'start', 'end'):
       raise ValueError('Invalid value for location: %r', location)
-    content_height = 'initial',
-    content_border = '0px',
-    border_color = '#a7a7a7',
     self.tab_names = tab_names
-    self._content_div = self._id + '_content'
-    self._active = 0
-    self._content_css = {
-        'border': content_border,
-        'height': content_height,
-        'border-color': border_color
-    }
     self._location = location
+    self._active = 0
+    super(TabBar, self).__init__()
 
   def _tab_id(self, index):
     return '%s_%d' % (self._content_div, index)
@@ -94,16 +85,17 @@ class TabBar(_widget.OutputAreaWidget):
     """Sets current output tab.
 
     Args:
-      tab: the tab's name that is one of tab_names provided in constructor
-      or index. Note: if tab_names contains duplicates, they can only
+      tab: the tab's name matching one of the  tab_names provided in
+      the constructor. Alternatively a 0-based index can be used.
+      Note: if tab_names contains duplicates, they can only
       be accessed via index. Trying to access by name will trigger
       ValueError
 
       select: if True this will also select the tab, otherwise
-      the tab will be updated in background
+      the tab will be updated in the background
     """
     if not self._published:
-      self.publish()
+      self._publish()
     tabid, index = self._get_tab_id(tab)
 
     if select:
@@ -115,9 +107,8 @@ class TabBar(_widget.OutputAreaWidget):
     """Clears tabs.
 
     Args:
-      tab: if None clears current tabs, otherwise
-      clears the corresponding tab. Tab could be the tab's name
-      (if all names are unique), or 0-based index.
+      tab: if None clears current tab  otherwise clears the corresponding tab.
+      Tab could be the tab's name (if it is unique), or 0-based index.
     """
     if tab is not None:
       tabid, _ = self._get_tab_id(tab)
@@ -131,19 +122,23 @@ class TabBar(_widget.OutputAreaWidget):
     Yields:
       current tab index
     """
-    self.publish()
+    self._publish()
     for i, _ in enumerate(self.tab_names):
       with self.output_to(i):
         yield i
 
-  def publish(self):
+  def _publish(self):
     """Publishes this tab bar in the given cell.
 
     Note: this function is idempotent.
     """
     if self._published:
       return
-    super(TabBar, self).publish()
+    content_height = 'initial',
+    content_border = '0px',
+    border_color = '#a7a7a7',
+    self._content_div = self._id + '_content'
+    super(TabBar, self)._publish()
     with self._output_in_widget():
       _publish.css(url=self.TAB_CSS)
       _publish.javascript(url=self.TABBAR_JS)
@@ -154,9 +149,9 @@ class TabBar(_widget.OutputAreaWidget):
           'elementId': self._id,
           'tabNames': self.tab_names,
           'initialSelection': self._active,
-          'contentBorder': self._content_css['border'],
-          'contentHeight': self._content_css['height'],
-          'borderColor': self._content_css['border-color']
+          'contentBorder': content_border,
+          'contentHeight': content_height,
+          'borderColor': border_color,
       })
       # Note: publish() will only be called once, thus this will never change
       # already visible tab.

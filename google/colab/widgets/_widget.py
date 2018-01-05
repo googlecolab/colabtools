@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import contextlib
 
 from google.colab import errors
@@ -37,12 +36,9 @@ class OutputAreaWidget(object):
     self._id = _util.get_locally_unique_id()
     self._saved_output_area = 'output_area_' + self._id
     self._tag = 'outputarea_' + self._id
+    self._publish()
 
-    # Maintains how many times a particular component has been cleared
-    # Used to implement ClearActive(wait=True).
-    self._output_component_epoch = collections.Counter()
-
-  def publish(self):
+  def _publish(self):
     """Publishes this widget.
 
     Default does nothing but saves the current output area.
@@ -71,7 +67,7 @@ class OutputAreaWidget(object):
   def _active_component(self, component_id):
     """Sets active subcomponent."""
     if not self._published:
-      self.publish()
+      self._publish()
     if self._current_component is not None:
       raise WidgetException('Already inside a component')
     self._current_component = component_id

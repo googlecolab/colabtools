@@ -13,11 +13,11 @@
 # limitations under the License.
 """High level widgets for display in the output area.
 
-Many of these widgets standard output (e.g. print statemetns or matplotlib
-graphs)  into specific part of the widget (such as individual tab). This
-allows to build complex interactive outputs, using libraries that are not
-even aware of the widget's existence.
+Many of these widgets allow to output standard channels (e.g. print statements,
+or matplotlib) into specific part of the widget, such as individual tab or
+grid's cell. This allows to build complex interactive outputs, using libraries
+that are not even aware of the widget's existence.
 """
-
+from google.colab.widgets._grid import create_grid
+from google.colab.widgets._grid import Grid
 from google.colab.widgets._tabbar import TabBar
-from google.colab.widgets._widget import WidgetException
