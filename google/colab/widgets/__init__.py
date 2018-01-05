@@ -9,22 +9,15 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
+# See the License for the specific language govestylerning permissions and
 # limitations under the License.
-"""Common error types used across Colab python functions."""
+"""High level widgets for display in the output area.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+Many of these widgets standard output (e.g. print statemetns or matplotlib
+graphs)  into specific part of the widget (such as individual tab). This
+allows to build complex interactive outputs, using libraries that are not
+even aware of the widget's existence.
+"""
 
-
-class Error(Exception):
-  """Base class for all Colab errors."""
-
-
-class AuthorizationError(Error):
-  """Authorization-related failures."""
-
-
-class WidgetException(Exception):
-  """colab.widgets failures."""
+from google.colab.widgets._tabbar import TabBar
+from google.colab.widgets._widget import WidgetException
