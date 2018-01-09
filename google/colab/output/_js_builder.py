@@ -343,12 +343,21 @@ class _JavascriptEncoder(json.JSONEncoder):
       return key
     if hasattr(o, '__javascript__'):
       return Js(o.__javascript__())
-    try:
+    # Get a list of ancestors of kls for new type classes
+    # for old-style we don't support inheritance.
+    kls = type(o)
+    # Note: only new-style classes have mro method.
+    bases = kls.mro() if issubclass(kls, object) else [kls]
 
-      encoder = TYPE_CONVERSION_MAP[type(o)]
-    except KeyError:
-      return json.JSONEncoder.default(self, o)
-    return encoder(o)
+    # Walk up the inheritance tree (or classes that participate in method
+    # resolution),  until we find something in conversion map
+    # that's an this class is an instance of.  This way we are guaranteed
+    # to go from more specific classes to least specific in resolving
+    # which class to use for conversion.
+    for each_type in bases:
+      if each_type in TYPE_CONVERSION_MAP:
+        return TYPE_CONVERSION_MAP[each_type](o)
+    return json.JSONEncoder.default(self, o)
 
   def encode(self, o):
     try:
