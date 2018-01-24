@@ -387,7 +387,7 @@ class _JavascriptEncoder(json.JSONEncoder):
     # to have it in quotes, because, browser parser.
     # This fixes the latter issue. It keeps the former invaild.
     result = result.replace('</script>', r'<\/script>')
-    for k, v in self._replacement_map.iteritems():
+    for k, v in self._replacement_map.items():
       result = result.replace('"%s"' % (k,), v)
     return result
 
