@@ -2,7 +2,7 @@ substitutions:
   _PREFIX: ''
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-f', 'build/Dockerfile', '-t', 'colabtools', '.']
+  args: ['build', '-f', 'cloudbuild/Dockerfile', '-t', 'colabtools', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['run', '-v', '/workspace:/out', 'colabtools', 'cp', '/colabtools/dist/google_colab-0.0.1a1-py2.py3-none-any.whl', '/out']
 - name: 'gcr.io/cloud-builders/gsutil'
