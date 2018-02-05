@@ -20,7 +20,7 @@ setup(
     name='google-colab',
     version='0.0.1a1',
     author='Google Colaboratory team',
-    author_email='craigcitro@google.com',
+    author_email='colaboratory-team@google.com',
     description='Google Colaboratory tools',
     long_description='Colaboratory-specific python libraries.',
     url='https://colaboratory.research.google.com/',
