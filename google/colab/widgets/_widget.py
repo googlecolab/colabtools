@@ -52,7 +52,7 @@ class OutputAreaWidget(object):
     # is also cleaned up.
     self._saved_output_tags = _tags.get_active_tags()
     self._current_component = None
-    self.output_tags = self._saved_output_tags.union([self._tag])
+    self._output_tags = self._saved_output_tags.union([self._tag])
 
   def remove(self, wait=False):
     """Removes the widget from the document.
@@ -61,11 +61,13 @@ class OutputAreaWidget(object):
       wait: if true the actual deletion doesn't happen until the next output.
     """
     _util.flush_all()
-    _tags.clear(wait, self.output_tags)
+    _tags.clear(wait, self._output_tags)
 
   @contextlib.contextmanager
-  def _active_component(self, component_id):
+  def _active_component(self, component_id, init_params=None):
     """Sets active subcomponent."""
+    if init_params is None:
+      init_params = {}
     if not self._published:
       self._publish()
     if self._current_component is not None:
@@ -75,6 +77,8 @@ class OutputAreaWidget(object):
     with self._output_in_widget():
       with output.use_tags(self._current_component):
         with output.redirect_to_element('#' + component_id):
+          #
+          self._prepare_component_for_output(**init_params)
           with output.use_tags('user_output'):
             try:
               yield
@@ -82,16 +86,47 @@ class OutputAreaWidget(object):
               _util.flush_all()
               self._current_component = None
 
+  def _prepare_component_for_output(self, **kwargs):
+    """Initialization code that's called when component is to become active.
+
+    This function will be called to produce additional browser-side outputs
+    that needs to be added before adding output to the component.
+
+    For example it can make a tab visible, change styling etc. The important
+    property is that output produced by this function will be preserved
+    whenever clear_component is called from *within* this component.
+
+    This function will often remain empty in the implementation.
+
+    Args:
+      **kwargs: any extra arguments passed by the implementing class
+      to _active_component
+    """
+
   @contextlib.contextmanager
   def _output_in_widget(self):
-    with output.use_tags(self.output_tags):
+    with output.use_tags(self._output_tags):
       try:
         yield
       finally:
         _util.flush_all()
 
   def _clear_component(self, component_id=None, wait=False):
-    """Clears currently active component.
+    """Clears component.
+
+    If component_id is None, it will clear currently active component,
+    otherwise it will clear one with given id.
+
+    NOTE FOR SUBCLASS IMPLEMENTTERS:
+
+    When _clear_output is called it will remove all outputs that were created
+    within context of _active_component.
+
+    This might produce subtle errors in situations where user clears component
+    he is currently producing output for as it will destroy any output that
+    is in the context of _active_component. Therefore if your widget
+    needs javascript to setup the component for output it should always
+    be produced by overloading _prepare_component_for_output.
 
     Args:
       component_id: which component to clear.

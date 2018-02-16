@@ -80,6 +80,10 @@ class TabBar(_widget.OutputAreaWidget):
     tabid = self._tab_id(index)
     return tabid, index
 
+  def _prepare_component_for_output(self, index, select):
+    if select:
+      js.js_global[self._id].setSelectedTabIndex(index)
+
   @contextlib.contextmanager
   def output_to(self, tab, select=True):
     """Sets current output tab.
@@ -97,10 +101,11 @@ class TabBar(_widget.OutputAreaWidget):
     if not self._published:
       self._publish()
     tabid, index = self._get_tab_id(tab)
-
-    if select:
-      js.js_global[self._id].setSelectedTabIndex(index)
-    with self._active_component(tabid):
+    with self._active_component(
+        tabid, init_params={
+            'select': select,
+            'index': index
+        }):
       yield
 
   def clear_tab(self, tab=None):

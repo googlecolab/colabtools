@@ -94,9 +94,9 @@ class Grid(_widget.OutputAreaWidget):
 
     if (row_offset + len(rows) > self.rows or
         col_offset + len(cols) > self.columns):
-      raise _widget.OutputAreaWidgetException(
-          'Can not fit %dx%d data into %dx%d grid. ' %
-          (len(rows), len(cols), self.rows, self.columns))
+      raise _widget.WidgetException('Can not fit %dx%d data into %dx%d grid. ' %
+                                    (len(rows), len(cols), self.rows,
+                                     self.columns))
     for row, col in iter(self):
       row -= row_offset
       col -= col_offset
@@ -169,7 +169,7 @@ class Grid(_widget.OutputAreaWidget):
       nothing
     """
     if row < 0 or column < 0 or row >= self.rows or column >= self.columns:
-      raise _widget.OutputAreaWidgetException(
+      raise _widget.WidgetException(
           'Cell (%d, %d) is outside of boundaries of %dx%d grid' %
           (row, column, self.rows, self.columns))
     component_id = self._get_cell_id(row, column)

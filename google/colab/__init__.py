@@ -20,8 +20,9 @@ from __future__ import print_function
 from google.colab import auth
 from google.colab import files
 from google.colab import output
+from google.colab import widgets
 
-__all__ = ['auth', 'files', 'output']
+__all__ = ['auth', 'files', 'output', 'widgets']
 
 __version__ = '0.0.1a2'
 
