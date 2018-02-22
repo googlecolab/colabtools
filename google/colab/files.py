@@ -60,6 +60,8 @@ def upload():
       'google.colab._files._uploadFiles("{input_id}", "{output_id}")'.format(
           input_id=input_id, output_id=output_id))
   files = collections.defaultdict(six.binary_type)
+  # Mapping from original filename to filename as saved locally.
+  local_filenames = dict()
 
   while result['action'] != 'complete':
     result = output.eval_js(
@@ -70,9 +72,32 @@ def upload():
       # steps may not produce data for the Python side, so just proceed onto the
       # next message.
       continue
-    files[result['file']] += base64.b64decode(result['data'])
+    data = base64.b64decode(result['data'])
+    filename = result['file']
+
+    files[filename] += data
+    local_filename = local_filenames.get(filename)
+    if not local_filename:
+      local_filename = _get_unique_filename(filename)
+      local_filenames[filename] = local_filename
+      print('Saving {filename} to {local_filename}'.format(
+          filename=filename, local_filename=local_filename))
+    with open(local_filename, 'ab') as f:
+      f.write(data)
 
   return dict(files)
+
+
+def _get_unique_filename(filename):
+  if not os.path.lexists(filename):
+    return filename
+  counter = 1
+  while True:
+    path, ext = os.path.splitext(filename)
+    new_filename = '{} ({}){}'.format(path, counter, ext)
+    if not os.path.lexists(new_filename):
+      return new_filename
+    counter += 1
 
 
 class _V6Server(socketserver.TCPServer):
