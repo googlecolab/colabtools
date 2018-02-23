@@ -122,8 +122,8 @@ function* uploadFilesStep(inputId, outputId) {
         `(${file.type || 'n/a'}) - ${file.size} bytes, ` +
         `last modified: ${
             file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() :
-                                    'n/a'} - %`));
-    const percent = span('0 done');
+                                    'n/a'} - `));
+    const percent = span('0% done');
     li.appendChild(percent);
 
     outputElement.appendChild(li);
@@ -159,7 +159,7 @@ function* uploadFilesStep(inputId, outputId) {
         },
       };
       percent.textContent =
-          `${Math.round((position / fileData.byteLength) * 100)} done`;
+          `${Math.round((position / fileData.byteLength) * 100)}% done`;
     }
   }
 

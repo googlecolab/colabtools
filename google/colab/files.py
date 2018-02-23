@@ -52,7 +52,7 @@ def upload():
       Upload widget is only available when the cell has been executed in the
       current browser session. Please rerun this cell to enable.
       </output>
-      <script src="/nbextensions/google.colab/files.js"</script> """.format(
+      <script src="/nbextensions/google.colab/files.js"></script> """.format(
           input_id=input_id, output_id=output_id)))
 
   # First result is always an indication that the file picker has completed.
