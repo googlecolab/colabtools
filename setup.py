@@ -40,7 +40,4 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
     ),
     include_package_data=True,
-    package_data={
-        'google.colab': ['resources/files.js',],
-    },
 )
