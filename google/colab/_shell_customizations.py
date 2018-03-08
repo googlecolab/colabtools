@@ -29,12 +29,9 @@ _SEP = _RED + '-' * 75
 # ImportErrors for modules in this set will show a custom error message pointing
 # to the snippet.
 SNIPPET_MODULES = set([
-    'cv2',
-    'keras',
     'libarchive',
     'pydot',
     'torch',
-    'xgboost',
 ])
 
 
