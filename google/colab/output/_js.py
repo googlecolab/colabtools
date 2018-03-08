@@ -49,7 +49,7 @@ def register_callback(function_name, callback):
   Javascript executing in Colab output frames.
 
   This callback can be called from javascript side using:
-  colab.output.kernel.invokeFunction(function_name, [1, 2, 3], {'hi':'bye'})
+  colab.kernel.invokeFunction(function_name, [1, 2, 3], {'hi':'bye'})
   then it will invoke callback(1, 2, 3, hi="bye")
 
   Args:
