@@ -127,7 +127,17 @@ def download(filename):
 
   Args:
     filename: Name of the file on disk to be downloaded.
+
+  Raises:
+    OSError: if the file cannot be found.
   """
+
+  if not os.path.exists(filename):
+    msg = 'Cannot find file: {}'.format(filename)
+    if six.PY2:
+      raise OSError(msg)
+    else:
+      raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
 
   started = threading.Event()
   port = portpicker.pick_unused_port()
