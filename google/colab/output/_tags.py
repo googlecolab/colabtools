@@ -134,7 +134,7 @@ def clear(wait=False, output_tags=()):
   For example:
     from google.colab import output
     with output.use_tag('conversation'):
-      with output.use_tag('introduction')
+      with output.use_tag('introduction'):
          print 'Hello'
       print 'Bye'
 
