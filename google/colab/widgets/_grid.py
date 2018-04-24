@@ -18,15 +18,15 @@ class Grid(_widget.OutputAreaWidget):
 
   t = Grid(3, 4)
   with t.output_to(0, 0):
-    print 1 # will print into cell (0, 0)
+    print(1) # will print into cell (0, 0)
 
   t.clear_cell(0, 0)  # clears cell 0, 0
 
   with t.output_to(0, 1):
-    print 1 # will print into cell (0, 1)
+    print(1) # will print into cell (0, 1)
 
   with t.output_to(1,1):
-    print "2"
+    print(2)
     pylab.plot([1,2,3])
 
   etc...
@@ -58,9 +58,9 @@ class Grid(_widget.OutputAreaWidget):
   def clear_cell(self, row=None, col=None):
     """Clears given cell. If row/col are None clears active cell."""
     if row is not None:
-      if row < 0 or col >= self.rows:
+      if row < 0 or row >= self.rows:
         raise ValueError('%d is not a valid row' % row)
-      if col < 0 or col >= self.cols:
+      if col < 0 or col >= self.columns:
         raise ValueError('%d is not a valid column' % col)
       cellid = self._get_cell_id(row, col)
     else:
