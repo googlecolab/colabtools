@@ -15,6 +15,8 @@
 
 from ipykernel import ipkernel
 
+from ipykernel.jsonutil import json_clean
+from IPython.utils.tokenutil import token_at_cursor
 from google.colab import _shell
 
 
@@ -23,3 +25,57 @@ class Kernel(ipkernel.IPythonKernel):
 
   def _shell_class_default(self):
     return _shell.Shell
+
+  def do_inspect(self, code, cursor_pos, detail_level=0):
+    name = token_at_cursor(code, cursor_pos)
+    info = self.shell.object_inspect(name)
+
+    data = {}
+    if info['found']:
+      info_text = self.shell.object_inspect_text(
+          name,
+          detail_level=detail_level,
+      )
+      data['text/plain'] = info_text
+      # Provide the structured inspection information to allow the frontend to
+      # format as desired.
+      data['application/json'] = info
+
+    reply_content = {
+        'status': 'ok',
+        'data': data,
+        'metadata': {},
+        'found': info['found'],
+    }
+
+    return reply_content
+
+  def complete_request(self, stream, ident, parent):
+    """Colab-specific complete_request handler.
+
+    Overrides the default to allow providing additional metadata in the
+    response.
+
+    Args:
+      stream: Shell stream to send the reply on.
+      ident: Identity of the requester.
+      parent: Parent request message.
+    """
+
+    content = parent['content']
+    code = content['code']
+    cursor_pos = content['cursor_pos']
+
+    matches = self.do_complete(code, cursor_pos)
+    if parent.get('metadata', {}).get('colab_options',
+                                      {}).get('include_colab_metadata'):
+      matches['metadata'] = {
+          # Filter to only what is needed since there can be a lot of
+          # completions to send.
+          'colab_types_experimental': [{
+              'type_name': self.shell.object_inspect(match)['type_name']
+          } for match in matches['matches']],
+      }
+    matches = json_clean(matches)
+
+    self.session.send(stream, 'complete_reply', matches, parent, ident)
