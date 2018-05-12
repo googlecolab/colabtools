@@ -164,7 +164,9 @@ def download(filename):
         const a = document.createElement('a');
         a.href = window.URL.createObjectURL(blob);
         a.download = '%(name)s';
+        document.body.appendChild(a);
         a.click();
+        a.remove();
       })();
   """ % {
       'port': port,
