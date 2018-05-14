@@ -22,6 +22,7 @@ import collections
 import os
 import socket
 import threading
+import urllib2
 import uuid
 
 import IPython
@@ -109,7 +110,7 @@ class _FileHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
   def translate_path(self, path):
     # Client specifies absolute paths.
-    return path
+    return urllib2.unquote(path)
 
   def log_message(self, fmt, *args):
     # Suppress logging since it's on the background. Any errors will be reported
