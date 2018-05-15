@@ -22,7 +22,6 @@ import collections
 import os
 import socket
 import threading
-import urllib2
 import uuid
 
 import IPython
@@ -30,6 +29,7 @@ import portpicker
 import six
 from six.moves import SimpleHTTPServer
 from six.moves import socketserver
+from six.moves import urllib
 
 from google.colab import output
 
@@ -110,7 +110,8 @@ class _FileHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
   def translate_path(self, path):
     # Client specifies absolute paths.
-    return urllib2.unquote(path)
+    # TODO(b/79760241): Remove this spurious lint warning.
+    return urllib.parse.unquote(path)  # pylint:disable=too-many-function-args
 
   def log_message(self, fmt, *args):
     # Suppress logging since it's on the background. Any errors will be reported
