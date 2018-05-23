@@ -21,6 +21,7 @@ import base64 as _base64
 import collections as _collections
 import json as _json
 import os as _os
+import shutil as _shutil
 import socket as _socket
 import uuid as _uuid
 
@@ -141,6 +142,11 @@ def download(filename):
       raise OSError(msg)
     else:
       raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
+
+  if os.path.isdir(filename):
+    filename = os.path.normpath(filename)
+    filename = _shutil.make_archive(filename, 'zip', filename)
+    return download(filename)
 
   comm_manager = _IPython.get_ipython().kernel.comm_manager
   comm_id = 'download_' + str(_uuid.uuid4())
