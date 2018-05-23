@@ -31,8 +31,8 @@ RUN apt-get update && \
         python3-setuptools \
         python3-zmq \
         && \
-    pip3 install wheel && \
-    pip install wheel tox
+    python3 -m pip install wheel && \
+    python2 -m pip install wheel tox
 
 # Fetch the colabtools source.
 ADD . /colabtools
