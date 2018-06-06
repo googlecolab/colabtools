@@ -15,15 +15,22 @@
 """Helper to provide resources via the colab service worker.
 
 Example inside Colab:
-  # In Python:
-  from google.colab import html
 
+# First, create a resource in Python
+  from google.colab import html
   ref = html.create_resource(content='hello world')
 
-  # In Javascript
-  fetch(ref.url).then(r => r.text).then(c => {
-    console.log(c === ref.content)
-  });
+  # Next, execute javascript code that uses that resource
+  from IPython.display import display, Javascript
+
+  display(Javascript('''
+  var content = {ref.content!r};
+  var url = {ref.url!r};
+
+  fetch(url)
+    .then(r => r.text())
+    .then(c => console.log("Content matches:", c === content))
+  '''.format(ref=ref)))
 """
 
 from __future__ import absolute_import
