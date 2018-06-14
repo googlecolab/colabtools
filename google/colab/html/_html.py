@@ -159,16 +159,22 @@ class Element(object):
     self._js_listeners = {}
     self._py_listeners = {}
     self._parent = None
+    self._could_exist = False
+
+  def _exists(self):
+    if not self._could_exist:
+      return False
+    return _exists(self._guid)
 
   def get_attribute(self, name):
-    if not _exists(self._guid):
+    if not self._exists():
       return self._attributes.get(name)
     return _proxy(self._guid, {'method': 'getAttribute', 'name': name})
 
   def set_attribute(self, name, value):
     if not isinstance(value, six.string_types):
       raise ValueError('Attribute value must be a string')
-    if not _exists(self._guid):
+    if not self._exists():
       self._attributes[name] = value
     else:
       _proxy(self._guid, {
@@ -178,12 +184,12 @@ class Element(object):
       })
 
   def get_property(self, name):
-    if not _exists(self._guid):
+    if self._exists():
       return self._properties.get(name)
     return _proxy(self._guid, {'method': 'getProperty', 'name': name})
 
   def set_property(self, name, value):
-    if not _exists(self._guid):
+    if not self._exists():
       self._properties[name] = value
     else:
       _proxy(self._guid, {
@@ -193,6 +199,8 @@ class Element(object):
       })
 
   def call(self, method, *args):
+    if not self._exists():
+      raise ValueError('Cannot call method on undisplayed element.')
     return _proxy(self._guid, {'method': 'call', 'value': args, 'name': method})
 
   def add_event_listener(self, name, callback):
@@ -225,7 +233,7 @@ class Element(object):
       msg['value'] = callback_name
     else:
       raise ValueError('callback must be a js string or callable python')
-    if _exists(self._guid):
+    if self._exists():
       _proxy(self._guid, msg)
 
   def remove_event_listener(self, name, callback):
@@ -250,7 +258,7 @@ class Element(object):
     del callbacks[callback]
     if not callbacks:
       del listener_map[name]
-    if _exists(self._guid):
+    if self._exists():
       _proxy(self._guid, {
           'method': 'removeEventListener',
           'name': name,
@@ -281,6 +289,7 @@ class Element(object):
 
   def _repr_html_(self):
     """Converts element to HTML string."""
+    self._could_exist = True
     view = _ElementView(self)
     template = _resources.get_data(__name__, 'templates/_element.mustache')
     return pystache.render(template, view)
