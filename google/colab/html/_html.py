@@ -184,7 +184,7 @@ class Element(object):
       })
 
   def get_property(self, name):
-    if self._exists():
+    if not self._exists():
       return self._properties.get(name)
     return _proxy(self._guid, {'method': 'getProperty', 'name': name})
 
