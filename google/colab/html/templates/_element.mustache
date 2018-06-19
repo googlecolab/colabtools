@@ -119,21 +119,19 @@ import "{{module}}";
           throw new Error('Invalid method');
       }
     }
-
-    const bc = new BroadcastChannel('{{guid}}');
-    bc.onmessage = async (evt) => {
-      const msg = evt.data;
-      const reply = {method: 'reply', id: msg.reply};
-      const tag = '{{tag}}';
-      if (tag.includes('-')) {
-        await customElements.whenDefined(tag);
+    window.google = window.google || {};
+    window.google.colab = window.google.colab || {};
+    window.google.colab.html = window.google.colab.html || {
+      elements: {},
+    };
+    window.google.colab.html.elements['{{guid}}'] = {
+      call:  async (msg) => {
+        const tag = '{{tag}}';
+        if (tag.includes('-')) {
+          await customElements.whenDefined(tag);
+        }
+        return processMessage(msg);
       }
-      try {
-        reply.value = await Promise.resolve(processMessage(msg));
-      } catch (e) {
-        reply.error = String(e);
-      }
-      bc.postMessage(reply);
     };
   })();
 </script>

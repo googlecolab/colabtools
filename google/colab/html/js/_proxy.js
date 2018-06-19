@@ -20,42 +20,27 @@
  * @returns {Promise}
  */
 async function proxy(id, msg, defaultResponse) {
-  const bc = new BroadcastChannel(id);
-  const respId = 'id' + Math.random();
-  msg.reply = respId;
-
-  bc.postMessage(msg);
-
-  const handleMessage = (resolve) => {
-    bc.onmessage = (r) => {
-      const reply = r.data;
-      if (reply.method === 'reply' && reply.id === respId) {
-        resolve(reply);
+  let elementProxy = null;
+  for (let i = 0; i < window.parent.frames.length; ++i) {
+    const frame = window.parent.frames[i];
+    // The frames will include cross-origin frames which will generate errors
+    // when accessing the contents, so guard against that.
+    try {
+      const html = frame.window.google.colab.html;
+      if (html) {
+        elementProxy = html.elements[id];
+        if (elementProxy) {
+          break;
+        }
       }
-    };
-  };
-
-  const response = new Promise(handleMessage).then((reply) => {
-    if (reply.error) {
-      throw new Error(reply.error);
+    } catch (e) {
+      // Continue to the next frame.
     }
-
-    return reply.value;
-  });
-
-  const values = [response];
-
-  if (defaultResponse !== undefined) {
-    values.push(new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(defaultResponse);
-      }, 20);
-    }));
   }
-
-  try {
-    return await Promise.race(values);
-  } finally {
-    bc.close();
+  if (!elementProxy) {
+    return defaultResponse;
   }
+  return elementProxy.call(msg);
 }
+
+//# sourceURL=/google/colab/html/js/_proxy.js
