@@ -45,11 +45,16 @@ def _build_server(started, stopped, stopping, timeout):
     """
     host = ''  # Bind to all.
     try:
-      httpd = wsgiref.simple_server.make_server(host, port, wsgi_app)
+      httpd = wsgiref.simple_server.make_server(
+          host, port, wsgi_app, handler_class=SilentWSGIRequestHandler)
     except socket.error:
       # Try IPv6
       httpd = wsgiref.simple_server.make_server(
-          host, port, wsgi_app, server_class=_WSGIServerIPv6)
+          host,
+          port,
+          wsgi_app,
+          server_class=_WSGIServerIPv6,
+          handler_class=SilentWSGIRequestHandler)
     started.set()
     httpd.timeout = timeout
     while not stopping.is_set():
@@ -57,6 +62,13 @@ def _build_server(started, stopped, stopping, timeout):
     stopped.set()
 
   return server
+
+
+class SilentWSGIRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
+  """WSGIRequestHandler that generates no logging output."""
+
+  def log_message(self, format, *args):  # pylint: disable=redefined-builtin
+    pass
 
 
 class _WSGIServerIPv6(wsgiref.simple_server.WSGIServer):
