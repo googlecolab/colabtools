@@ -141,15 +141,10 @@ class _CustomErrorHandlers(object):
         {sep}{normal}\n""".format(sep=_SEP, green=_GREEN, normal=_NORMAL))
 
     details = {
-        'actions': [
-            {
-                'action':
-                    'open_url',
-                'action_text':
-                    'Open Examples',
-                'url':
-                    '/notebook#fileId=/v2/external/notebooks/snippets/importing_libraries.ipynb',  # pylint:disable=line-too-long
-            },
-        ],
+        'actions': [{
+            'action': 'open_url',
+            'action_text': 'Open Examples',
+            'url': '/notebooks/snippets/importing_libraries.ipynb',
+        },],
     }
     return msg, details
