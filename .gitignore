@@ -8,6 +8,7 @@ distribute-*
 
 # Test files
 .tox/
+.pytest_cache/
 
 # Coverage related
 .coverage
