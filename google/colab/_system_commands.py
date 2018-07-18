@@ -192,6 +192,8 @@ def _run_command(cmd, read_stdin_message=None):
     # is equivalent to the merged stdout/stderr outputs.
     with _tags.temporary():
       p = subprocess.Popen(
+          # TODO(b/36984411): Consider always running the command within a bash
+          # subshell.
           cmd,
           shell=True,
           stdout=child_pty,

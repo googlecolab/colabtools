@@ -45,39 +45,42 @@ class SystemCommandsTest(unittest.TestCase):
 
   def testSubprocessStdoutCaptured(self):
     captured_output = self.run_cell('r = %shell echo "hello world"')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual('hello world\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual('hello world\n', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
     self.assertEqual('hello world\n', result.output)
 
   def testSubprocessStderrCaptured(self):
     captured_output = self.run_cell('r = %shell echo "hello world" 1>&2')
+
+    self.assertEqual('hello world\n', captured_output.stderr)
+    self.assertEqual('', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual('', captured_output.stdout)
-    self.assertEqual('hello world\n', captured_output.stderr)
     self.assertEqual('hello world\n', result.output)
 
   def testStdinEchoTurnedOff(self):
     # The -s flag for read disables terminal echoing.
-    captured_output = self.run_cell(
-        'r = %shell read -s result && echo "You typed: $result"',
-        provided_input='cats\n')
+    cmd = 'r = %shell /bin/bash -c \'read -s res && echo "You typed: $res"\''
+    captured_output = self.run_cell(cmd, provided_input='cats\n')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual('You typed: cats\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual('You typed: cats\n', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
     self.assertEqual('You typed: cats\n', result.output)
 
   def testStdinRequired(self):
     captured_output = self.run_cell(
         'r = %shell read result && echo "You typed: $result"',
         provided_input='cats\n')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual('cats\nYou typed: cats\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual('cats\nYou typed: cats\n', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
     self.assertEqual('cats\nYou typed: cats\n', result.output)
 
   def testMoreInputThanReadBySubprocessIsDiscarded(self):
@@ -85,22 +88,24 @@ class SystemCommandsTest(unittest.TestCase):
     # -n flag causes it to return after reading a specified number of characters
     # or a newline is encountered, whichever comes first.
     captured_output = self.run_cell(
-        'r = %shell read -n1 char && echo "You typed: $char"',
+        'r = %shell /bin/bash -c \'read -n1 char && echo "You typed: $char"\'',
         provided_input='cats\n')
-    result = self.ip.user_ns['r']
-    self.assertEqual(0, result.returncode)
+
+    self.assertEqual('', captured_output.stderr)
     # TODO(b/36984411): Isolate why a carriage return is being emitted for the
     # additional input.
     self.assertEqual('cats\r\nYou typed: c\n', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
+    result = self.ip.user_ns['r']
+    self.assertEqual(0, result.returncode)
     self.assertEqual('cats\r\nYou typed: c\n', result.output)
 
   def testSubprocessHasPTY(self):
     captured_output = self.run_cell('r = %shell tty')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertIn('/dev/pts/', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(result.returncode, 0)
-    self.assertIn('/dev/pts/', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
 
   def testErrorPropagatesByDefault(self):
     captured_output = self.run_cell("""
@@ -110,33 +115,36 @@ try:
 except subprocess.CalledProcessError as e:
   caught_exception = e
 """)
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual('', captured_output.stdout)
     result = self.ip.user_ns['caught_exception']
     self.assertEqual(1, result.returncode)
     self.assertEqual('', result.output)
-    self.assertEqual('', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
 
   def testIgnoreErrorsDoesNotPropagate(self):
     captured_output = self.run_cell("""
 %%shell --ignore-errors
 /bin/false
 """)
-    result = self.ip.user_ns['_']
-    self.assertEqual(1, result.returncode)
-    self.assertEqual('', result.output)
+
+    self.assertEqual('', captured_output.stderr)
     # TODO(b/36984411): IPython prints a prompt string when the result of a cell
     # invocation is an object whose __repr__ returns ''.
     self.assertIn(captured_output.stdout, ('', 'Out[1]: \n'))
-    self.assertEqual('', captured_output.stderr)
+    result = self.ip.user_ns['_']
+    self.assertEqual(1, result.returncode)
+    self.assertEqual('', result.output)
 
   def testLargeOutputWrittenAndImmediatelyClosed(self):
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
     captured_output = self.run_cell(
         'r = %shell /bin/bash -c "printf \'%0.s-\' {1..100}"')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(100, len(captured_output.stdout))
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-
-    self.assertEqual(100, len(captured_output.stdout))
 
   @pytest.mark.skipif(
       six.PY3,
@@ -150,11 +158,11 @@ except subprocess.CalledProcessError as e:
     # "猫" is "cats" in simplified Chinese.
     cmd = u'r = %shell read result && echo "You typed: $result"'
     captured_output = self.run_cell(cmd, provided_input=u'猫\n')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual('猫\nYou typed: 猫\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-
-    self.assertEqual('猫\nYou typed: 猫\n', captured_output.stdout)
-    self.assertEqual('', captured_output.stderr)
     self.assertEqual('猫\nYou typed: 猫\n', result.output)
 
   def run_cell(self, cell_contents, provided_input=None):
