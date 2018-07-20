@@ -49,16 +49,23 @@ class SystemCommandsTest(unittest.TestCase):
     else:
       os.environ['LC_ALL'] = self.orig_lc_all
 
-  def testSubprocessOutputCaptured(self):
-    captured_output = self.run_cell("""
-r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
-""")
+  def testSubprocessStdoutCaptured(self):
+    captured_output = self.run_cell('r = %shell echo "hello world"')
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual('hello err, hello out, bye...\n', captured_output.stdout)
+    self.assertEqual('hello world\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual('hello err, hello out, bye...\n', result.output)
+    self.assertEqual('hello world\n', result.output)
+
+  def testSubprocessStderrCaptured(self):
+    captured_output = self.run_cell('r = %shell echo "hello world" 1>&2')
+
+    self.assertEqual('hello world\n', captured_output.stderr)
+    self.assertEqual('', captured_output.stdout)
+    result = self.ip.user_ns['r']
+    self.assertEqual(0, result.returncode)
+    self.assertEqual('hello world\n', result.output)
 
   def testStdinEchoTurnedOff(self):
     # The -s flag for read disables terminal echoing.

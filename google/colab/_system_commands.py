@@ -120,10 +120,10 @@ class ShellResult(object):
 
   Note: This is intended to mimic subprocess.CompletedProcess, but has slightly
   different characteristics, including:
-    * CompletedProcess has separate stdout/stderr properties. A ShellResult
-      has a single property containing the merged stdout/stderr stream,
-      providing compatibility with the existing "!" shell magic (which this is
-      intended to provide an alternative to).
+    * ProcessResult has separate stdout/stderr. The existing "!" shell magic
+      (which this is intended to provide an alternative to) returns unseparated
+      stdout/stderr output that would be difficult to reconstruct from separate
+      streams.
     * A custom __repr__ method that returns output. When the magic is invoked as
       the only statement in the cell, Python prints the string representation by
       default. The existing "!" shell magic also returns output.
@@ -171,10 +171,22 @@ def _run_command(cmd, read_stdin_message=None):
   parent_pty, child_pty = pty.openpty()
   _configure_pty_settings(child_pty)
 
+  # TODO(b/36984411): Having a separate PTY for stderr adds a bit of complexity.
+  # Consider merging stdout/stderr.
+  stderr_parent_pty, stderr_child_pty = pty.openpty()
+  _configure_pty_settings(stderr_child_pty)
+
   epoll = select.epoll()
   epoll.register(
       parent_pty,
       (select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR))
+  epoll.register(stderr_parent_pty,
+                 (select.EPOLLIN | select.EPOLLHUP | select.EPOLLERR))
+
+  pty_to_stream = {
+      parent_pty: sys.stdout,
+      stderr_parent_pty: sys.stderr,
+  }
 
   try:
     # Stdout / stderr writes by the subprocess are streamed to the cell's
@@ -194,67 +206,74 @@ def _run_command(cmd, read_stdin_message=None):
           shell=True,
           stdout=child_pty,
           stdin=child_pty,
-          stderr=child_pty,
+          stderr=stderr_child_pty,
           close_fds=True)
-      # The child PTY is only needed by the spawned process.
+      # child PTYs are only needed by the spawned process.
       os.close(child_pty)
+      os.close(stderr_child_pty)
 
-      return _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message)
+      return _monitor_process(pty_to_stream, epoll, p, cmd, read_stdin_message)
   finally:
     epoll.close()
-    os.close(parent_pty)
+    for parent_pty in pty_to_stream:
+      os.close(parent_pty)
 
 
-def _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message):
+def _monitor_process(pty_to_stream, epoll, p, cmd, read_stdin_message):
   """Monitors the given subprocess until it terminates."""
   process_output = six.StringIO()
 
-  is_pty_still_connected = True
+  connected_ptys = set(pty_to_stream.keys())
 
   # A single UTF-8 character can span multiple bytes. os.read returns bytes and
   # could return a partial byte sequence for a UTF-8 character. Using an
   # incremental decoder is incrementally fed input bytes and emits UTF-8
   # characters.
-  decoder = codecs.getincrementaldecoder(_ENCODING)()
+  pty_to_decoder = {
+      pty_fd: codecs.getincrementaldecoder(_ENCODING)()
+      for pty_fd, _ in pty_to_stream.items()
+  }
 
   while True:
     terminated = p.poll() is not None
     if terminated:
-      termios.tcdrain(parent_pty)
-      # We're no longer interested in write events and only want to consume any
-      # remaining output from the terminated process. Continuing to watch write
-      # events may cause early termination of the loop if no output was
-      # available but the pty was ready for writing.
-      epoll.modify(parent_pty,
-                   (select.EPOLLIN | select.EPOLLHUP | select.EPOLLERR))
+      for stream_pty in pty_to_stream:
+        termios.tcdrain(stream_pty)
+        # We're no longer interested in write events and only want to consume
+        # any remaining output from the terminated process. Continuing to watch
+        # write events may cause early termination of the loop if no output was
+        # available but the pty was ready for writing.
+        epoll.modify(stream_pty,
+                     (select.EPOLLIN | select.EPOLLHUP | select.EPOLLERR))
 
     output_available = False
 
     events = epoll.poll()
     input_events = []
-    for _, event in events:
+    for fd, event in events:
       if event & select.EPOLLIN:
         output_available = True
         # TODO(b/36984411): Convert the PTY to allow non-blocking reads. Then,
         # anytime a readable event occurs, continue reading the PTY until
         # drained so that all available input is flushed.
-        raw_contents = os.read(parent_pty, _PTY_READ_MAX_BYTES_FOR_TEST)
-        decoded_contents = decoder.decode(raw_contents)
+        raw_contents = os.read(fd, _PTY_READ_MAX_BYTES_FOR_TEST)
+        decoded_contents = pty_to_decoder[fd].decode(raw_contents)
 
-        sys.stdout.write(decoded_contents)
-        sys.stdout.flush()
+        stream = pty_to_stream[fd]
+        stream.write(decoded_contents)
+        stream.flush()
         process_output.write(decoded_contents)
 
       if event & select.EPOLLOUT:
         # Queue polling for inputs behind processing output events.
-        input_events.append(event)
+        input_events.append((fd, event))
 
       # PTY was disconnected or encountered a connection error. In either case,
       # no new output should be made available.
       if (event & select.EPOLLHUP) or (event & select.EPOLLERR):
-        is_pty_still_connected = False
+        connected_ptys.discard(fd)
 
-    for event in input_events:
+    for fd, event in input_events:
       # Check to see if there is any input on the stdin socket.
       input_line = read_stdin_message()
       if input_line is not None:
@@ -265,13 +284,13 @@ def _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message):
         # buffer limit is ~12K, which shouldn't be a problem in most
         # scenarios. As such, optimizing for simplicity.
         input_bytes = bytes(input_line.encode(_ENCODING))
-        os.write(parent_pty, input_bytes)
+        os.write(fd, input_bytes)
 
     # Once the process is terminated, there still may be output to be read from
-    # the PTY. Wait until the PTY has been disconnected and no more data is
+    # the PTYs. Wait until PTYs have been disconnected and no more data is
     # available for read. Simply waiting for disconnect may be insufficient if
     # there is more data made available on the PTY than we consume in a single
     # read call.
-    if terminated and not is_pty_still_connected and not output_available:
+    if terminated and not connected_ptys and not output_available:
       command_output = process_output.getvalue()
       return ShellResult(cmd, p.returncode, command_output)
