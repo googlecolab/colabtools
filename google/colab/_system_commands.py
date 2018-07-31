@@ -139,8 +139,11 @@ class ShellResult(object):
       raise subprocess.CalledProcessError(
           returncode=self.returncode, cmd=self.args, output=self.output)
 
-  def __repr__(self):
-    return self.output
+  def _repr_pretty_(self, p, cycle):
+    if cycle:
+      raise NotImplementedError
+    else:
+      p.text(self.output)
 
 
 def _configure_pty_settings(pty_fd):

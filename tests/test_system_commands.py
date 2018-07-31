@@ -26,6 +26,7 @@ import unittest
 
 import IPython
 from IPython.core import interactiveshell
+from IPython.lib import pretty
 from IPython.utils import io
 from google.colab import _system_commands
 
@@ -170,6 +171,11 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
     self.assertEqual(u'猫\nYou typed: 猫\n', result.output)
+
+    # Ensure the result can be pretty-printed. Jupyter displays the
+    # pretty-printed representation of the object from the last statement of the
+    # cell.
+    self.assertEqual(u'猫\nYou typed: 猫\n', pretty.pretty(result))
 
   def testNonUtf8Locale(self):
     # The "C" locale uses the US-ASCII 7-bit character set.
