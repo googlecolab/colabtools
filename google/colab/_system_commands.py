@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import codecs
+import locale
 import os
 import pty
 import select
@@ -27,11 +29,12 @@ import termios
 from IPython.core import magic
 from IPython.core import magic_arguments
 import six
-from six.moves import cStringIO
 from google.colab import _message
 from google.colab.output import _tags
 
 _PTY_READ_MAX_BYTES_FOR_TEST = 1024
+
+_ENCODING = 'UTF-8'
 
 
 @magic.magics_class
@@ -154,6 +157,11 @@ def _configure_pty_settings(pty_fd):
 
 def _run_command(cmd, read_stdin_message=None):
   """Calls the shell command, forwarding input received on the stdin_socket."""
+  locale_encoding = locale.getpreferredencoding()
+  if locale_encoding != _ENCODING:
+    raise NotImplementedError(
+        'A UTF-8 locale is required. Got {}'.format(locale_encoding))
+
   # TODO(b/36984411): Create a UI widget to capture stdin and forward an
   # input_reply to the kernel.
   # pylint: disable=protected-access
@@ -213,9 +221,18 @@ def _run_command(cmd, read_stdin_message=None):
 
 def _monitor_process(pty_to_stream, epoll, p, cmd, read_stdin_message):
   """Monitors the given subprocess until it terminates."""
-  process_output = cStringIO()
+  process_output = six.StringIO()
 
   connected_ptys = set(pty_to_stream.keys())
+
+  # A single UTF-8 character can span multiple bytes. os.read returns bytes and
+  # could return a partial byte sequence for a UTF-8 character. Using an
+  # incremental decoder is incrementally fed input bytes and emits UTF-8
+  # characters.
+  pty_to_decoder = {
+      pty_fd: codecs.getincrementaldecoder(_ENCODING)()
+      for pty_fd, _ in pty_to_stream.items()
+  }
 
   while True:
     terminated = p.poll() is not None
@@ -239,17 +256,13 @@ def _monitor_process(pty_to_stream, epoll, p, cmd, read_stdin_message):
         # TODO(b/36984411): Convert the PTY to allow non-blocking reads. Then,
         # anytime a readable event occurs, continue reading the PTY until
         # drained so that all available input is flushed.
-        contents = os.read(fd, _PTY_READ_MAX_BYTES_FOR_TEST)
-        # TODO(b/36984411): Python 3 returns bytes from calls to os.read.
-        # StringIO don't accept bytes. Tests and process_output need to be
-        # adapated to use BytesIO.
-        if six.PY3:
-          contents = contents.decode('utf8')
+        raw_contents = os.read(fd, _PTY_READ_MAX_BYTES_FOR_TEST)
+        decoded_contents = pty_to_decoder[fd].decode(raw_contents)
 
         stream = pty_to_stream[fd]
-        stream.write(contents)
+        stream.write(decoded_contents)
         stream.flush()
-        process_output.write(contents)
+        process_output.write(decoded_contents)
 
       if event & select.EPOLLOUT:
         # Queue polling for inputs behind processing output events.
@@ -264,19 +277,13 @@ def _monitor_process(pty_to_stream, epoll, p, cmd, read_stdin_message):
       # Check to see if there is any input on the stdin socket.
       input_line = read_stdin_message()
       if input_line is not None:
-        # TODO(b/36984411): Be agnostic about input encoding and assume that
-        # bytes are being returned by read_stdin_message.
-        if six.PY2:
-          input_bytes = bytes(input_line.encode('utf8'))
-        else:
-          input_bytes = bytes(input_line, encoding='utf8')
-
         # If a very large input or sequence of inputs is available, it's
         # possible that the PTY buffer could be filled and this write call
         # would block. To work around this, non-blocking writes and keeping
         # a list of to-be-written inputs could be used. Empirically, the
         # buffer limit is ~12K, which shouldn't be a problem in most
         # scenarios. As such, optimizing for simplicity.
+        input_bytes = bytes(input_line.encode(_ENCODING))
         os.write(fd, input_bytes)
 
     # Once the process is terminated, there still may be output to be read from
