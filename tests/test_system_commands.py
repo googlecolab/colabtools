@@ -72,7 +72,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
 
   def testStdinEchoTurnedOff(self):
     # The -s flag for read disables terminal echoing.
-    cmd = 'r = %shell /bin/bash -c \'read -s res && echo "You typed: $res"\''
+    cmd = 'r = %shell read -s res && echo "You typed: $res"'
     captured_output = self.run_cell(cmd, provided_input='cats\n')
 
     self.assertEqual('', captured_output.stderr)
@@ -97,7 +97,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     # -n flag causes it to return after reading a specified number of characters
     # or a newline is encountered, whichever comes first.
     captured_output = self.run_cell(
-        'r = %shell /bin/bash -c \'read -n1 char && echo "You typed: $char"\'',
+        'r = %shell read -n1 char && echo "You typed: $char"',
         provided_input='cats\n')
 
     self.assertEqual('', captured_output.stderr)
@@ -149,13 +149,22 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
 
   def testLargeOutputWrittenAndImmediatelyClosed(self):
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
-    captured_output = self.run_cell(
-        'r = %shell /bin/bash -c "printf \'%0.s-\' {1..100}"')
+    captured_output = self.run_cell('r = %shell printf "%0.s-" {1..100}')
 
     self.assertEqual('', captured_output.stderr)
     self.assertEqual(100, len(captured_output.stdout))
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
+
+  def testRunsInBashShell(self):
+    # The "BASH" environment variable is set for all bash shells.
+    captured_output = self.run_cell('r = %shell echo "$BASH"')
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual('/bin/bash\n', captured_output.stdout)
+    result = self.ip.user_ns['r']
+    self.assertEqual(0, result.returncode)
+    self.assertEqual('/bin/bash\n', result.output)
 
   def testUnicodeCmd(self):
     # "小狗" is "dogs" in simplified Chinese.

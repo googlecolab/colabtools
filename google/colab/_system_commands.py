@@ -49,7 +49,8 @@ class _ShellMagics(magic.Magics):
 
     This is similar to Jupyter's `!` magic, but additionally allows input to be
     provided to the subprocess. If the subprocess returns a non-zero exit code
-    a `subprocess.CalledProcessError` is raised.
+    a `subprocess.CalledProcessError` is raised. The provided command is run
+    within a bash shell.
 
     Also available as a cell magic.
 
@@ -91,7 +92,8 @@ class _ShellMagics(magic.Magics):
 
     This is similar to Jupyter's `!` magic, but additionally allows input to be
     provided to the subprocess. By default, if the subprocess returns a non-zero
-    exit code a `subprocess.CalledProcessError` is raised.
+    exit code a `subprocess.CalledProcessError` is raised. The provided command
+    is run within a bash shell.
 
     Args:
       args: Optional arguments.
@@ -183,10 +185,9 @@ def _run_command(cmd):
     # is equivalent to the merged stdout/stderr outputs.
     with _tags.temporary(), display_stdin_widget(delay_millis=500):
       p = subprocess.Popen(
-          # TODO(b/36984411): Consider always running the command within a bash
-          # subshell.
           cmd,
           shell=True,
+          executable='/bin/bash',
           stdout=child_pty,
           stdin=child_pty,
           stderr=child_pty,
