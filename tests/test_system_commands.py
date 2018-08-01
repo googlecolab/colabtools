@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import contextlib
 import os
 import textwrap
 import threading
@@ -28,7 +29,16 @@ import IPython
 from IPython.core import interactiveshell
 from IPython.lib import pretty
 from IPython.utils import io
+from google.colab import _ipython
+from google.colab import _message
 from google.colab import _system_commands
+
+#  pylint:disable=g-import-not-at-top
+try:
+  from unittest import mock
+except ImportError:
+  import mock
+#  pylint:enable=g-import-not-at-top
 
 
 class SystemCommandsTest(unittest.TestCase):
@@ -36,8 +46,7 @@ class SystemCommandsTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     ipython = interactiveshell.InteractiveShell.instance()
-    ipython.kernel = object()
-
+    ipython.kernel = mock.Mock()
     cls.ip = IPython.get_ipython()
     cls.orig_pty_max_read_bytes = _system_commands._PTY_READ_MAX_BYTES_FOR_TEST
     cls.orig_lc_all = os.environ.get('LC_ALL')
@@ -210,15 +219,24 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     # asynchronously provide input by periodically popping the content and
     # forwarding it to the subprocess.
     def worker(inputs, result_container):
-      magic = _system_commands._ShellMagics(
-          self.ip, read_stdin_message=lambda: inputs.pop(0) if inputs else None)
+      stdin_provider = lambda: inputs.pop(0) if inputs else None
+      with \
+        mock.patch.object(
+            _message,
+            '_read_stdin_message',
+            side_effect=stdin_provider,
+            autospec=True), \
+        mock.patch.object(
+            _system_commands,
+            'display_stdin_widget',
+            mock_stdin_widget):
+        magic = _system_commands._ShellMagics()
+        self.ip.register_magics(magic)
 
-      self.ip.register_magics(magic)
+        with io.capture_output() as captured:
+          self.ip.run_cell(cell_contents)
 
-      with io.capture_output() as captured:
-        self.ip.run_cell(cell_contents)
-
-      result_container['output'] = captured
+        result_container['output'] = captured
 
     result = {}
     input_queue = []
@@ -238,3 +256,25 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertFalse(t.is_alive())
 
     return result['output']
+
+
+class DisplayStdinWidgetTest(unittest.TestCase):
+
+  @mock.patch.object(_ipython, 'get_ipython', autospec=True)
+  @mock.patch.object(_message, 'send_request', autospec=True)
+  def testMessagesSent(self, mock_send_request, mock_get_ipython):
+    mock_shell = mock.MagicMock(parent_header='12345')
+    mock_get_ipython.return_value = mock_shell
+
+    with _system_commands.display_stdin_widget(delay_millis=1000):
+      pass
+
+    mock_send_request.assert_has_calls([
+        mock.call('cell_display_stdin', {'delayMillis': 1000}, parent='12345'),
+        mock.call('cell_remove_stdin', {}, parent='12345'),
+    ])
+
+
+@contextlib.contextmanager
+def mock_stdin_widget(*unused_args, **unused_kwargs):
+  yield

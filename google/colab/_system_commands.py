@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import codecs
+import contextlib
 import locale
 import os
 import pty
@@ -29,6 +30,7 @@ import termios
 from IPython.core import magic
 from IPython.core import magic_arguments
 import six
+from google.colab import _ipython
 from google.colab import _message
 from google.colab.output import _tags
 
@@ -40,10 +42,6 @@ _ENCODING = 'UTF-8'
 @magic.magics_class
 class _ShellMagics(magic.Magics):
   """Magics for executing shell commands."""
-
-  def __init__(self, shell, **call_process_kwargs):
-    super(_ShellMagics, self).__init__(shell)
-    self._call_process_kwargs = call_process_kwargs or {}
 
   @magic.line_magic('shell')
   def _shell_line_magic(self, line):
@@ -69,7 +67,7 @@ class _ShellMagics(magic.Magics):
       subprocess.CalledProcessError: If the subprocess exited with a non-zero
         exit code.
     """
-    result = _run_command(line, **self._call_process_kwargs)
+    result = _run_command(line)
     result.check_returncode()
     return result
 
@@ -109,7 +107,7 @@ class _ShellMagics(magic.Magics):
 
     parsed_args = magic_arguments.parse_argstring(self._shell_cell_magic, args)
 
-    result = _run_command(cmd, **self._call_process_kwargs)
+    result = _run_command(cmd)
     if not parsed_args.ignore_errors:
       result.check_returncode()
     return result
@@ -158,18 +156,12 @@ def _configure_pty_settings(pty_fd):
   termios.tcsetattr(pty_fd, termios.TCSANOW, term_settings)
 
 
-def _run_command(cmd, read_stdin_message=None):
+def _run_command(cmd):
   """Calls the shell command, forwarding input received on the stdin_socket."""
   locale_encoding = locale.getpreferredencoding()
   if locale_encoding != _ENCODING:
     raise NotImplementedError(
         'A UTF-8 locale is required. Got {}'.format(locale_encoding))
-
-  # TODO(b/36984411): Create a UI widget to capture stdin and forward an
-  # input_reply to the kernel.
-  # pylint: disable=protected-access
-  read_stdin_message = read_stdin_message or _message._read_stdin_message
-  # pylint: enable=protected-access
 
   parent_pty, child_pty = pty.openpty()
   _configure_pty_settings(child_pty)
@@ -189,7 +181,7 @@ def _run_command(cmd, read_stdin_message=None):
     # (e.g. %shell echo "foo"), Python's default semantics will be used and
     # print the string representation of the resultant ShellResult, which
     # is equivalent to the merged stdout/stderr outputs.
-    with _tags.temporary():
+    with _tags.temporary(), display_stdin_widget(delay_millis=500):
       p = subprocess.Popen(
           # TODO(b/36984411): Consider always running the command within a bash
           # subshell.
@@ -202,13 +194,13 @@ def _run_command(cmd, read_stdin_message=None):
       # The child PTY is only needed by the spawned process.
       os.close(child_pty)
 
-      return _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message)
+      return _monitor_process(parent_pty, epoll, p, cmd)
   finally:
     epoll.close()
     os.close(parent_pty)
 
 
-def _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message):
+def _monitor_process(parent_pty, epoll, p, cmd):
   """Monitors the given subprocess until it terminates."""
   process_output = six.StringIO()
 
@@ -259,7 +251,9 @@ def _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message):
 
     for event in input_events:
       # Check to see if there is any input on the stdin socket.
-      input_line = read_stdin_message()
+      # pylint: disable=protected-access
+      input_line = _message._read_stdin_message()
+      # pylint: enable=protected-access
       if input_line is not None:
         # If a very large input or sequence of inputs is available, it's
         # possible that the PTY buffer could be filled and this write call
@@ -278,3 +272,16 @@ def _monitor_process(parent_pty, epoll, p, cmd, read_stdin_message):
     if terminated and not is_pty_still_connected and not output_available:
       command_output = process_output.getvalue()
       return ShellResult(cmd, p.returncode, command_output)
+
+
+@contextlib.contextmanager
+def display_stdin_widget(delay_millis=0):
+  """Context manager that displays a stdin UI widget and hides it upon exit."""
+  shell = _ipython.get_ipython()
+  display_args = ['cell_display_stdin', {'delayMillis': delay_millis}]
+  _message.send_request(*display_args, parent=shell.parent_header)
+
+  yield
+
+  hide_args = ['cell_remove_stdin', {}]
+  _message.send_request(*hide_args, parent=shell.parent_header)
