@@ -101,8 +101,11 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
         provided_input='cats\n')
 
     self.assertEqual('', captured_output.stderr)
-    # TODO(b/36984411): Isolate why a carriage return is being emitted for the
-    # additional input.
+    # Bash's read command modifies terminal settings when  the "-n" flag is
+    # provided to put the terminal in one-char-at-a-time mode. This
+    # unconditionally sets the ONLCR oflag, which causes input echoing to map NL
+    # to CR-NL on output:
+    # http://git.savannah.gnu.org/cgit/bash.git/tree/lib/sh/shtty.c?id=64447609994bfddeef1061948022c074093e9a9f#n128
     self.assertEqual('cats\r\nYou typed: c\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
@@ -140,9 +143,11 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
       """))
 
     self.assertEqual('', captured_output.stderr)
-    # TODO(b/36984411): IPython prints a prompt string when the result of a cell
-    # invocation is an object whose __repr__ returns ''.
-    self.assertIn(captured_output.stdout, ('', 'Out[1]: \n'))
+    # IPython displays the result of the last statement executed (unless it is
+    # None) with a "Out[1]: " prefix. When using io.capture_output(), older
+    # versions of IPython don't appear to capture this prompt in the stdout
+    # stream. Due to this, we don't assert anything about the stdout output. If
+    # an error is thrown, then accessing the "_" variable will fail.
     result = self.ip.user_ns['_']
     self.assertEqual(1, result.returncode)
     self.assertEqual('', result.output)
