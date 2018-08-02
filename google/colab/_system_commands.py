@@ -34,7 +34,8 @@ from google.colab import _ipython
 from google.colab import _message
 from google.colab.output import _tags
 
-_PTY_READ_MAX_BYTES_FOR_TEST = 1024
+# Linux read(2) limits to 0x7ffff000 so stay under that for clarity.
+_PTY_READ_MAX_BYTES_FOR_TEST = 2**20  # 1MB
 
 _ENCODING = 'UTF-8'
 
@@ -146,7 +147,7 @@ class ShellResult(object):
       p.text(self.output)
 
 
-def _configure_pty_settings(pty_fd):
+def _configure_term_settings(pty_fd):
   term_settings = termios.tcgetattr(pty_fd)
   # ONLCR transforms NL to CR-NL, which is undesirable. Ensure this is disabled.
   # http://man7.org/linux/man-pages/man3/termios.3.html
@@ -166,7 +167,7 @@ def _run_command(cmd):
         'A UTF-8 locale is required. Got {}'.format(locale_encoding))
 
   parent_pty, child_pty = pty.openpty()
-  _configure_pty_settings(child_pty)
+  _configure_term_settings(child_pty)
 
   epoll = select.epoll()
   epoll.register(
@@ -231,9 +232,6 @@ def _monitor_process(parent_pty, epoll, p, cmd):
     for _, event in events:
       if event & select.EPOLLIN:
         output_available = True
-        # TODO(b/36984411): Convert the PTY to allow non-blocking reads. Then,
-        # anytime a readable event occurs, continue reading the PTY until
-        # drained so that all available input is flushed.
         raw_contents = os.read(parent_pty, _PTY_READ_MAX_BYTES_FOR_TEST)
         decoded_contents = decoder.decode(raw_contents)
 
