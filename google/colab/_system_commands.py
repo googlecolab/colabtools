@@ -27,7 +27,6 @@ import subprocess
 import sys
 import termios
 
-from IPython.core import magic
 from IPython.core import magic_arguments
 import six
 from google.colab import _ipython
@@ -40,80 +39,75 @@ _PTY_READ_MAX_BYTES_FOR_TEST = 2**20  # 1MB
 _ENCODING = 'UTF-8'
 
 
-@magic.magics_class
-class _ShellMagics(magic.Magics):
-  """Magics for executing shell commands."""
+def _shell_line_magic(line):
+  """Runs a shell command, allowing input to be provided.
 
-  @magic.line_magic('shell')
-  def _shell_line_magic(self, line):
-    """Runs a shell command, allowing input to be provided.
+  This is similar to Jupyter's `!` magic, but additionally allows input to be
+  provided to the subprocess. If the subprocess returns a non-zero exit code
+  a `subprocess.CalledProcessError` is raised. The provided command is run
+  within a bash shell.
 
-    This is similar to Jupyter's `!` magic, but additionally allows input to be
-    provided to the subprocess. If the subprocess returns a non-zero exit code
-    a `subprocess.CalledProcessError` is raised. The provided command is run
-    within a bash shell.
+  Also available as a cell magic.
 
-    Also available as a cell magic.
+  Usage:
+    # Returns a ShellResult.
+    f = %shell echo "hello"
 
-    Usage:
-      # Returns a ShellResult.
-      f = %shell echo "hello"
+  Args:
+    line: The shell command to execute.
 
-    Args:
-      line: The shell command to execute.
+  Returns:
+    ShellResult containing the results of the executed command.
 
-    Returns:
-      ShellResult containing the results of the executed command.
+  Raises:
+    subprocess.CalledProcessError: If the subprocess exited with a non-zero
+      exit code.
+  """
+  result = _run_command(line)
+  result.check_returncode()
+  return result
 
-    Raises:
-      subprocess.CalledProcessError: If the subprocess exited with a non-zero
-        exit code.
-    """
-    result = _run_command(line)
+
+@magic_arguments.magic_arguments()
+@magic_arguments.argument(
+    '--ignore-errors',
+    dest='ignore_errors',
+    action='store_true',
+    help=('Don\'t raise a `subprocess.CalledProcessError` when the '
+          'subprocess returns a non-0 exit code.'))
+def _shell_cell_magic(args, cmd):
+  """Run the cell via a shell command, allowing input to be provided.
+
+  Also available as a line magic.
+
+  Usage:
+    # Returns a ShellResult.
+    %%shell
+    echo "hello"
+
+  This is similar to Jupyter's `!` magic, but additionally allows input to be
+  provided to the subprocess. By default, if the subprocess returns a non-zero
+  exit code a `subprocess.CalledProcessError` is raised. The provided command
+  is run within a bash shell.
+
+  Args:
+    args: Optional arguments.
+    cmd: The shell command to execute.
+
+  Returns:
+    ShellResult containing the results of the executed command.
+
+  Raises:
+    subprocess.CalledProcessError: If the subprocess exited with a non-zero
+      exit code and the `ignore_errors` argument wasn't provided.
+  """
+
+  parsed_args = magic_arguments.parse_argstring(_shell_cell_magic, args)
+
+  result = _run_command(cmd)
+  if not parsed_args.ignore_errors:
     result.check_returncode()
-    return result
-
-  @magic.cell_magic('shell')
-  @magic_arguments.magic_arguments()
-  @magic_arguments.argument(
-      '--ignore-errors',
-      dest='ignore_errors',
-      action='store_true',
-      help=('Don\'t raise a `subprocess.CalledProcessError` when the '
-            'subprocess returns a non-0 exit code.'))
-  def _shell_cell_magic(self, args, cmd):
-    """Run the cell via a shell command, allowing input to be provided.
-
-    Also available as a line magic.
-
-    Usage:
-      # Returns a ShellResult.
-      %%shell
-      echo "hello"
-
-    This is similar to Jupyter's `!` magic, but additionally allows input to be
-    provided to the subprocess. By default, if the subprocess returns a non-zero
-    exit code a `subprocess.CalledProcessError` is raised. The provided command
-    is run within a bash shell.
-
-    Args:
-      args: Optional arguments.
-      cmd: The shell command to execute.
-
-    Returns:
-      ShellResult containing the results of the executed command.
-
-    Raises:
-      subprocess.CalledProcessError: If the subprocess exited with a non-zero
-        exit code and the `ignore_errors` argument wasn't provided.
-    """
-
-    parsed_args = magic_arguments.parse_argstring(self._shell_cell_magic, args)
-
-    result = _run_command(cmd)
-    if not parsed_args.ignore_errors:
-      result.check_returncode()
-    return result
+  return result
 
 
 class ShellResult(object):
@@ -184,7 +178,7 @@ def _run_command(cmd):
     # (e.g. %shell echo "foo"), Python's default semantics will be used and
     # print the string representation of the resultant ShellResult, which
     # is equivalent to the merged stdout/stderr outputs.
-    with _tags.temporary(), display_stdin_widget(delay_millis=500):
+    with _tags.temporary(), _display_stdin_widget(delay_millis=500):
       p = subprocess.Popen(
           cmd,
           shell=True,
@@ -274,7 +268,7 @@ def _monitor_process(parent_pty, epoll, p, cmd):
 
 
 @contextlib.contextmanager
-def display_stdin_widget(delay_millis=0):
+def _display_stdin_widget(delay_millis=0):
   """Context manager that displays a stdin UI widget and hides it upon exit."""
   shell = _ipython.get_ipython()
   display_args = ['cell_display_stdin', {'delayMillis': delay_millis}]
@@ -284,3 +278,10 @@ def display_stdin_widget(delay_millis=0):
 
   hide_args = ['cell_remove_stdin', {}]
   _message.send_request(*hide_args, parent=shell.parent_header)
+
+
+def _register_magics(ip):
+  ip.register_magic_function(
+      _shell_line_magic, magic_kind='line', magic_name='shell')
+  ip.register_magic_function(
+      _shell_cell_magic, magic_kind='cell', magic_name='shell')

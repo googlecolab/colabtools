@@ -242,10 +242,9 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
             autospec=True), \
         mock.patch.object(
             _system_commands,
-            'display_stdin_widget',
+            '_display_stdin_widget',
             mock_stdin_widget):
-        magic = _system_commands._ShellMagics()
-        self.ip.register_magics(magic)
+        _system_commands._register_magics(self.ip)
 
         with io.capture_output() as captured:
           self.ip.run_cell(cell_contents)
@@ -280,7 +279,7 @@ class DisplayStdinWidgetTest(unittest.TestCase):
     mock_shell = mock.MagicMock(parent_header='12345')
     mock_get_ipython.return_value = mock_shell
 
-    with _system_commands.display_stdin_widget(delay_millis=1000):
+    with _system_commands._display_stdin_widget(delay_millis=1000):
       pass
 
     mock_send_request.assert_has_calls([

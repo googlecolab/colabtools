@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from google.colab import _shell_customizations
+from google.colab import _system_commands
 from google.colab import auth
 from google.colab import files
 from google.colab import output
@@ -35,3 +37,9 @@ def _jupyter_nbextension_paths():
       'section': 'notebook',
       'src': 'resources',
   }]
+
+
+def load_ipython_extension(ipython):
+  """Called by IPython when this module is loaded as an IPython extension."""
+  _shell_customizations.initialize()
+  _system_commands._register_magics(ipython)  # pylint:disable=protected-access
