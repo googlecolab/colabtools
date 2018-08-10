@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import contextlib
 import os
+import signal
 import textwrap
 import threading
 import time
@@ -73,7 +74,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
   def testStdinEchoTurnedOff(self):
     # The -s flag for read disables terminal echoing.
     cmd = 'r = %shell read -s res && echo "You typed: $res"'
-    captured_output = self.run_cell(cmd, provided_input='cats\n')
+    captured_output = self.run_cell(cmd, provided_inputs=['cats\n'])
 
     self.assertEqual('', captured_output.stderr)
     self.assertEqual('You typed: cats\n', captured_output.stdout)
@@ -84,7 +85,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
   def testStdinRequired(self):
     captured_output = self.run_cell(
         'r = %shell read result && echo "You typed: $result"',
-        provided_input='cats\n')
+        provided_inputs=['cats\n'])
 
     self.assertEqual('', captured_output.stderr)
     self.assertEqual('cats\nYou typed: cats\n', captured_output.stdout)
@@ -98,7 +99,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     # or a newline is encountered, whichever comes first.
     captured_output = self.run_cell(
         'r = %shell read -n1 char && echo "You typed: $char"',
-        provided_input='cats\n')
+        provided_inputs=['cats\n'])
 
     self.assertEqual('', captured_output.stderr)
     # Bash's read command modifies terminal settings when  the "-n" flag is
@@ -187,7 +188,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     # character is preserved.
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
     cmd = u'r = %shell read result && echo "You typed: $result"'
-    captured_output = self.run_cell(cmd, provided_input=u'猫\n')
+    captured_output = self.run_cell(cmd, provided_inputs=[u'猫\n'])
 
     self.assertEqual('', captured_output.stderr)
     self.assertEqual(u'猫\nYou typed: 猫\n', captured_output.stdout)
@@ -199,6 +200,55 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     # pretty-printed representation of the object from the last statement of the
     # cell.
     self.assertEqual(u'猫\nYou typed: 猫\n', pretty.pretty(result))
+
+  def testFirstInterruptSendsSigInt(self):
+    captured_output = self.run_cell(
+        textwrap.dedent("""
+      %%shell --ignore-errors
+      echo 'Before sleep'
+      read -t 600
+      echo 'Invalid. Read call should never terminate.'
+      """),
+        provided_inputs=['interrupt'])
+
+    self.assertEqual('', captured_output.stderr)
+    result = self.ip.user_ns['_']
+    self.assertEqual(-signal.SIGINT, result.returncode)
+    self.assertEqual('Before sleep\n', result.output)
+
+  def testSecondInterruptSendsSigTerm(self):
+    captured_output = self.run_cell(
+        textwrap.dedent("""
+      %%shell --ignore-errors
+      # Trapping with an empty command causes the signal to be ignored.
+      trap '' SIGINT
+      echo 'Before sleep'
+      read -t 600
+      echo 'Invalid. Read call should never terminate.'
+      """),
+        provided_inputs=['interrupt', 'interrupt'])
+
+    self.assertEqual('', captured_output.stderr)
+    result = self.ip.user_ns['_']
+    self.assertEqual(-signal.SIGTERM, result.returncode)
+    self.assertEqual('Before sleep\n', result.output)
+
+  def testSecondInterruptSendsSigKillAfterSigterm(self):
+    captured_output = self.run_cell(
+        textwrap.dedent("""
+      %%shell --ignore-errors
+      # Trapping with an empty command causes the signal to be ignored.
+      trap '' SIGINT SIGTERM
+      echo 'Before sleep'
+      read -t 600
+      echo 'Invalid. Read call should never terminate.'
+      """),
+        provided_inputs=['interrupt', 'interrupt'])
+
+    self.assertEqual('', captured_output.stderr)
+    result = self.ip.user_ns['_']
+    self.assertEqual(-signal.SIGKILL, result.returncode)
+    self.assertEqual('Before sleep\n', result.output)
 
   def testNonUtf8Locale(self):
     # The "C" locale uses the US-ASCII 7-bit character set.
@@ -217,12 +267,12 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual('', captured_output.stdout)
     self.assertIsNotNone(self.ip.user_ns['caught_exception'])
 
-  def run_cell(self, cell_contents, provided_input=None):
+  def run_cell(self, cell_contents, provided_inputs=None):
     """Execute the cell contents, optionally providing input to the subprocess.
 
     Args:
       cell_contents: Code to execute.
-      provided_input: Input provided to the executing shell magic.
+      provided_inputs: Input provided to the executing shell magic.
 
     Returns:
       Captured IPython output during execution.
@@ -233,12 +283,21 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     # asynchronously provide input by periodically popping the content and
     # forwarding it to the subprocess.
     def worker(inputs, result_container):
-      stdin_provider = lambda: inputs.pop(0) if inputs else None
+
+      def mock_stdin_provider():
+        if not inputs:
+          return None
+
+        val = inputs.pop(0)
+        if val == 'interrupt':
+          raise KeyboardInterrupt
+        return val
+
       with \
         mock.patch.object(
             _message,
             '_read_stdin_message',
-            side_effect=stdin_provider,
+            side_effect=mock_stdin_provider,
             autospec=True), \
         mock.patch.object(
             _system_commands,
@@ -261,7 +320,8 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     t.daemon = True
     t.start()
 
-    if provided_input is not None:
+    provided_inputs = provided_inputs or []
+    for provided_input in provided_inputs:
       time.sleep(2)
       input_queue.append(provided_input)
 
