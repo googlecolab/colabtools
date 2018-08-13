@@ -88,15 +88,13 @@ def _gcloud_login(clear_output):
 
 
 def _get_adc_path():
-  return os.path.join(
-      os.environ.get('DATALAB_ROOT', '/'), 'content/datalab/adc.json')
+  return os.path.join(os.environ.get('DATALAB_ROOT', '/'), 'content/adc.json')
 
 
 def _install_adc():
   """Install the gcloud token as the Application Default Credential."""
   gcloud_db_path = os.path.join(
-      os.environ.get('DATALAB_ROOT', '/'),
-      'content/datalab/.config/credentials.db')
+      os.environ.get('DATALAB_ROOT', '/'), 'content/.config/credentials.db')
   db = sqlite3.connect(gcloud_db_path)
   c = db.cursor()
   ls = list(c.execute('SELECT * FROM credentials;'))
