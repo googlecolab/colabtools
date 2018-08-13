@@ -16,6 +16,15 @@
 from setuptools import find_packages
 from setuptools import setup
 
+DEPENDENCIES = (
+    'notebook>=5.0',
+    'six>=1.4.0',
+    'tornado>=4.5',
+    'portpicker',
+    'google-auth',
+    'requests',
+)
+
 setup(
     name='google-colab',
     version='0.0.1a1',
@@ -25,6 +34,7 @@ setup(
     long_description='Colaboratory-specific python libraries.',
     url='https://colaboratory.research.google.com/',
     packages=find_packages(exclude=('tests*',)),
+    install_requires=DEPENDENCIES,
     namespace_packages=('google',),
     license='Apache 2.0',
     keywords='google colab ipython jupyter',
