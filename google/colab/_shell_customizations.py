@@ -148,3 +148,40 @@ class _CustomErrorHandlers(object):
         },],
     }
     return msg, details
+
+
+def compute_completion_metadata(shell, matches):
+  """Computes completion item metadata.
+
+  Args:
+    shell: IPython shell
+    matches: List of string completion matches.
+
+  Returns:
+    Metadata for each of the matches.
+  """
+
+  # We want to temporarily change the default level of detail returned by the
+  # inspector, to avoid slow completions (cf b/112153563).
+  old_str_detail_level = shell.inspector.str_detail_level
+  shell.inspector.str_detail_level = 1
+  try:
+    infos = []
+    for match in matches:
+      info = {}
+      if '#' in match:
+        # Runtime type information added by customization._add_type_information.
+        info['type_name'] = match.split('#')[1]
+      else:
+        inspect_results = shell.object_inspect(match)
+        # Use object_inspect to find the type and filter to only what is needed
+        # since there can be a lot of completions to send.
+        info['type_name'] = inspect_results['type_name']
+        if inspect_results['definition']:
+          info['definition'] = inspect_results['definition']
+        elif inspect_results['init_definition']:
+          info['definition'] = inspect_results['init_definition']
+      infos.append(info)
+    return infos
+  finally:
+    shell.inspector.str_detail_level = old_str_detail_level
