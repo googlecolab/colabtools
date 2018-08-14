@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import contextlib
 import getpass
 import logging
 import os
@@ -25,10 +26,10 @@ import subprocess
 import tempfile
 import time
 
-from IPython import display
 import google.auth
 import google.auth.transport.requests
 from google.colab import errors
+from google.colab import output
 
 
 def _check_adc():
@@ -45,7 +46,7 @@ def _check_adc():
   return creds.valid
 
 
-def _gcloud_login(clear_output):
+def _gcloud_login():
   """Call `gcloud auth login` with custom input handling."""
   # We want to run gcloud and provide user input on stdin; in order to do this,
   # we explicitly buffer the gcloud output and print it ourselves.
@@ -82,9 +83,6 @@ def _gcloud_login(clear_output):
     os.remove(name)
   if gcloud_process.returncode:
     raise errors.AuthorizationError('Error fetching credentials')
-  # TODO(b/67784756): Switch to using tagged outputs.
-  if clear_output:
-    display.clear_output(wait=False)
 
 
 def _get_adc_path():
@@ -103,6 +101,12 @@ def _install_adc():
     f.write(ls[0][1])
 
 
+@contextlib.contextmanager
+def _noop():
+  """Null context manager, like contextlib.nullcontext in python 3.7+."""
+  yield
+
+
 # pylint:disable=line-too-long
 def authenticate_user(clear_output=True):
   """Ensures that the given user is authenticated.
@@ -112,9 +116,9 @@ def authenticate_user(clear_output=True):
   are available and valid.
 
   Args:
-    clear_output: (optional, default: True) If True, clear the output after
-        successfully completing the authorization process. NOTE: this currently
-        clears ALL cell output.
+    clear_output: (optional, default: True) If True, clear any output related to
+        the authorization process if it completes successfully. Any errors will
+        remain (for debugging purposes).
 
   Returns:
     None.
@@ -126,7 +130,9 @@ def authenticate_user(clear_output=True):
     return
   os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
   if not _check_adc():
-    _gcloud_login(clear_output=clear_output)
+    context_manager = output.temporary if clear_output else _noop
+    with context_manager():
+      _gcloud_login()
     _install_adc()
   if _check_adc():
     return
