@@ -30,6 +30,9 @@ import IPython
 from IPython.core import interactiveshell
 from IPython.lib import pretty
 from IPython.utils import io
+
+import six
+
 from google.colab import _ipython
 from google.colab import _message
 from google.colab import _system_commands
@@ -42,13 +45,23 @@ except ImportError:
 #  pylint:enable=g-import-not-at-top
 
 
+class FakeShell(interactiveshell.InteractiveShell):
+
+  def system(self, *args, **kwargs):
+    return _system_commands._system_compat(self, *args, **kwargs)
+
+  def getoutput(self, *args, **kwargs):
+    return _system_commands._getoutput_compat(self, *args, **kwargs)
+
+
 class SystemCommandsTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    ipython = interactiveshell.InteractiveShell.instance()
+    ipython = FakeShell.instance()
     ipython.kernel = mock.Mock()
     cls.ip = IPython.get_ipython()
+
     cls.orig_pty_max_read_bytes = _system_commands._PTY_READ_MAX_BYTES_FOR_TEST
     cls.orig_lc_all = os.environ.get('LC_ALL')
 
@@ -266,6 +279,79 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual('', captured_output.stderr)
     self.assertEqual('', captured_output.stdout)
     self.assertIsNotNone(self.ip.user_ns['caught_exception'])
+
+  def testShellCompat(self):
+    _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
+    # "猫" is "cats" in simplified Chinese.
+    captured_output = self.run_cell(
+        '!read res && echo "You typed: $res"', provided_inputs=[u'猫\n'])
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(u'猫\nYou typed: 猫\n', captured_output.stdout)
+    self.assertEqual(0, self.ip.user_ns['_exit_code'])
+    self.assertNotIn('_', self.ip.user_ns)
+
+  def testShellCompatWithInterrupt(self):
+    captured_output = self.run_cell('!read res', provided_inputs=['interrupt'])
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(u'^C\n', captured_output.stdout)
+    self.assertEqual(-signal.SIGINT, self.ip.user_ns['_exit_code'])
+    self.assertNotIn('_', self.ip.user_ns)
+
+  def testShellCompatWithVarExpansion(self):
+    cmd = textwrap.dedent(u"""
+      def some_func():
+        local_var = 'Hello there'
+        !echo "{local_var}"
+      some_func()
+      """)
+    captured_output = self.run_cell(cmd, provided_inputs=[])
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(u'Hello there\n', captured_output.stdout)
+    self.assertEqual(0, self.ip.user_ns['_exit_code'])
+    self.assertNotIn('_', self.ip.user_ns)
+
+  def testShellCapturingOutputCompat(self):
+    # "猫" is "cats" in simplified Chinese.
+    captured_output = self.run_cell(
+        '!!read res && echo "You typed: $res"', provided_inputs=[u'猫\n'])
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertNotIn('_exit_code', self.ip.user_ns.keys())
+    result = self.ip.user_ns['_']
+    self.assertEqual(2, len(result))
+    if six.PY2:
+      self.assertEqual(u'猫'.encode('UTF-8'), result[0])
+      self.assertEqual(u'You typed: 猫'.encode('UTF-8'), result[1])
+    else:
+      self.assertEqual(u'猫', result[0])
+      self.assertEqual(u'You typed: 猫', result[1])
+
+  def testShellCapturingOutputCompatWithInterrupt(self):
+    captured_output = self.run_cell('!!read res', provided_inputs=['interrupt'])
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertIn(u'^C\n', captured_output.stdout)
+    result = self.ip.user_ns['_']
+    self.assertEqual(0, len(result))
+
+  def testShellCapturingOutputCompatWithVarExpansion(self):
+    cmd = textwrap.dedent(u"""
+      def some_func():
+        local_var = 'Hello there'
+        # The result of "!!" cannot be assigned or returned. Write the contents
+        # to a file and return that instead.
+        !!echo "{local_var}" > /tmp/getoutputwithvarexpansion.txt
+        with open('/tmp/getoutputwithvarexpansion.txt', 'r') as f:
+          print(f.read())
+      some_func()
+      """)
+    captured_output = self.run_cell(cmd, provided_inputs=[])
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(u'Hello there\n\n', captured_output.stdout)
 
   def run_cell(self, cell_contents, provided_inputs=None):
     """Execute the cell contents, optionally providing input to the subprocess.

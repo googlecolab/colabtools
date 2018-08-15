@@ -13,6 +13,7 @@
 # limitations under the License.
 """Colab-specific shell customizations."""
 
+import os
 import sys
 
 from ipykernel import jsonutil
@@ -21,10 +22,26 @@ from IPython.core import interactiveshell
 from ipython_genutils import py3compat
 
 from google.colab import _shell_customizations
+from google.colab import _system_commands
 
 
 class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
+
+  def _should_use_native_system_methods(self):
+    return os.getenv('USE_NATIVE_IPYTHON_SYSTEM_COMMANDS', False)
+
+  def getoutput(self, *args, **kwargs):
+    if self._should_use_native_system_methods():
+      return super(Shell, self).getoutput(*args, **kwargs)
+
+    return _system_commands._getoutput_compat(self, *args, **kwargs)  # pylint:disable=protected-access
+
+  def system(self, *args, **kwargs):
+    if self._should_use_native_system_methods():
+      return super(Shell, self).system(*args, **kwargs)
+
+    return _system_commands._system_compat(self, *args, **kwargs)  # pylint:disable=protected-access
 
   def _send_error(self, exc_content):
     topic = (self.displayhook.topic.replace(b'execute_result', b'err') if

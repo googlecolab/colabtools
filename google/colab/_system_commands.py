@@ -30,6 +30,7 @@ import termios
 import time
 
 from IPython.core import magic_arguments
+from IPython.utils import text
 import six
 from google.colab import _ipython
 from google.colab import _message
@@ -155,7 +156,7 @@ def _configure_term_settings(pty_fd):
   termios.tcsetattr(pty_fd, termios.TCSANOW, term_settings)
 
 
-def _run_command(cmd):
+def _run_command(cmd, clear_streamed_output=True):
   """Calls the shell command, forwarding input received on the stdin_socket."""
   locale_encoding = locale.getpreferredencoding()
   if locale_encoding != _ENCODING:
@@ -180,7 +181,9 @@ def _run_command(cmd):
     # (e.g. %shell echo "foo"), Python's default semantics will be used and
     # print the string representation of the resultant ShellResult, which
     # is equivalent to the merged stdout/stderr outputs.
-    with _tags.temporary(), _display_stdin_widget(delay_millis=500):
+    temporary_clearer = _tags.temporary if clear_streamed_output else _no_op
+
+    with temporary_clearer(), _display_stdin_widget(delay_millis=500):
       # TODO(b/36984411): Consider starting the process in a process group using
       # os.setsid. This should help ensure that signals are propagated to all
       # spawned child processes.
@@ -321,8 +324,85 @@ def _display_stdin_widget(delay_millis=0):
   _message.send_request(*hide_args, parent=shell.parent_header)
 
 
+@contextlib.contextmanager
+def _no_op():
+  yield
+
+
 def _register_magics(ip):
   ip.register_magic_function(
       _shell_line_magic, magic_kind='line', magic_name='shell')
   ip.register_magic_function(
       _shell_cell_magic, magic_kind='cell', magic_name='shell')
+
+
+_INTERRUPTED_SIGNALS = (
+    signal.SIGINT,
+    signal.SIGTERM,
+    signal.SIGKILL,
+)
+
+
+def _getoutput_compat(shell, cmd, split=True, depth=0):
+  """Compatibility function for IPython's built-in getoutput command.
+
+  The getoutput command has the following semantics:
+    * Returns a SList containing an array of output
+    * SList items are of type "str". In Python 2, the str object is utf-8
+      encoded. In Python 3, the "str" type already supports Unicode.
+    * The _exit_code attribute is not set
+    * If the process was interrupted, "^C" is printed.
+
+  Args:
+    shell: An InteractiveShell instance.
+    cmd: Command to execute. This is the same as the corresponding argument to
+      InteractiveShell.getoutput.
+    split: Same as the corresponding argument to InteractiveShell.getoutput.
+    depth: Same as the corresponding argument to InteractiveShell.getoutput.
+  Returns:
+    The output as a SList if split was true, otherwise an LSString.
+  """
+  # We set a higher depth than the IPython system command since a shell object
+  # is expected to call this function, thus adding one level of nesting to the
+  # stack.
+  result = _run_command(
+      shell.var_expand(cmd, depth=depth + 2), clear_streamed_output=True)
+  if -result.returncode in _INTERRUPTED_SIGNALS:
+    print('^C')
+
+  output = result.output
+  if six.PY2:
+    # Backwards compatibility. Python 2 getoutput() expects the result as a
+    # str, not a unicode.
+    output = output.encode(_ENCODING)
+
+  if split:
+    return text.SList(output.splitlines())
+  else:
+    return text.LSString(output)
+
+
+def _system_compat(shell, cmd):
+  """Compatibility function for IPython's built-in system command.
+
+  The system command has the following semantics:
+    * No return value, and thus the "_" variable is not set
+    * Sets the _exit_code variable to the return value of the called process
+    * Unicode characters are preserved
+    * If the process was interrupted, "^C" is printed.
+
+  Args:
+    shell: An InteractiveShell instance.
+    cmd: Command to execute. This is the same as the corresponding argument to
+      InteractiveShell.system_piped.
+  Returns:
+    Nothing.
+  """
+  # We set a higher depth than the IPython system command since a shell object
+  # is expected to call this function, thus adding one level of nesting to the
+  # stack.
+  result = _run_command(
+      shell.var_expand(cmd, depth=2), clear_streamed_output=False)
+  shell.user_ns['_exit_code'] = result.returncode
+  if -result.returncode in _INTERRUPTED_SIGNALS:
+    print('^C')
