@@ -13,6 +13,7 @@
 # limitations under the License.
 """Custom Jupyter notebook API handlers."""
 
+import json
 import mimetypes
 import os
 
@@ -20,6 +21,10 @@ from notebook.base import handlers
 
 import tornado
 from tornado import web
+
+from google.colab._serverextension import _resource_monitor
+
+_XSSI_PREFIX = ")]}'\n"
 
 
 class ChunkedFileDownloadHandler(handlers.APIHandler):
@@ -76,3 +81,14 @@ class ChunkedFileDownloadHandler(handlers.APIHandler):
       return os.lstat(path).st_size
     except (ValueError, OSError):
       return None
+
+
+class ResourceUsageHandler(handlers.APIHandler):
+  """Handles requests for memory usage of Colab kernels."""
+
+  @tornado.web.authenticated
+  def get(self, *unused_args, **unused_kwargs):
+    ram = _resource_monitor.get_ram_usage()
+    gpu = _resource_monitor.get_gpu_usage()
+    self.set_header('Content-Type', 'application/json')
+    self.finish(_XSSI_PREFIX + json.dumps({'ram': ram, 'gpu': gpu}))

@@ -17,9 +17,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from notebook import utils
-from notebook.base import handlers
-from google.colab._serverextension import _handlers
+# Allow imports of submodules without Jupyter
+try:
+  # pylint: disable=g-import-not-at-top
+  from notebook import utils
+  from notebook.base import handlers
+  from google.colab._serverextension import _handlers
+except ImportError:
+  pass
 
 
 def _jupyter_server_extension_paths():
@@ -32,10 +37,12 @@ def load_jupyter_server_extension(nb_server_app):
   """Called by Jupyter when starting the notebook manager."""
   app = nb_server_app.web_app
 
-  relative_path = '/api/chunked-contents' + handlers.path_regex
-  handler_url = utils.url_path_join(app.settings['base_url'], relative_path)
+  url_maker = lambda path: utils.url_path_join(app.settings['base_url'], path)
+  chunked_relative_path = '/api/chunked-contents' + handlers.path_regex
+  monitor_relative_path = '/api/colab/resources'
 
   app.add_handlers('.*$', [
-      (handler_url, _handlers.ChunkedFileDownloadHandler),
+      (url_maker(chunked_relative_path), _handlers.ChunkedFileDownloadHandler),
+      (url_maker(monitor_relative_path), _handlers.ResourceUsageHandler),
   ])
   nb_server_app.log.info('google.colab serverextension initialized.')

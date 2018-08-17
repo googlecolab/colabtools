@@ -3,7 +3,6 @@ import csv
 import os
 import re
 import subprocess
-
 from distutils import spawn
 
 _cmd_regex = re.compile(r'.+kernel-(.+)\.json.*')

@@ -20,7 +20,11 @@ from __future__ import print_function
 import logging
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
+
+from distutils import spawn
 
 from notebook.services.contents import filemanager
 
@@ -45,6 +49,36 @@ class FakeNotebookServer(object):
   def __init__(self, app):
     self.web_app = app
     self.log = logging.getLogger('fake_notebook_server_logger')
+
+
+class FakeUsage(object):
+  """Provides methods that fake memory usage shell invocations."""
+  kernel_ids = [
+      '3a7c6914-ce88-4ae8-a37a-9ecf7a21bbef',
+      'cfb901b0-c55a-4536-94f8-4d9357265a7a'
+  ]
+
+  usage = [135180, 143736]
+
+  gpu_usage = {'usage': 841, 'limit': 4035}
+
+  _ps_output = """
+{} /usr/bin/python3 -m ipykernel_launcher -f /content/.local/share/jupyter/runtime/kernel-{}.json
+{} /usr/bin/python -m ipykernel_launcher -f /content/.local/share/jupyter/runtime/kernel-{}.json
+""".format(usage[0], kernel_ids[0], usage[1], kernel_ids[1])
+
+  _nvidia_smi_output = '{}, {}\n'.format(gpu_usage['usage'], gpu_usage['limit'])
+
+  @staticmethod
+  def fake_check_output(cmdline):
+    output = ''
+    if cmdline[0] == 'ps':
+      output = FakeUsage._ps_output
+    elif cmdline[0] == 'nvidia-smi':
+      output = FakeUsage._nvidia_smi_output
+    if sys.version_info[0] == 3:  # returns bytes in py3, string in py2
+      return bytes(output.encode('utf-8'))
+    return output
 
 
 class ChunkCapturer(object):
@@ -156,3 +190,67 @@ class ChunkedFileDownloadHandlerTest(testing.AsyncHTTPTestCase):
     self.assertEqual(404, response.code)
     response = self.fetch('/api/chunked-contents/foo/../../bar')
     self.assertEqual(404, response.code)
+
+
+class ColabResourcesHandlerTest(testing.AsyncHTTPTestCase):
+  """Tests for ChunkedFileDownloadHandler."""
+
+  def get_app(self):
+    """Setup code required by testing.AsyncHTTP[S]TestCase."""
+    settings = {
+        'base_url': '/',
+        # The underyling ipaddress library sometimes doesn't think that
+        # 127.0.0.1 is a proper loopback device.
+        'local_hostnames': ['127.0.0.1'],
+    }
+    app = web.Application([], **settings)
+    nb_server_app = FakeNotebookServer(app)
+    _serverextension.load_jupyter_server_extension(nb_server_app)
+    return app
+
+  def testColabResources(self):
+    response = self.fetch('/api/colab/resources')
+    self.assertEqual(response.code, 200)
+    # Body is a JSON response.
+    json_response = escape.json_decode(
+        response.body[len(_handlers._XSSI_PREFIX):])  # pylint: disable=protected-access
+    self.assertGreater(json_response['ram']['limit'], 0)
+
+  @mock.patch.object(
+      subprocess,
+      'check_output',
+      # Use canned ps output.
+      side_effect=FakeUsage.fake_check_output,
+  )
+  def testColabResourcesFakeRam(self, mock_check_output):
+    response = self.fetch('/api/colab/resources')
+    self.assertEqual(response.code, 200)
+    # Body is a JSON response.
+    json_response = escape.json_decode(
+        response.body[len(_handlers._XSSI_PREFIX):])  # pylint: disable=protected-access
+    self.assertEqual(json_response['ram']['kernels'][FakeUsage.kernel_ids[0]],
+                     FakeUsage.usage[0] * 1024)
+    self.assertEqual(json_response['ram']['kernels'][FakeUsage.kernel_ids[1]],
+                     FakeUsage.usage[1] * 1024)
+
+  @mock.patch.object(
+      spawn,
+      'find_executable',
+      # Pretend there is nvidia-smi.
+      return_value=True)
+  @mock.patch.object(
+      subprocess,
+      'check_output',
+      # Use canned nvidia-smi output.
+      side_effect=FakeUsage.fake_check_output,
+  )
+  def testColabResourcesFakeGPU(self, mock_check_output, mock_find_executable):
+    response = self.fetch('/api/colab/resources')
+    self.assertEqual(response.code, 200)
+    # Body is a JSON response.
+    json_response = escape.json_decode(
+        response.body[len(_handlers._XSSI_PREFIX):])  # pylint: disable=protected-access
+    self.assertEqual(json_response['gpu']['usage'],
+                     FakeUsage.gpu_usage['usage'] * 1024 * 1024)
+    self.assertEqual(json_response['gpu']['limit'],
+                     FakeUsage.gpu_usage['limit'] * 1024 * 1024)
