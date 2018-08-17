@@ -16,12 +16,18 @@
 from ipykernel import ipkernel
 from ipykernel.jsonutil import json_clean
 from IPython.utils.tokenutil import token_at_cursor
+from google.colab import _autocomplete
 from google.colab import _shell
 from google.colab import _shell_customizations
 
 
 class Kernel(ipkernel.IPythonKernel):
   """Kernel with additional Colab-specific features."""
+
+  def __init__(self, *args, **kwargs):
+    super(Kernel, self).__init__(*args, **kwargs)
+
+    _autocomplete.enable()
 
   def _shell_class_default(self):
     return _shell.Shell
