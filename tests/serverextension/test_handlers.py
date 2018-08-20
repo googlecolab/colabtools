@@ -23,10 +23,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-
 from distutils import spawn
 
 from notebook.services.contents import filemanager
+
+import psutil
 
 from tornado import escape
 from tornado import httpclient
@@ -61,6 +62,9 @@ class FakeUsage(object):
   usage = [135180, 143736]
 
   gpu_usage = {'usage': 841, 'limit': 4035}
+
+  disk_usage = psutil._common.sdiskusage(  # pylint: disable=protected-access
+      total=10, used=1, free=9, percent=10)
 
   _ps_output = """
 {} /usr/bin/python3 -m ipykernel_launcher -f /content/.local/share/jupyter/runtime/kernel-{}.json
@@ -254,3 +258,17 @@ class ColabResourcesHandlerTest(testing.AsyncHTTPTestCase):
                      FakeUsage.gpu_usage['usage'] * 1024 * 1024)
     self.assertEqual(json_response['gpu']['limit'],
                      FakeUsage.gpu_usage['limit'] * 1024 * 1024)
+
+  @mock.patch.object(
+      psutil,
+      'disk_usage',
+      # Return fake usage data.
+      return_value=FakeUsage.disk_usage)
+  def testColabResourcesFakeDisk(self, mock_disk_usage):
+    response = self.fetch('/api/colab/resources')
+    self.assertEqual(response.code, 200)
+    # Body is a JSON response.
+    json_response = escape.json_decode(
+        response.body[len(_handlers._XSSI_PREFIX):])  # pylint: disable=protected-access
+    self.assertEqual(json_response['disk']['usage'], FakeUsage.disk_usage.used)
+    self.assertEqual(json_response['disk']['limit'], FakeUsage.disk_usage.total)

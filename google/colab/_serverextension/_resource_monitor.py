@@ -5,6 +5,12 @@ import re
 import subprocess
 from distutils import spawn
 
+try:
+  # pylint: disable=g-import-not-at-top
+  import psutil
+except ImportError:
+  psutil = None
+
 _cmd_regex = re.compile(r'.+kernel-(.+)\.json.*')
 
 
@@ -72,3 +78,21 @@ def get_ram_usage():
     kernel_id = re.sub(_cmd_regex, r'\1', proc[1])
     kernels[kernel_id] = int(proc[0]) * 1024
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
+
+
+def get_disk_usage():
+  """Reports total disk usage.
+
+  Returns:
+    A dict of the form {
+      usage: int,
+      limit: int,
+    }
+  """
+  usage = 0
+  limit = 0
+  if psutil is not None:
+    disk_usage = psutil.disk_usage('/')
+    usage = disk_usage.used
+    limit = disk_usage.total
+  return {'usage': usage, 'limit': limit}

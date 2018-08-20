@@ -90,5 +90,10 @@ class ResourceUsageHandler(handlers.APIHandler):
   def get(self, *unused_args, **unused_kwargs):
     ram = _resource_monitor.get_ram_usage()
     gpu = _resource_monitor.get_gpu_usage()
+    disk = _resource_monitor.get_disk_usage()
     self.set_header('Content-Type', 'application/json')
-    self.finish(_XSSI_PREFIX + json.dumps({'ram': ram, 'gpu': gpu}))
+    self.finish(_XSSI_PREFIX + json.dumps({
+        'ram': ram,
+        'gpu': gpu,
+        'disk': disk
+    }))
