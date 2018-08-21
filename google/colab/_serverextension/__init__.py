@@ -38,11 +38,9 @@ def load_jupyter_server_extension(nb_server_app):
   app = nb_server_app.web_app
 
   url_maker = lambda path: utils.url_path_join(app.settings['base_url'], path)
-  chunked_relative_path = '/api/chunked-contents' + handlers.path_regex
   monitor_relative_path = '/api/colab/resources'
 
   app.add_handlers('.*$', [
-      (url_maker(chunked_relative_path), _handlers.ChunkedFileDownloadHandler),
       (url_maker(monitor_relative_path), _handlers.ResourceUsageHandler),
   ])
   nb_server_app.log.info('google.colab serverextension initialized.')

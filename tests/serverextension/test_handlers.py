@@ -18,19 +18,13 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import os
-import shutil
 import subprocess
 import sys
-import tempfile
 from distutils import spawn
-
-from notebook.services.contents import filemanager
 
 import psutil
 
 from tornado import escape
-from tornado import httpclient
 from tornado import testing
 from tornado import web
 
@@ -83,117 +77,6 @@ class FakeUsage(object):
     if sys.version_info[0] == 3:  # returns bytes in py3, string in py2
       return bytes(output.encode('utf-8'))
     return output
-
-
-class ChunkCapturer(object):
-
-  def __init__(self):
-    self.num_chunks_received = 0
-    self.content = b''
-
-  def append_chunk(self, chunk):
-    self.num_chunks_received += 1
-    self.content += chunk
-
-
-class ChunkedFileDownloadHandlerTest(testing.AsyncHTTPTestCase):
-  """Tests for ChunkedFileDownloadHandler."""
-
-  def get_app(self):
-    """Setup code required by testing.AsyncHTTP[S]TestCase."""
-    self.temp_dir = tempfile.mkdtemp()
-    settings = {
-        'base_url':
-            '/',
-        # The underyling ipaddress library sometimes doesn't think that
-        # 127.0.0.1 is a proper loopback device.
-        'local_hostnames': ['127.0.0.1'],
-        'contents_manager':
-            filemanager.FileContentsManager(root_dir=self.temp_dir),
-    }
-    app = web.Application([], **settings)
-
-    nb_server_app = FakeNotebookServer(app)
-    _serverextension.load_jupyter_server_extension(nb_server_app)
-
-    return app
-
-  def tearDown(self):
-    super(ChunkedFileDownloadHandlerTest, self).tearDown()
-    shutil.rmtree(self.temp_dir)
-
-  def testNonExistentFile(self):
-    response = self.fetch('/api/chunked-contents/in/some/dir/foo.py')
-    self.assertEqual(response.code, 404)
-    # Body is a JSON response.
-    json_response = escape.json_decode(response.body)
-    self.assertIn('No such file or directory', json_response['message'])
-
-  def testExistingDirectory(self):
-    os.makedirs(os.path.join(self.temp_dir, 'some/existing/dir'))
-    response = self.fetch('/api/chunked-contents/some/existing/dir')
-    self.assertEqual(response.code, 400)
-    # Body is a JSON response.
-    json_response = escape.json_decode(response.body)
-    self.assertIn('is a directory, not a file', json_response['message'])
-
-  def testExistingFile(self):
-    file_dir = os.path.join(self.temp_dir, 'some/existing/dir')
-    os.makedirs(file_dir)
-    with open(os.path.join(file_dir, 'foo.txt'), 'wb') as f:
-      f.write(b'Some content')
-
-    response = self.fetch('/api/chunked-contents/some/existing/dir/foo.txt')
-    self.assertEqual(200, response.code)
-    # Body is the raw file contents.
-    self.assertEqual(b'Some content', response.body)
-    self.assertEqual('chunked', response.headers['Transfer-Encoding'])
-    self.assertEqual('text/plain', response.headers['Content-Type'])
-    self.assertEqual(len(b'Some content'), int(response.headers['X-File-Size']))
-
-  @mock.patch.object(
-      _handlers.ChunkedFileDownloadHandler,
-      'CHUNK_SIZE',
-      new_callable=mock.PropertyMock,
-      # Overwrite the chunk size to a small default.
-      return_value=1)
-  def testExistingFileReturnsMultipleChunks(self, mock_chunk_size):
-    file_dir = os.path.join(self.temp_dir, 'some/existing/dir')
-    os.makedirs(file_dir)
-    with open(os.path.join(file_dir, 'foo.txt'), 'wb') as f:
-      f.write(b'Some content')
-
-    capturer = ChunkCapturer()
-    url = self.get_url('/api/chunked-contents/some/existing/dir/foo.txt')
-    request = httpclient.HTTPRequest(
-        url=url,
-        # Setting streaming_callback causes the supplied function to be invoked
-        # every time a chunk of the response is received. When provided, the
-        # "body" attribute of the response is not set.
-        streaming_callback=capturer.append_chunk)
-
-    response = self.io_loop.run_sync(lambda: self.http_client.fetch(request))
-    self.assertEqual(response.code, 200)
-    self.assertEqual(len(b'Some content'), capturer.num_chunks_received)
-    self.assertEqual(b'Some content', capturer.content)
-    self.assertEqual('chunked', response.headers['Transfer-Encoding'])
-    self.assertEqual('text/plain', response.headers['Content-Type'])
-    self.assertEqual(len(b'Some content'), int(response.headers['X-File-Size']))
-
-  def testDoesNotAllowRequestsOutsideOfRootDir(self):
-    # Based on existing tests:
-    # https://github.com/jupyter/notebook/blob/f5fa0c180e92d35b4cbfa1cc20b41e9d1d9dfabe/notebook/services/contents/tests/test_manager.py#L173
-    with open(os.path.join(self.temp_dir, '..', 'foo'), 'w') as f:
-      f.write('foo')
-    with open(os.path.join(self.temp_dir, '..', 'bar'), 'w') as f:
-      f.write('bar')
-
-    response = self.fetch('/api/chunked-contents/../foo')
-    self.assertEqual(404, response.code)
-    response = self.fetch('/api/chunked-contents/foo/../../../bar')
-    self.assertEqual(404, response.code)
-    response = self.fetch('/api/chunked-contents/foo/../../bar')
-    self.assertEqual(404, response.code)
 
 
 class ColabResourcesHandlerTest(testing.AsyncHTTPTestCase):
