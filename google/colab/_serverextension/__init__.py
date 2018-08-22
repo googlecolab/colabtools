@@ -41,8 +41,6 @@ def load_jupyter_server_extension(nb_server_app):
   monitor_relative_path = '/api/colab/resources'
 
   app.add_handlers('.*$', [
-      (url_maker(monitor_relative_path), _handlers.ResourceUsageHandler, {
-          'kernel_manager': app.settings['kernel_manager']
-      }),
+      (url_maker(monitor_relative_path), _handlers.ResourceUsageHandler),
   ])
   nb_server_app.log.info('google.colab serverextension initialized.')
