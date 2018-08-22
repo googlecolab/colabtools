@@ -27,9 +27,12 @@ _XSSI_PREFIX = ")]}'\n"
 class ResourceUsageHandler(handlers.APIHandler):
   """Handles requests for memory usage of Colab kernels."""
 
+  def initialize(self, kernel_manager):
+    self._kernel_manager = kernel_manager
+
   @tornado.web.authenticated
   def get(self, *unused_args, **unused_kwargs):
-    ram = _resource_monitor.get_ram_usage()
+    ram = _resource_monitor.get_ram_usage(self._kernel_manager)
     gpu = _resource_monitor.get_gpu_usage()
     disk = _resource_monitor.get_disk_usage()
     self.set_header('Content-Type', 'application/json')

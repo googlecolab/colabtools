@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import logging
 import subprocess
 import sys
@@ -53,6 +54,8 @@ class FakeUsage(object):
       'cfb901b0-c55a-4536-94f8-4d9357265a7a'
   ]
 
+  pids = [1, 2]
+
   usage = [135180, 143736]
 
   gpu_usage = {'usage': 841, 'limit': 4035}
@@ -60,10 +63,7 @@ class FakeUsage(object):
   disk_usage = psutil._common.sdiskusage(  # pylint: disable=protected-access
       total=10, used=1, free=9, percent=10)
 
-  _ps_output = """
-{} /usr/bin/python3 -m ipykernel_launcher -f /content/.local/share/jupyter/runtime/kernel-{}.json
-{} /usr/bin/python -m ipykernel_launcher -f /content/.local/share/jupyter/runtime/kernel-{}.json
-""".format(usage[0], kernel_ids[0], usage[1], kernel_ids[1])
+  _ps_output = '{}  {}\n{}  {}\n'.format(pids[0], usage[0], pids[1], usage[1])
 
   _nvidia_smi_output = '{}, {}\n'.format(gpu_usage['usage'], gpu_usage['limit'])
 
@@ -79,6 +79,24 @@ class FakeUsage(object):
     return output
 
 
+class FakeKernelManager(object):
+  """Provides methods faking an IPython MultiKernelManager."""
+  _kernel_factory = collections.namedtuple('FakeKernelFactory', ['kernel'])
+  _popen = collections.namedtuple('FakePOpen', ['pid'])
+
+  def list_kernel_ids(self):
+    return FakeUsage.kernel_ids
+
+  def get_kernel(self, kernel_id):
+    if kernel_id == FakeUsage.kernel_ids[0]:
+      pid = FakeUsage.pids[0]
+    elif kernel_id == FakeUsage.kernel_ids[1]:
+      pid = FakeUsage.pids[1]
+    else:
+      raise KeyError(kernel_id)
+    return FakeKernelManager._kernel_factory(FakeKernelManager._popen(pid))
+
+
 class ColabResourcesHandlerTest(testing.AsyncHTTPTestCase):
   """Tests for ChunkedFileDownloadHandler."""
 
@@ -89,6 +107,7 @@ class ColabResourcesHandlerTest(testing.AsyncHTTPTestCase):
         # The underyling ipaddress library sometimes doesn't think that
         # 127.0.0.1 is a proper loopback device.
         'local_hostnames': ['127.0.0.1'],
+        'kernel_manager': FakeKernelManager(),
     }
     app = web.Application([], **settings)
     nb_server_app = FakeNotebookServer(app)
