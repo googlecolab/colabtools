@@ -1,7 +1,6 @@
 """Methods for tracking resource consumption of Colab kernels."""
 import csv
 import os
-import re
 import subprocess
 from distutils import spawn
 
@@ -10,8 +9,6 @@ try:
   import psutil
 except ImportError:
   psutil = None
-
-_cmd_regex = re.compile(r'.+kernel-(.+)\.json.*')
 
 
 def get_gpu_usage():
@@ -45,8 +42,12 @@ def get_gpu_usage():
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
-def get_ram_usage():
+def get_ram_usage(kernel_manager):
   """Reports total and per-kernel RAM usage.
+
+  Arguments:
+    kernel_manager: an IPython MultiKernelManager that owns child kernel
+        processes
 
   Returns:
     A dict of the form {
@@ -65,18 +66,19 @@ def get_ram_usage():
   if line:
     limit = int(line[0].split()[1]) * 1024
   usage = limit - free
+  pids_to_kernel_ids = dict([(str(
+      kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
+                             for kernel_id in kernel_manager.list_kernel_ids()])
   kernels = {}
-  ps = subprocess.check_output(
-      ['ps', '--ppid',
-       str(os.getpid()), '-wwo', 'rss cmd', '--no-header']).decode('utf-8')
+  ps = subprocess.check_output([
+      'ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo', 'pid rss',
+      '--no-header'
+  ]).decode('utf-8')
   for proc in ps.split('\n')[:-1]:
     proc = proc.strip().split(' ', 1)
     if len(proc) != 2:
       continue
-    if not re.match(_cmd_regex, proc[1]):
-      continue
-    kernel_id = re.sub(_cmd_regex, r'\1', proc[1])
-    kernels[kernel_id] = int(proc[0]) * 1024
+    kernels[pids_to_kernel_ids[proc[0]]] = int(proc[1]) * 1024
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
