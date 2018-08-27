@@ -66,7 +66,7 @@ def _shell_line_magic(line):
     subprocess.CalledProcessError: If the subprocess exited with a non-zero
       exit code.
   """
-  result = _run_command(line)
+  result = _run_command(line, clear_streamed_output=False)
   result.check_returncode()
   return result
 
@@ -107,7 +107,7 @@ def _shell_cell_magic(args, cmd):
 
   parsed_args = magic_arguments.parse_argstring(_shell_cell_magic, args)
 
-  result = _run_command(cmd)
+  result = _run_command(cmd, clear_streamed_output=False)
   if not parsed_args.ignore_errors:
     result.check_returncode()
   return result
@@ -137,11 +137,14 @@ class ShellResult(object):
       raise subprocess.CalledProcessError(
           returncode=self.returncode, cmd=self.args, output=self.output)
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p, cycle):  # pylint:disable=unused-argument
+    # Note: When invoking the magic and not assigning the result
+    # (e.g. %shell echo "foo"), Python's default semantics will be used and
+    # print the string representation of the object. By default, this will
+    # display the __repr__ of ShellResult. Suppress this representation since
+    # the output of the command has already been displayed to the output window.
     if cycle:
       raise NotImplementedError
-    else:
-      p.text(self.output)
 
 
 def _configure_term_settings(pty_fd):
@@ -156,7 +159,7 @@ def _configure_term_settings(pty_fd):
   termios.tcsetattr(pty_fd, termios.TCSANOW, term_settings)
 
 
-def _run_command(cmd, clear_streamed_output=True):
+def _run_command(cmd, clear_streamed_output):
   """Calls the shell command, forwarding input received on the stdin_socket."""
   locale_encoding = locale.getpreferredencoding()
   if locale_encoding != _ENCODING:
@@ -172,15 +175,6 @@ def _run_command(cmd, clear_streamed_output=True):
       (select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR))
 
   try:
-    # Stdout / stderr writes by the subprocess are streamed to the cell's
-    # output. Without this streaming, input could still be provided to the
-    # process, but there would be no context as to what input was required.
-    # Once the process has terminated, these outputs are no longer relevant and
-    # should be cleared.
-    # Note: When invoking the magic and not assigning the result
-    # (e.g. %shell echo "foo"), Python's default semantics will be used and
-    # print the string representation of the resultant ShellResult, which
-    # is equivalent to the merged stdout/stderr outputs.
     temporary_clearer = _tags.temporary if clear_streamed_output else _no_op
 
     with temporary_clearer(), _display_stdin_widget(delay_millis=500):

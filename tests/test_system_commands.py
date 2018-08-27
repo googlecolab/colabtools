@@ -209,10 +209,10 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual(0, result.returncode)
     self.assertEqual(u'猫\nYou typed: 猫\n', result.output)
 
-    # Ensure the result can be pretty-printed. Jupyter displays the
-    # pretty-printed representation of the object from the last statement of the
-    # cell.
-    self.assertEqual(u'猫\nYou typed: 猫\n', pretty.pretty(result))
+    # Ensure that ShellResult objects don't have a "pretty" representation. This
+    # ensures that no output is printed if the magic is the only statement in
+    # the cell.
+    self.assertEqual(u'', pretty.pretty(result))
 
   def testFirstInterruptSendsSigInt(self):
     captured_output = self.run_cell(
@@ -280,7 +280,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual('', captured_output.stdout)
     self.assertIsNotNone(self.ip.user_ns['caught_exception'])
 
-  def testShellCompat(self):
+  def testSystemCompat(self):
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
     # "猫" is "cats" in simplified Chinese.
     captured_output = self.run_cell(
@@ -291,7 +291,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual(0, self.ip.user_ns['_exit_code'])
     self.assertNotIn('_', self.ip.user_ns)
 
-  def testShellCompatWithInterrupt(self):
+  def testSystemCompatWithInterrupt(self):
     captured_output = self.run_cell('!read res', provided_inputs=['interrupt'])
 
     self.assertEqual('', captured_output.stderr)
@@ -299,7 +299,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual(-signal.SIGINT, self.ip.user_ns['_exit_code'])
     self.assertNotIn('_', self.ip.user_ns)
 
-  def testShellCompatWithVarExpansion(self):
+  def testSystemCompatWithVarExpansion(self):
     cmd = textwrap.dedent(u"""
       def some_func():
         local_var = 'Hello there'
@@ -313,7 +313,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual(0, self.ip.user_ns['_exit_code'])
     self.assertNotIn('_', self.ip.user_ns)
 
-  def testShellCapturingOutputCompat(self):
+  def testGetOutputCompat(self):
     # "猫" is "cats" in simplified Chinese.
     captured_output = self.run_cell(
         '!!read res && echo "You typed: $res"', provided_inputs=[u'猫\n'])
@@ -329,7 +329,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
       self.assertEqual(u'猫', result[0])
       self.assertEqual(u'You typed: 猫', result[1])
 
-  def testShellCapturingOutputCompatWithInterrupt(self):
+  def testGetOutputCompatWithInterrupt(self):
     captured_output = self.run_cell('!!read res', provided_inputs=['interrupt'])
 
     self.assertEqual('', captured_output.stderr)
@@ -337,7 +337,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     result = self.ip.user_ns['_']
     self.assertEqual(0, len(result))
 
-  def testShellCapturingOutputCompatWithVarExpansion(self):
+  def testGetOutputCompatWithVarExpansion(self):
     cmd = textwrap.dedent(u"""
       def some_func():
         local_var = 'Hello there'
