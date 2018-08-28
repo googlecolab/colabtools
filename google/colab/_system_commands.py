@@ -310,12 +310,12 @@ def _display_stdin_widget(delay_millis=0):
   """Context manager that displays a stdin UI widget and hides it upon exit."""
   shell = _ipython.get_ipython()
   display_args = ['cell_display_stdin', {'delayMillis': delay_millis}]
-  _message.send_request(*display_args, parent=shell.parent_header)
+  _message.blocking_request(*display_args, parent=shell.parent_header)
 
   yield
 
   hide_args = ['cell_remove_stdin', {}]
-  _message.send_request(*hide_args, parent=shell.parent_header)
+  _message.blocking_request(*hide_args, parent=shell.parent_header)
 
 
 @contextlib.contextmanager

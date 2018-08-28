@@ -114,7 +114,7 @@ _msg_id = 0
 
 
 def send_request(request_type, request_body, parent=None):
-  """Sends the given message to the frontend."""
+  """Sends the given message to the frontend without waiting for a reply."""
 
   instance = ipython.get_kernelapp()
   global _msg_id
