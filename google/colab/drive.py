@@ -43,7 +43,7 @@ def mount(mountpoint):
   # being captured by pexpect. Otherwise buffers will eventually fill up and
   # drive may hang, because pexpect doesn't have a .startDiscardingOutput()
   # call (https://github.com/pexpect/pexpect/issues/54).
-  prompt = 'root@{}-{}: '.format(socket.gethostname(), uuid.uuid4().hex)
+  prompt = u'root@{}-{}: '.format(socket.gethostname(), uuid.uuid4().hex)
   d = pexpect.spawn(
       '/bin/bash',
       timeout=120,
