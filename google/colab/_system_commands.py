@@ -221,6 +221,14 @@ def _monitor_process(parent_pty, epoll, p, cmd):
       result = _poll_process(parent_pty, epoll, p, cmd, decoder, state)
       if result is not None:
         return result
+
+      # The PTY is almost continuously available for reading. This means that
+      # the polling loop could effectively become a tight loop and use a large
+      # amount of CPU. Add a slight delay to give resources back to the system
+      # while monitoring the process.
+      # TODO(b/36984411): Rather than sleep, poll for incoming messages from the
+      # frontend in the same poll as for the output.
+      time.sleep(0.1)
     except KeyboardInterrupt:
       try:
         num_interrupts += 1
