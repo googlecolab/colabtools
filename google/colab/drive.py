@@ -49,7 +49,10 @@ def mount(mountpoint):
       timeout=120,
       maxread=int(1e6),
       encoding='utf-8',
-      env={'HOME': home})
+      env={
+          'HOME': home,
+          'DRIVE_FS_NO_FORK': '1'
+      })
   if mount._DEBUG:  # pylint:disable=protected-access
     d.logfile_read = sys.stdout
   d.sendline('export PS1="{}"'.format(prompt))
