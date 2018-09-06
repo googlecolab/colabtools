@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import contextlib
 import os
 import signal
@@ -54,6 +55,10 @@ class FakeShell(interactiveshell.InteractiveShell):
     return _system_commands._getoutput_compat(self, *args, **kwargs)
 
 
+RunCellWithUpdateCaptureResult = collections.namedtuple(
+    'RunCellWithUpdateCaptureResult', ('output', 'update_calls'))
+
+
 class SystemCommandsTest(unittest.TestCase):
 
   @classmethod
@@ -84,16 +89,27 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     self.assertEqual(0, result.returncode)
     self.assertEqual('hello err, hello out, bye...\n', result.output)
 
-  def testStdinEchoTurnedOff(self):
-    # The -s flag for read disables terminal echoing.
-    cmd = 'r = %shell read -s res && echo "You typed: $res"'
-    captured_output = self.run_cell(cmd, provided_inputs=['cats\n'])
+  def testStdinEchoToggling(self):
+    # The -s flag for read disables terminal echoing. First read with echoing
+    # enabled, then do a subsequent read with echoing disabled.
+    cmd = """
+r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
+"""
+    result = self.run_cell_capture_update_calls(
+        cmd, provided_inputs=['cats\n', 'dogs\n'])
+    captured_output, echo_updater_calls = result.output, result.update_calls
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual('You typed: cats\n', captured_output.stdout)
+    self.assertEqual('cats\nFirst: cats\nSecond: dogs\n',
+                     captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual('You typed: cats\n', result.output)
+    self.assertEqual('cats\nFirst: cats\nSecond: dogs\n', result.output)
+    # Updates correspond to:
+    # 1) Initial state (i.e. read with terminal echoing enabled)
+    # 2) Read call with "-s" option
+    # 3) Call to bash echo command.
+    self.assertEqual([True, False, True], echo_updater_calls)
 
   def testStdinRequired(self):
     captured_output = self.run_cell(
@@ -363,6 +379,21 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     Returns:
       Captured IPython output during execution.
     """
+    result = self.run_cell_capture_update_calls(cell_contents, provided_inputs)
+    return result.output
+
+  def run_cell_capture_update_calls(self, cell_contents, provided_inputs=None):
+    """Execute the cell contents, optionally providing input to the subprocess.
+
+    Args:
+      cell_contents: Code to execute.
+      provided_inputs: Input provided to the executing shell magic.
+
+    Returns:
+      A RunCellWithUpdateCaptureResult containing the captured IPython output
+      during execution and any calls to update echo status of the underlying
+      shell.
+    """
 
     # Why execute in a separate thread? The shell magic blocks until the
     # process completes, even if it is blocking on input. As such, we need to
@@ -379,6 +410,7 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
           raise KeyboardInterrupt
         return val
 
+      mock_stdin_widget, echo_updater_calls = create_mock_stdin_widget()
       with \
         mock.patch.object(
             _message,
@@ -394,7 +426,10 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
         with io.capture_output() as captured:
           self.ip.run_cell(cell_contents)
 
-        result_container['output'] = captured
+        result_container.update({
+            'output': captured,
+            'echo_updater_calls': echo_updater_calls,
+        })
 
     result = {}
     input_queue = []
@@ -414,7 +449,8 @@ r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
     t.join(30)
     self.assertFalse(t.is_alive())
 
-    return result['output']
+    return RunCellWithUpdateCaptureResult(result['output'],
+                                          result['echo_updater_calls'])
 
 
 class DisplayStdinWidgetTest(unittest.TestCase):
@@ -434,6 +470,15 @@ class DisplayStdinWidgetTest(unittest.TestCase):
     ])
 
 
-@contextlib.contextmanager
-def mock_stdin_widget(*unused_args, **unused_kwargs):
-  yield
+def create_mock_stdin_widget():
+  calls = []
+
+  @contextlib.contextmanager
+  def mock_stdin_widget(*unused_args, **unused_kwargs):
+
+    def echo_updater(echo):
+      calls.append(echo)
+
+    yield echo_updater
+
+  return mock_stdin_widget, calls

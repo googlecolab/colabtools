@@ -177,7 +177,8 @@ def _run_command(cmd, clear_streamed_output):
   try:
     temporary_clearer = _tags.temporary if clear_streamed_output else _no_op
 
-    with temporary_clearer(), _display_stdin_widget(delay_millis=500):
+    with temporary_clearer(), _display_stdin_widget(
+        delay_millis=500) as update_stdin_widget:
       # TODO(b/36984411): Consider starting the process in a process group using
       # os.setsid. This should help ensure that signals are propagated to all
       # spawned child processes.
@@ -192,7 +193,7 @@ def _run_command(cmd, clear_streamed_output):
       # The child PTY is only needed by the spawned process.
       os.close(child_pty)
 
-      return _monitor_process(parent_pty, epoll, p, cmd)
+      return _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget)
   finally:
     epoll.close()
     os.close(parent_pty)
@@ -205,7 +206,7 @@ class _MonitorProcessState(object):
     self.is_pty_still_connected = True
 
 
-def _monitor_process(parent_pty, epoll, p, cmd):
+def _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget):
   """Monitors the given subprocess until it terminates."""
   state = _MonitorProcessState()
 
@@ -216,11 +217,18 @@ def _monitor_process(parent_pty, epoll, p, cmd):
   decoder = codecs.getincrementaldecoder(_ENCODING)()
 
   num_interrupts = 0
+  echo_status = None
   while True:
     try:
       result = _poll_process(parent_pty, epoll, p, cmd, decoder, state)
       if result is not None:
         return result
+
+      term_settings = termios.tcgetattr(parent_pty)
+      new_echo_status = bool(term_settings[3] & termios.ECHO)
+      if echo_status != new_echo_status:
+        update_stdin_widget(new_echo_status)
+        echo_status = new_echo_status
 
       # The PTY is almost continuously available for reading. This means that
       # the polling loop could effectively become a tight loop and use a large
@@ -315,12 +323,30 @@ def _poll_process(parent_pty, epoll, p, cmd, decoder, state):
 
 @contextlib.contextmanager
 def _display_stdin_widget(delay_millis=0):
-  """Context manager that displays a stdin UI widget and hides it upon exit."""
+  """Context manager that displays a stdin UI widget and hides it upon exit.
+
+  Args:
+    delay_millis: Duration (in milliseconds) to delay showing the widget within
+      the UI.
+
+  Yields:
+    A callback that can be invoked with a single argument indicating whether
+    echo is enabled.
+  """
   shell = _ipython.get_ipython()
   display_args = ['cell_display_stdin', {'delayMillis': delay_millis}]
   _message.blocking_request(*display_args, parent=shell.parent_header)
 
-  yield
+  def echo_updater(new_echo_status):
+    # Note: Updating the echo status uses colab_request / colab_reply on the
+    # stdin socket. Input provided by the user also sends messages on this
+    # socket. If user input is provided while the blocking_request call is still
+    # waiting for a colab_reply, the input will be dropped per
+    # https://github.com/googlecolab/colabtools/blob/56e4dbec7c4fa09fad51b60feb5c786c69d688c6/google/colab/_message.py#L100.
+    update_args = ['cell_update_stdin', {'echo': new_echo_status}]
+    _message.blocking_request(*update_args, parent=shell.parent_header)
+
+  yield echo_updater
 
   hide_args = ['cell_remove_stdin', {}]
   _message.blocking_request(*hide_args, parent=shell.parent_header)
