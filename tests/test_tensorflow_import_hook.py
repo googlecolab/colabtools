@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for 001tensorflowimporthook."""
+"""Tests for _TensorFlowImportHook."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -24,7 +24,7 @@ import unittest
 
 from six.moves import reload_module
 
-from google.colab import _tensorflow_import_hook
+from google.colab._import_hooks import _tensorflow
 
 #  pylint:disable=g-import-not-at-top
 try:
@@ -50,19 +50,15 @@ class TensorFlowImportHookTest(unittest.TestCase):
     # The TensorFlow module interacts poorly with calls to reload(). Use the
     # termios module instead since we're mostly concerned with testing that
     # the custom import hook is registered and run.
-    if 'termios' in sys.modules:
-      del sys.modules['termios']
+    sys.modules.pop('termios', None)
 
-  @mock.patch.object(_tensorflow_import_hook._TensorFlowImportHook,
-                     'load_module')
+  @mock.patch.object(_tensorflow._TensorFlowImportHook, 'load_module')
   @mock.patch.object(
-      _tensorflow_import_hook._TensorFlowImportHook,
-      '_has_gpu',
-      return_value=True)
+      _tensorflow._TensorFlowImportHook, '_has_gpu', return_value=True)
   def testDoesNothingWithEnvVariableSet(self, unused_mock_has_gpu,
                                         mock_load_module):
     os.environ['DISABLE_COLAB_TF_IMPORT_HOOK'] = '1'
-    _tensorflow_import_hook._register_hook(module_name='termios')
+    _tensorflow._register_hook(module_name='termios')
 
     importlib.import_module('termios')
 
@@ -71,15 +67,12 @@ class TensorFlowImportHookTest(unittest.TestCase):
     # skipped.
     self.assertIn('termios', sys.modules)
 
-  @mock.patch.object(_tensorflow_import_hook._TensorFlowImportHook,
-                     'load_module')
+  @mock.patch.object(_tensorflow._TensorFlowImportHook, 'load_module')
   @mock.patch.object(
-      _tensorflow_import_hook._TensorFlowImportHook,
-      '_has_gpu',
-      return_value=False)
+      _tensorflow._TensorFlowImportHook, '_has_gpu', return_value=False)
   def testDoesNothingWithNoNvidiaDevicePresent(self, unused_mock_has_gpu,
                                                mock_load_module):
-    _tensorflow_import_hook._register_hook(module_name='termios')
+    _tensorflow._register_hook(module_name='termios')
 
     importlib.import_module('termios')
     # Default system import hooks are still called, even if the custom hook was
@@ -89,11 +82,9 @@ class TensorFlowImportHookTest(unittest.TestCase):
     mock_load_module.assert_not_called()
 
   @mock.patch.object(
-      _tensorflow_import_hook._TensorFlowImportHook,
-      '_has_gpu',
-      return_value=True)
+      _tensorflow._TensorFlowImportHook, '_has_gpu', return_value=True)
   def testRunsInitCodeOnImportWithFailure(self, unused_mock_has_gpu):
-    _tensorflow_import_hook._register_hook(module_name='termios')
+    _tensorflow._register_hook(module_name='termios')
 
     # Relevant TensorFlow code is not present in the termios module. This
     # test asserts that the import hook is run and handles exceptions if the

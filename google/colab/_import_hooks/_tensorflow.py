@@ -13,12 +13,6 @@
 # limitations under the License.
 """Import hook for ensuring that TensorFlow uses allow_growth by default."""
 
-#  pylint:disable=invalid-name
-#  pylint:enable=invalid-name
-
-# Note: IPython startup scripts are run in alphabetical order. Using a numerical
-# prefix to preserve ordering.
-
 import datetime
 import imp
 import logging
