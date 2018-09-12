@@ -179,9 +179,8 @@ def _run_command(cmd, clear_streamed_output):
 
     with temporary_clearer(), _display_stdin_widget(
         delay_millis=500) as update_stdin_widget:
-      # TODO(b/36984411): Consider starting the process in a process group using
-      # os.setsid. This should help ensure that signals are propagated to all
-      # spawned child processes.
+      # TODO(b/115531839): Ensure that subprocesses are terminated upon
+      # interrupt.
       p = subprocess.Popen(
           cmd,
           shell=True,
@@ -234,8 +233,8 @@ def _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget):
       # the polling loop could effectively become a tight loop and use a large
       # amount of CPU. Add a slight delay to give resources back to the system
       # while monitoring the process.
-      # TODO(b/36984411): Rather than sleep, poll for incoming messages from the
-      # frontend in the same poll as for the output.
+      # TODO(b/115527726): Rather than sleep, poll for incoming messages from
+      # the frontend in the same poll as for the output.
       time.sleep(0.1)
     except KeyboardInterrupt:
       try:
