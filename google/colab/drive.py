@@ -46,6 +46,7 @@ def mount(mountpoint):
   prompt = u'root@{}-{}: '.format(socket.gethostname(), uuid.uuid4().hex)
   d = pexpect.spawn(
       '/bin/bash',
+      args=['--noediting'],
       timeout=120,
       maxread=int(1e6),
       encoding='utf-8',
@@ -53,10 +54,13 @@ def mount(mountpoint):
   if mount._DEBUG:  # pylint:disable=protected-access
     d.logfile_read = sys.stdout
   d.sendline('export PS1="{}"'.format(prompt))
+  d.expect(prompt)  # The echoed input above.
+  d.expect(prompt)  # The new prompt.
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
   # because that leaves enough cruft behind in the mount table that future
   # operations fail with "Transport endpoint is not connected".
-  d.sendline('umount -f {mnt}; pkill -9 drive'.format(mnt=mountpoint))
+  d.sendline(
+      'umount -f {mnt} || umount {mnt}; pkill -9 drive'.format(mnt=mountpoint))
   # Wait for above to be received, using the next prompt.
   d.expect(u'pkill')  # Echoed command.
   d.expect(prompt)
@@ -80,10 +84,14 @@ def mount(mountpoint):
           m=mountpoint, s=success)
   d.sendline(success_watcher)
   d.expect(prompt)  # Eat the match of the input command above being echoed.
+  drive_dir = os.path.realpath(
+      os.path.join(
+          os.path.dirname(os.environ['CLOUDSDK_CONFIG']), '..',
+          'opt/google/drive'))
   d.sendline(('{d}/drive --features=virtual_folders:true '
               '--preferences=trusted_root_certs_file_path:'
               '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
-                  d='/opt/google/drive', mnt=mountpoint))
+                  d=drive_dir, mnt=mountpoint))
 
   while True:
     case = d.expect(
