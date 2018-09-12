@@ -30,6 +30,7 @@ import pexpect
 def mount(mountpoint):
   """Mount your Google Drive at the specified mountpoint path."""
 
+  mountpoint = os.path.expanduser(mountpoint)
   home = os.environ['HOME']
   config_dir = os.path.join(home, '.config', 'Google')
   try:
