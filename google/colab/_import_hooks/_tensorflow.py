@@ -53,8 +53,6 @@ class _TensorFlowImportHook(object):
     """Loads TensorFlow normally and runs pre-initialization code."""
     previously_loaded = name in sys.modules
 
-    # TODO(b/113505142): Consider using importlib in Python3 since the imp
-    # module is deprecated.
     module_info = imp.find_module(name, self.path)
     tf_module = imp.load_module(name, *module_info)
 
