@@ -107,10 +107,8 @@ def mount(mountpoint):
       raise ValueError('mount failed')
     elif case == 2:
       # Not already authorized, so do the authorization dance.
-      print(d.match.group(1))
-      print('Enter your authorization code:')
-      sys.stdout.flush()
-      d.send(getpass.getpass() + '\n')
+      prompt = d.match.group(1) + '\n\nEnter your authorization code:\n'
+      d.send(getpass.getpass(prompt) + '\n')
   d.sendcontrol('z')
   d.expect(u'Stopped')
   d.sendline('bg; disown; exit')
