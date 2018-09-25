@@ -14,9 +14,7 @@
 """Colab import customizations to the IPython runtime."""
 
 from google.colab._import_hooks import _altair
-from google.colab._import_hooks import _tensorflow
 
 
 def _register_hooks():
   _altair._register_hook()  # pylint:disable=protected-access
-  _tensorflow._register_hook()  # pylint:disable=protected-access
