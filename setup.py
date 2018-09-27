@@ -17,12 +17,14 @@ from setuptools import find_packages
 from setuptools import setup
 
 DEPENDENCIES = (
+    'google-auth',
+    'ipykernel~=4.6.0',
+    'ipython~=5.5.0',
     'notebook>=5.0',
     'six>=1.4.0',
-    'tornado>=4.5',
     'portpicker',
-    'google-auth',
     'requests',
+    'tornado>=4.5',
 )
 
 setup(
