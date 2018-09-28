@@ -32,6 +32,17 @@ def mount(mountpoint):
 
   mountpoint = os.path.expanduser(mountpoint)
   home = os.environ['HOME']
+  root_dir = os.path.realpath(
+      os.path.join(os.environ['CLOUDSDK_CONFIG'], '../..'))
+  inet_family = 'IPV4_ONLY'
+  dev = '/dev/fuse'
+  path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
+  if len(root_dir) > 1:
+    home = os.path.join(root_dir, home)
+    inet_family = 'IPV6_ONLY'
+    fum = os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
+    dev = fum + '/dev/fuse'
+    path = path + ':' + fum + '/bin'
   config_dir = os.path.join(home, '.config', 'Google')
   try:
     os.makedirs(config_dir)
@@ -51,7 +62,11 @@ def mount(mountpoint):
       timeout=120,
       maxread=int(1e6),
       encoding='utf-8',
-      env={'HOME': home})
+      env={
+          'HOME': home,
+          'FUSE_DEV_NAME': dev,
+          'PATH': path
+      })
   if mount._DEBUG:  # pylint:disable=protected-access
     d.logfile_read = sys.stdout
   d.sendline('export PS1="{}"'.format(prompt))
@@ -60,8 +75,8 @@ def mount(mountpoint):
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
   # because that leaves enough cruft behind in the mount table that future
   # operations fail with "Transport endpoint is not connected".
-  d.sendline(
-      'umount -f {mnt} || umount {mnt}; pkill -9 drive'.format(mnt=mountpoint))
+  d.sendline('umount -f {mnt} || umount {mnt}; pkill -9 -x drive'.format(
+      mnt=mountpoint))
   # Wait for above to be received, using the next prompt.
   d.expect(u'pkill')  # Echoed command.
   d.expect(prompt)
@@ -85,11 +100,9 @@ def mount(mountpoint):
           m=mountpoint, s=success)
   d.sendline(success_watcher)
   d.expect(prompt)  # Eat the match of the input command above being echoed.
-  drive_dir = os.path.realpath(
-      os.path.join(
-          os.path.dirname(os.environ['CLOUDSDK_CONFIG']), '..',
-          'opt/google/drive'))
+  drive_dir = os.path.join(root_dir, 'opt/google/drive')
   d.sendline(('{d}/drive --features=virtual_folders:true '
+              '--inet_family=' + inet_family + ' '
               '--preferences=trusted_root_certs_file_path:'
               '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
                   d=drive_dir, mnt=mountpoint))
