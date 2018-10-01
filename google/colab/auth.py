@@ -13,36 +13,37 @@
 # limitations under the License.
 """Colab-specific authentication helpers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# TODO(b/113878301): Test that imported modules do not appear in autocomplete.
+from __future__ import absolute_import as _absolute_import
+from __future__ import division as _division
+from __future__ import print_function as _print_function
 
-import contextlib
-import getpass
-import logging
-import os
-import sqlite3  # pylint: disable=g-bad-import-order
-import subprocess
-import tempfile
-import time
+import contextlib as _contextlib
+import getpass as _getpass
+import logging as _logging
+import os as _os
+import sqlite3 as _sqlite3  # pylint: disable=g-bad-import-order
+import subprocess as _subprocess
+import tempfile as _tempfile
+import time as _time
 
-import google.auth
-import google.auth.transport.requests
-from google.colab import errors
-from google.colab import output
+import google.auth as _google_auth
+import google.auth.transport.requests as _auth_requests
+from google.colab import errors as _errors
+from google.colab import output as _output
 
 
 def _check_adc():
   """Return whether the application default credential exists and is valid."""
   try:
-    creds, _ = google.auth.default()
-  except google.auth.exceptions.DefaultCredentialsError:
+    creds, _ = _google_auth.default()
+  except _google_auth.exceptions.DefaultCredentialsError:
     return False
-  transport = google.auth.transport.requests.Request()
+  transport = _auth_requests.Request()
   try:
     creds.refresh(transport)
   except Exception as e:  # pylint:disable=broad-except
-    logging.info('Failure refreshing credentials: %s', e)
+    _logging.info('Failure refreshing credentials: %s', e)
   return creds.valid
 
 
@@ -58,17 +59,17 @@ def _gcloud_login():
       '--no-launch-browser',
       '--quiet',
   ]
-  f, name = tempfile.mkstemp()
-  gcloud_process = subprocess.Popen(
+  f, name = _tempfile.mkstemp()
+  gcloud_process = _subprocess.Popen(
       gcloud_command,
-      stdin=subprocess.PIPE,
+      stdin=_subprocess.PIPE,
       stdout=f,
-      stderr=subprocess.STDOUT,
+      stderr=_subprocess.STDOUT,
       universal_newlines=True)
   try:
     while True:
-      time.sleep(0.2)
-      os.fsync(f)
+      _time.sleep(0.2)
+      _os.fsync(f)
       prompt = open(name).read()
       if 'https' in prompt:
         break
@@ -76,24 +77,24 @@ def _gcloud_login():
     # Combine the URL with the verification prompt to work around
     # https://github.com/jupyter/notebook/issues/3159
     prompt = prompt.rstrip()
-    code = getpass.getpass(prompt + '\n\nEnter verification code: ')
+    code = _getpass.getpass(prompt + '\n\nEnter verification code: ')
     gcloud_process.communicate(code.strip())
   finally:
-    os.close(f)
-    os.remove(name)
+    _os.close(f)
+    _os.remove(name)
   if gcloud_process.returncode:
-    raise errors.AuthorizationError('Error fetching credentials')
+    raise _errors.AuthorizationError('Error fetching credentials')
 
 
 def _get_adc_path():
-  return os.path.join(os.environ.get('DATALAB_ROOT', '/'), 'content/adc.json')
+  return _os.path.join(_os.environ.get('DATALAB_ROOT', '/'), 'content/adc.json')
 
 
 def _install_adc():
   """Install the gcloud token as the Application Default Credential."""
-  gcloud_db_path = os.path.join(
-      os.environ.get('DATALAB_ROOT', '/'), 'content/.config/credentials.db')
-  db = sqlite3.connect(gcloud_db_path)
+  gcloud_db_path = _os.path.join(
+      _os.environ.get('DATALAB_ROOT', '/'), 'content/.config/credentials.db')
+  db = _sqlite3.connect(gcloud_db_path)
   c = db.cursor()
   ls = list(c.execute('SELECT * FROM credentials;'))
   adc_path = _get_adc_path()
@@ -101,7 +102,7 @@ def _install_adc():
     f.write(ls[0][1])
 
 
-@contextlib.contextmanager
+@_contextlib.contextmanager
 def _noop():
   """Null context manager, like contextlib.nullcontext in python 3.7+."""
   yield
@@ -128,12 +129,12 @@ def authenticate_user(clear_output=True):
   """
   if _check_adc():
     return
-  os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
+  _os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
   if not _check_adc():
-    context_manager = output.temporary if clear_output else _noop
+    context_manager = _output.temporary if clear_output else _noop
     with context_manager():
       _gcloud_login()
     _install_adc()
   if _check_adc():
     return
-  raise errors.AuthorizationError('Failed to fetch user credentials')
+  raise _errors.AuthorizationError('Failed to fetch user credentials')
