@@ -228,14 +228,6 @@ def _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget):
       if echo_status != new_echo_status:
         update_stdin_widget(new_echo_status)
         echo_status = new_echo_status
-
-      # The PTY is almost continuously available for reading. This means that
-      # the polling loop could effectively become a tight loop and use a large
-      # amount of CPU. Add a slight delay to give resources back to the system
-      # while monitoring the process.
-      # TODO(b/115527726): Rather than sleep, poll for incoming messages from
-      # the frontend in the same poll as for the output.
-      time.sleep(0.1)
     except KeyboardInterrupt:
       try:
         num_interrupts += 1
@@ -283,7 +275,6 @@ def _poll_process(parent_pty, epoll, p, cmd, decoder, state):
       decoded_contents = decoder.decode(raw_contents)
 
       sys.stdout.write(decoded_contents)
-      sys.stdout.flush()
       state.process_output.write(decoded_contents)
 
     if event & select.EPOLLOUT:
@@ -316,8 +307,21 @@ def _poll_process(parent_pty, epoll, p, cmd, decoder, state):
   # there is more data made available on the PTY than we consume in a single
   # read call.
   if terminated and not state.is_pty_still_connected and not output_available:
+    sys.stdout.flush()
     command_output = state.process_output.getvalue()
     return ShellResult(cmd, p.returncode, command_output)
+
+  if not output_available:
+    # The PTY is almost continuously available for reading input to provide
+    # to the underlying subprocess. This means that the polling loop could
+    # effectively become a tight loop and use a large amount of CPU. Add a
+    # slight delay to give resources back to the system while monitoring the
+    # process.
+    # Skip this delay if we read output in the previous loop so that a partial
+    # read doesn't unnecessarily sleep before reading more output.
+    # TODO(b/115527726): Rather than sleep, poll for incoming messages from
+    # the frontend in the same poll as for the output.
+    time.sleep(0.1)
 
 
 @contextlib.contextmanager
