@@ -21,11 +21,12 @@ from google.colab import _import_hooks
 from google.colab import _shell_customizations
 from google.colab import _system_commands
 from google.colab import auth
+from google.colab import drive
 from google.colab import files
 from google.colab import output
 from google.colab import widgets
 
-__all__ = ['auth', 'files', 'output', 'widgets']
+__all__ = ['auth', 'drive', 'files', 'output', 'widgets']
 
 __version__ = '0.0.1a2'
 
