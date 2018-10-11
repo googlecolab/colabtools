@@ -32,6 +32,8 @@ import google.auth.transport.requests as _auth_requests
 from google.colab import errors as _errors
 from google.colab import output as _output
 
+__all__ = ['authenticate_user']
+
 
 def _check_adc():
   """Return whether the application default credential exists and is valid."""

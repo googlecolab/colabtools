@@ -33,6 +33,8 @@ from six.moves import urllib
 
 from google.colab import output
 
+__all__ = ['upload', 'download']
+
 
 def upload():
   """Renders widget to upload local (to the browser) files to the kernel.

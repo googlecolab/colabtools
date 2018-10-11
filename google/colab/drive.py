@@ -26,6 +26,8 @@ import uuid
 
 import pexpect
 
+__all__ = ['mount']
+
 
 def mount(mountpoint):
   """Mount your Google Drive at the specified mountpoint path."""
