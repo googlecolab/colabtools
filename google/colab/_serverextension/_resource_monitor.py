@@ -32,8 +32,8 @@ def get_gpu_usage():
         kernels[row['kernel_id']] = int(row['gpu_mem(MiB)']) * 1024 * 1024
   if spawn.find_executable('nvidia-smi') is not None:
     ns = subprocess.check_output([
-        'nvidia-smi', '--query-gpu=memory.used,memory.total',
-        '--format=csv,nounits,noheader'
+        '/usr/bin/timeout', '-sKILL', '1s', 'nvidia-smi',
+        '--query-gpu=memory.used,memory.total', '--format=csv,nounits,noheader'
     ]).decode('utf-8')
     r = csv.reader([ns])
     row = next(r)

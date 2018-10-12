@@ -72,7 +72,7 @@ class FakeUsage(object):
     output = ''
     if cmdline[0] == 'ps':
       output = FakeUsage._ps_output
-    elif cmdline[0] == 'nvidia-smi':
+    elif 'nvidia-smi' in cmdline:
       output = FakeUsage._nvidia_smi_output
     if sys.version_info[0] == 3:  # returns bytes in py3, string in py2
       return bytes(output.encode('utf-8'))
