@@ -29,10 +29,16 @@ import pexpect
 __all__ = ['mount']
 
 
-def mount(mountpoint):
+def mount(mountpoint, force_remount=False):
   """Mount your Google Drive at the specified mountpoint path."""
 
   mountpoint = os.path.expanduser(mountpoint)
+  # If we've already mounted drive at the specified mountpoint, exit now.
+  if not force_remount and os.path.isdir(os.path.join(mountpoint, 'My Drive')):
+    print('Drive already mounted at {}; to attempt to forcibly remount, '
+          'call drive.mount("{}", force_remount=True).'.format(
+              mountpoint, mountpoint))
+    return
   home = os.environ['HOME']
   root_dir = os.path.realpath(
       os.path.join(os.environ['CLOUDSDK_CONFIG'], '../..'))
