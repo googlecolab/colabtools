@@ -14,9 +14,9 @@
 """Colab-specific authentication helpers."""
 
 # TODO(b/113878301): Test that imported modules do not appear in autocomplete.
-from __future__ import absolute_import as _absolute_import
-from __future__ import division as _division
-from __future__ import print_function as _print_function
+from __future__ import absolute_import as _
+from __future__ import division as _
+from __future__ import print_function as _
 
 import contextlib as _contextlib
 import getpass as _getpass

@@ -13,25 +13,25 @@
 # limitations under the License.
 """Colab-specific file helpers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import as _
+from __future__ import division as _
+from __future__ import print_function as _
 
-import base64
-import collections
-import os
-import socket
-import threading
-import uuid
+import base64 as _base64
+import collections as _collections
+import os as _os
+import socket as _socket
+import threading as _threading
+import uuid as _uuid
 
-import IPython
-import portpicker
-import six
-from six.moves import SimpleHTTPServer
-from six.moves import socketserver
-from six.moves import urllib
+import IPython as _IPython
+import portpicker as _portpicker
+import six as _six
+from six.moves import SimpleHTTPServer as _SimpleHTTPServer
+from six.moves import socketserver as _socketserver
+from six.moves import urllib as _urllib
 
-from google.colab import output
+from google.colab import output as _output
 
 __all__ = ['upload', 'download']
 
@@ -44,12 +44,12 @@ def upload():
   Returns:
     A map of the form {<filename>: <file contents>} for all uploaded files.
   """
-  upload_id = str(uuid.uuid4())
+  upload_id = str(_uuid.uuid4())
   input_id = 'files-' + upload_id
   output_id = 'result-' + upload_id
 
-  IPython.display.display(
-      IPython.core.display.HTML("""
+  _IPython.display.display(
+      _IPython.core.display.HTML("""
      <input type="file" id="{input_id}" name="files[]" multiple disabled />
      <output id="{output_id}">
       Upload widget is only available when the cell has been executed in the
@@ -59,15 +59,15 @@ def upload():
           input_id=input_id, output_id=output_id)))
 
   # First result is always an indication that the file picker has completed.
-  result = output.eval_js(
+  result = _output.eval_js(
       'google.colab._files._uploadFiles("{input_id}", "{output_id}")'.format(
           input_id=input_id, output_id=output_id))
-  files = collections.defaultdict(six.binary_type)
+  files = _collections.defaultdict(_six.binary_type)
   # Mapping from original filename to filename as saved locally.
   local_filenames = dict()
 
   while result['action'] != 'complete':
-    result = output.eval_js(
+    result = _output.eval_js(
         'google.colab._files._uploadFilesContinue("{output_id}")'.format(
             output_id=output_id))
     if result['action'] != 'append':
@@ -75,7 +75,7 @@ def upload():
       # steps may not produce data for the Python side, so just proceed onto the
       # next message.
       continue
-    data = base64.b64decode(result['data'])
+    data = _base64.b64decode(result['data'])
     filename = result['file']
 
     files[filename] += data
@@ -92,28 +92,28 @@ def upload():
 
 
 def _get_unique_filename(filename):
-  if not os.path.lexists(filename):
+  if not _os.path.lexists(filename):
     return filename
   counter = 1
   while True:
-    path, ext = os.path.splitext(filename)
+    path, ext = _os.path.splitext(filename)
     new_filename = '{} ({}){}'.format(path, counter, ext)
-    if not os.path.lexists(new_filename):
+    if not _os.path.lexists(new_filename):
       return new_filename
     counter += 1
 
 
-class _V6Server(socketserver.TCPServer):
-  address_family = socket.AF_INET6
+class _V6Server(_socketserver.TCPServer):
+  address_family = _socket.AF_INET6
 
 
-class _FileHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class _FileHandler(_SimpleHTTPServer.SimpleHTTPRequestHandler):
   """SimpleHTTPRequestHandler with a couple tweaks."""
 
   def translate_path(self, path):
     # Client specifies absolute paths.
     # TODO(b/79760241): Remove this spurious lint warning.
-    return urllib.parse.unquote(path)  # pylint:disable=too-many-function-args
+    return _urllib.parse.unquote(path)  # pylint:disable=too-many-function-args
 
   def log_message(self, fmt, *args):
     # Suppress logging since it's on the background. Any errors will be reported
@@ -123,7 +123,7 @@ class _FileHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
   def end_headers(self):
     # Do not cache the response in the notebook, since it may be quite large.
     self.send_header('x-colab-notebook-cache-control', 'no-cache')
-    SimpleHTTPServer.SimpleHTTPRequestHandler.end_headers(self)
+    _SimpleHTTPServer.SimpleHTTPRequestHandler.end_headers(self)
 
 
 def download(filename):
@@ -136,15 +136,15 @@ def download(filename):
     OSError: if the file cannot be found.
   """
 
-  if not os.path.exists(filename):
+  if not _os.path.exists(filename):
     msg = 'Cannot find file: {}'.format(filename)
-    if six.PY2:
+    if _six.PY2:
       raise OSError(msg)
     else:
       raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
 
-  started = threading.Event()
-  port = portpicker.pick_unused_port()
+  started = _threading.Event()
+  port = _portpicker.pick_unused_port()
 
   def server_entry():
     httpd = _V6Server(('::', port), _FileHandler)
@@ -152,11 +152,11 @@ def download(filename):
     # Handle a single request then exit the thread.
     httpd.handle_request()
 
-  thread = threading.Thread(target=server_entry)
+  thread = _threading.Thread(target=server_entry)
   thread.start()
   started.wait()
 
-  output.eval_js(
+  _output.eval_js(
       """
       (async function() {
         const response = await fetch('https://localhost:%(port)d%(path)s');
@@ -174,6 +174,6 @@ def download(filename):
       })();
   """ % {
       'port': port,
-      'path': os.path.abspath(filename),
-      'name': os.path.basename(filename),
+      'path': _os.path.abspath(filename),
+      'name': _os.path.basename(filename),
   })

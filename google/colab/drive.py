@@ -13,18 +13,18 @@
 # limitations under the License.
 """Colab-specific Google Drive integration."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import as _
+from __future__ import division as _
+from __future__ import print_function as _
 
-import getpass
-import os
-import re
-import socket
-import sys
-import uuid
+import getpass as _getpass
+import os as _os
+import re as _re
+import socket as _socket
+import sys as _sys
+import uuid as _uuid
 
-import pexpect
+import pexpect as _pexpect
 
 __all__ = ['mount']
 
@@ -32,30 +32,31 @@ __all__ = ['mount']
 def mount(mountpoint, force_remount=False):
   """Mount your Google Drive at the specified mountpoint path."""
 
-  mountpoint = os.path.expanduser(mountpoint)
+  mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
-  if not force_remount and os.path.isdir(os.path.join(mountpoint, 'My Drive')):
+  already_mounted = _os.path.isdir(_os.path.join(mountpoint, 'My Drive'))
+  if not force_remount and already_mounted:
     print('Drive already mounted at {}; to attempt to forcibly remount, '
           'call drive.mount("{}", force_remount=True).'.format(
               mountpoint, mountpoint))
     return
-  home = os.environ['HOME']
-  root_dir = os.path.realpath(
-      os.path.join(os.environ['CLOUDSDK_CONFIG'], '../..'))
+  home = _os.environ['HOME']
+  root_dir = _os.path.realpath(
+      _os.path.join(_os.environ['CLOUDSDK_CONFIG'], '../..'))
   inet_family = 'IPV4_ONLY'
   dev = '/dev/fuse'
   path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
   if len(root_dir) > 1:
-    home = os.path.join(root_dir, home)
+    home = _os.path.join(root_dir, home)
     inet_family = 'IPV6_ONLY'
-    fum = os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
+    fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
     dev = fum + '/dev/fuse'
     path = path + ':' + fum + '/bin'
-  config_dir = os.path.join(home, '.config', 'Google')
+  config_dir = _os.path.join(home, '.config', 'Google')
   try:
-    os.makedirs(config_dir)
+    _os.makedirs(config_dir)
   except OSError:
-    if not os.path.isdir(config_dir):
+    if not _os.path.isdir(config_dir):
       raise ValueError('{} must be a directory if present'.format(config_dir))
 
   # Launch an intermediate bash inside of which drive is launched, so that
@@ -63,8 +64,8 @@ def mount(mountpoint, force_remount=False):
   # being captured by pexpect. Otherwise buffers will eventually fill up and
   # drive may hang, because pexpect doesn't have a .startDiscardingOutput()
   # call (https://github.com/pexpect/pexpect/issues/54).
-  prompt = u'root@{}-{}: '.format(socket.gethostname(), uuid.uuid4().hex)
-  d = pexpect.spawn(
+  prompt = u'root@{}-{}: '.format(_socket.gethostname(), _uuid.uuid4().hex)
+  d = _pexpect.spawn(
       '/bin/bash',
       args=['--noediting'],
       timeout=120,
@@ -76,7 +77,7 @@ def mount(mountpoint, force_remount=False):
           'PATH': path
       })
   if mount._DEBUG:  # pylint:disable=protected-access
-    d.logfile_read = sys.stdout
+    d.logfile_read = _sys.stdout
   d.sendline('export PS1="{}"'.format(prompt))
   d.expect(prompt)  # The echoed input above.
   d.expect(prompt)  # The new prompt.
@@ -90,11 +91,11 @@ def mount(mountpoint, force_remount=False):
   d.expect(prompt)
   # Only check the mountpoint after potentially unmounting/pkill'ing above.
   try:
-    if os.path.islink(mountpoint):
+    if _os.path.islink(mountpoint):
       raise ValueError('Mountpoint must not be a symlink')
-    if os.path.isdir(mountpoint) and os.listdir(mountpoint):
+    if _os.path.isdir(mountpoint) and _os.listdir(mountpoint):
       raise ValueError('Mountpoint must not already contain files')
-    if not os.path.isdir(mountpoint) and os.path.exists(mountpoint):
+    if not _os.path.isdir(mountpoint) and _os.path.exists(mountpoint):
       raise ValueError('Mountpoint must either be a directory or not exist')
   except:
     d.terminate(force=True)
@@ -108,7 +109,7 @@ def mount(mountpoint, force_remount=False):
           m=mountpoint, s=success)
   d.sendline(success_watcher)
   d.expect(prompt)  # Eat the match of the input command above being echoed.
-  drive_dir = os.path.join(root_dir, 'opt/google/drive')
+  drive_dir = _os.path.join(root_dir, 'opt/google/drive')
   d.sendline(('{d}/drive --features=virtual_folders:true '
               '--inet_family=' + inet_family + ' '
               '--preferences=trusted_root_certs_file_path:'
@@ -116,10 +117,10 @@ def mount(mountpoint, force_remount=False):
                   d=drive_dir, mnt=mountpoint))
 
   while True:
-    case = d.expect(
-        [success,
-         prompt,
-         re.compile(u'(Go to this URL in a browser: https://.*)\r\n')])
+    case = d.expect([
+        success, prompt,
+        _re.compile(u'(Go to this URL in a browser: https://.*)\r\n')
+    ])
     if case == 0:
       break
     elif case == 1:
@@ -129,11 +130,11 @@ def mount(mountpoint, force_remount=False):
     elif case == 2:
       # Not already authorized, so do the authorization dance.
       prompt = d.match.group(1) + '\n\nEnter your authorization code:\n'
-      d.send(getpass.getpass(prompt) + '\n')
+      d.send(_getpass.getpass(prompt) + '\n')
   d.sendcontrol('z')
   d.expect(u'Stopped')
   d.sendline('bg; disown; exit')
-  d.expect(pexpect.EOF)
+  d.expect(_pexpect.EOF)
   assert not d.isalive()
   assert d.exitstatus == 0
   print('Mounted at {}'.format(mountpoint))
