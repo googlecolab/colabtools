@@ -66,18 +66,26 @@ import "{{module}}";
       return [obj, name];
     }
 
-    {{#attributes}}
-    el.setAttribute("{{name}}", `{{{value}}}`);
-    {{/attributes}}
-    {{#properties}}
-    el["{{name}}"] = {{{value}}};
-    {{/properties}}
-    {{#js_listeners}}
-    addJsEventListener("{{name}}", {{{value}}});
-    {{/js_listeners}}
-    {{#py_listeners}}
-    addPythonEventListener("{{name}}", "{{value}}");
-    {{/py_listeners}}
+    async function initialize() {
+      const tag = '{{tag}}';
+      if (tag.includes('-')) {
+        await customElements.whenDefined(tag);
+      }
+      {{#attributes}}
+      el.setAttribute("{{name}}", `{{{value}}}`);
+      {{/attributes}}
+      {{#properties}}
+      el["{{name}}"] = {{{value}}};
+      {{/properties}}
+      {{#js_listeners}}
+      addJsEventListener("{{name}}", {{{value}}});
+      {{/js_listeners}}
+      {{#py_listeners}}
+      addPythonEventListener("{{name}}", "{{value}}");
+      {{/py_listeners}}
+    }
+
+    window.google.colab.output.pauseOutputUntil(initialize());
 
     function processMessage(msg) {
       let obj;
