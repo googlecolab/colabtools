@@ -26,7 +26,6 @@ import sqlite3 as _sqlite3  # pylint: disable=g-bad-import-order
 import subprocess as _subprocess
 import tempfile as _tempfile
 import time as _time
-import warnings as _warnings
 
 import google.auth as _google_auth
 import google.auth.transport.requests as _auth_requests
@@ -38,12 +37,10 @@ __all__ = ['authenticate_user']
 
 def _check_adc():
   """Return whether the application default credential exists and is valid."""
-  with _warnings.catch_warnings():
-    _warnings.simplefilter('ignore')
-    try:
-      creds, _ = _google_auth.default()
-    except _google_auth.exceptions.DefaultCredentialsError:
-      return False
+  try:
+    creds, _ = _google_auth.default()
+  except _google_auth.exceptions.DefaultCredentialsError:
+    return False
   transport = _auth_requests.Request()
   try:
     creds.refresh(transport)
