@@ -37,10 +37,18 @@ __all__ = ['authenticate_user']
 
 def _check_adc():
   """Return whether the application default credential exists and is valid."""
+  # google-auth wants to warn the user if no project is set, which makes sense
+  # for cloud-only users, but not in our case. We temporarily chnage the logging
+  # level here to silence.
+  logger = _logging.getLogger()
+  log_level = logger.level
+  logger.setLevel(_logging.ERROR)
   try:
     creds, _ = _google_auth.default()
   except _google_auth.exceptions.DefaultCredentialsError:
     return False
+  finally:
+    logger.setLevel(log_level)
   transport = _auth_requests.Request()
   try:
     creds.refresh(transport)
