@@ -24,9 +24,10 @@ from google.colab import auth
 from google.colab import drive
 from google.colab import files
 from google.colab import output
+from google.colab import snippets
 from google.colab import widgets
 
-__all__ = ['auth', 'drive', 'files', 'output', 'widgets']
+__all__ = ['auth', 'drive', 'files', 'output', 'snippets', 'widgets']
 
 __version__ = '0.0.1a2'
 
