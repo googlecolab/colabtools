@@ -16,6 +16,7 @@
 from ipykernel import ipkernel
 from ipykernel.jsonutil import json_clean
 from IPython.utils.tokenutil import token_at_cursor
+import six
 from google.colab import _autocomplete
 from google.colab import _shell
 from google.colab import _shell_customizations
@@ -45,6 +46,11 @@ class Kernel(ipkernel.IPythonKernel):
       data['text/plain'] = info_text
       # Provide the structured inspection information to allow the frontend to
       # format as desired.
+      argspec = info.get('argspec')
+      if argspec:
+        defaults = argspec.get('defaults')
+        if defaults:
+          argspec['defaults'] = [_to_primitive(x) for x in defaults]
       data['application/json'] = info
 
     reply_content = {
@@ -83,3 +89,11 @@ class Kernel(ipkernel.IPythonKernel):
     matches = json_clean(matches)
 
     self.session.send(stream, 'complete_reply', matches, parent, ident)
+
+
+def _to_primitive(o):
+  if isinstance(o, six.string_types):
+    return o
+  if isinstance(o, (int, float, bool, bytes, type(None))):
+    return o
+  return str(o)
