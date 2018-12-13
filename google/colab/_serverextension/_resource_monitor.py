@@ -2,7 +2,6 @@
 import csv
 import os
 import subprocess
-from distutils import spawn
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -30,7 +29,7 @@ def get_gpu_usage():
       reader = csv.DictReader(f.readlines(), delimiter=' ')
       for row in reader:
         kernels[row['kernel_id']] = int(row['gpu_mem(MiB)']) * 1024 * 1024
-  if spawn.find_executable('nvidia-smi') is not None:
+  try:
     ns = subprocess.check_output([
         '/usr/bin/timeout', '-sKILL', '1s', 'nvidia-smi',
         '--query-gpu=memory.used,memory.total', '--format=csv,nounits,noheader'
@@ -39,6 +38,10 @@ def get_gpu_usage():
     row = next(r)
     usage = int(row[0]) * 1024 * 1024
     limit = int(row[1]) * 1024 * 1024
+  # If timeout or nvidia-smi don't exist or the call errors, return default (0)
+  # values for usage and limit
+  except (OSError, IOError, subprocess.CalledProcessError):
+    pass
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
