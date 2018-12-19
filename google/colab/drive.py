@@ -110,11 +110,12 @@ def mount(mountpoint, force_remount=False):
   d.sendline(success_watcher)
   d.expect(prompt)  # Eat the match of the input command above being echoed.
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
-  d.sendline(('{d}/drive --features=virtual_folders:true '
-              '--inet_family=' + inet_family + ' '
-              '--preferences=trusted_root_certs_file_path:'
-              '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
-                  d=drive_dir, mnt=mountpoint))
+  d.sendline(
+      ('{d}/drive --features=opendir_timeout_ms:15000,virtual_folders:true '
+       '--inet_family=' + inet_family + ' '
+       '--preferences=trusted_root_certs_file_path:'
+       '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
+           d=drive_dir, mnt=mountpoint))
 
   while True:
     case = d.expect([
