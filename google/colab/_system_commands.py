@@ -413,7 +413,7 @@ def _getoutput_compat(shell, cmd, split=True, depth=0):
     return text.LSString(output)
 
 
-def _system_compat(shell, cmd):
+def _system_compat(shell, cmd, also_return_output=False):
   """Compatibility function for IPython's built-in system command.
 
   The system command has the following semantics:
@@ -426,8 +426,10 @@ def _system_compat(shell, cmd):
     shell: An InteractiveShell instance.
     cmd: Command to execute. This is the same as the corresponding argument to
       InteractiveShell.system_piped.
+    also_return_output: if True, return any output from this function, along
+      with printing it. Otherwise, print output and return None.
   Returns:
-    Nothing.
+    LSString if also_return_output=True, else None.
   """
   # We set a higher depth than the IPython system command since a shell object
   # is expected to call this function, thus adding one level of nesting to the
@@ -437,3 +439,11 @@ def _system_compat(shell, cmd):
   shell.user_ns['_exit_code'] = result.returncode
   if -result.returncode in _INTERRUPTED_SIGNALS:
     print('^C')
+
+  if also_return_output:
+    output = result.output
+    if six.PY2:
+      # Backwards compatibility. Python 2 getoutput() expects the result as a
+      # str, not a unicode.
+      output = output.encode(_ENCODING)
+    return text.LSString(output)

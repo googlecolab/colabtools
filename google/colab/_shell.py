@@ -13,6 +13,10 @@
 # limitations under the License.
 """Colab-specific shell customizations."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
 import sys
 
@@ -21,8 +25,16 @@ from ipykernel import zmqshell
 from IPython.core import interactiveshell
 from ipython_genutils import py3compat
 
+from google.colab import _pip
 from google.colab import _shell_customizations
 from google.colab import _system_commands
+
+
+# The code below warns the user that a runtime restart is necessary if a
+# package that is already imported is pip installed. Setting the
+# SKIP_COLAB_PIP_WARNING environment variable will disable this warning.
+def _show_pip_warning():
+  return os.environ.get('SKIP_COLAB_PIP_WARNING', '0') == '0'
 
 
 class Shell(zmqshell.ZMQInteractiveShell):
@@ -35,13 +47,27 @@ class Shell(zmqshell.ZMQInteractiveShell):
     if self._should_use_native_system_methods():
       return super(Shell, self).getoutput(*args, **kwargs)
 
-    return _system_commands._getoutput_compat(self, *args, **kwargs)  # pylint:disable=protected-access
+    output = _system_commands._getoutput_compat(self, *args, **kwargs)  # pylint:disable=protected-access
+
+    if _show_pip_warning() and _pip.is_pip_install_command(*args, **kwargs):
+      _pip.print_previous_import_warning(output.nlstr)
+
+    return output
 
   def system(self, *args, **kwargs):
     if self._should_use_native_system_methods():
       return super(Shell, self).system(*args, **kwargs)
 
-    return _system_commands._system_compat(self, *args, **kwargs)  # pylint:disable=protected-access
+    pip_warn = _show_pip_warning() and _pip.is_pip_install_command(
+        *args, **kwargs)
+
+    if pip_warn:
+      kwargs.update({'also_return_output': True})
+
+    output = _system_commands._system_compat(self, *args, **kwargs)  # pylint:disable=protected-access
+
+    if pip_warn:
+      _pip.print_previous_import_warning(output)
 
   def _send_error(self, exc_content):
     topic = (self.displayhook.topic.replace(b'execute_result', b'err') if
