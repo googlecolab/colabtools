@@ -73,15 +73,16 @@ def get_ram_usage(kernel_manager):
       kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
                              for kernel_id in kernel_manager.list_kernel_ids()])
   kernels = {}
-  ps = subprocess.check_output([
-      'ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo', 'pid rss',
-      '--no-header'
-  ]).decode('utf-8')
-  for proc in ps.split('\n')[:-1]:
-    proc = proc.strip().split(' ', 1)
-    if len(proc) != 2:
-      continue
-    kernels[pids_to_kernel_ids[proc[0]]] = int(proc[1]) * 1024
+  if pids_to_kernel_ids:
+    ps = subprocess.check_output([
+        'ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo', 'pid rss',
+        '--no-header'
+    ]).decode('utf-8')
+    for proc in ps.split('\n')[:-1]:
+      proc = proc.strip().split(' ', 1)
+      if len(proc) != 2:
+        continue
+      kernels[pids_to_kernel_ids[proc[0]]] = int(proc[1]) * 1024
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
