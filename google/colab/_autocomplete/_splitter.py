@@ -2,6 +2,8 @@
 import re
 import tokenize
 
+import six
+
 # List of positional params as they arrive from the callback
 _TOKEN_TYPE = 0
 _TOKEN = 1
@@ -106,16 +108,26 @@ def split(s):
   # Remove front whitespace, somehow it confuses tokenizer
   s = s.lstrip()
 
-  # accumulates all arguments in to the array
-  accumulate = lambda *args: tokens.append(args)
-
   try:
     # Convert input into readline analog
     lines = s.split('\n')
     # Add '\n to all lines except last one.
     lines[:-1] = [line + '\n' for line in lines[:-1]]
-    readline = (e for e in lines).next
-    tokenize.tokenize(readline, accumulate)
+    # tokenize.tokenize has a different signature in python2 and python3.
+    #
+    # In both cases, it's important to gather tokens as we go: many inputs from
+    # users are often incomplete python expressions, which will land us in the
+    # `tokenize.TokenError` case below with an unexpected EOF.
+    if six.PY3:
+      # For python3, we need to yield lines of bytes, but our input is unicode,
+      # so we decode each as we go.
+      line_iterator = (line.encode('utf8') for line in lines)
+      for out in tokenize.tokenize(line_iterator.__next__):
+        tokens.append(out)
+    else:
+      readline = (e for e in lines).next
+      accumulate = lambda *args: tokens.append(args)
+      tokenize.tokenize(readline, accumulate)
   except tokenize.TokenError:
     # Tokenizer failed, usually an indication of not-terminated strings.
     # Remove all quotes and return the last sequence of not-spaces
@@ -127,7 +139,7 @@ def split(s):
     s = s.split()
     return s[-1] if s else ''
 
-  # First we check if there is unfished quoted string
+  # First we check if there is unfinished quoted string.
   for each in reversed(tokens):
     if each[_TOKEN_TYPE] == tokenize.ERRORTOKEN and each[_TOKEN] in {
         "'", '"', '"""', "'''"
