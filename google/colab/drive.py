@@ -97,6 +97,8 @@ def mount(mountpoint, force_remount=False):
       raise ValueError('Mountpoint must not already contain files')
     if not _os.path.isdir(mountpoint) and _os.path.exists(mountpoint):
       raise ValueError('Mountpoint must either be a directory or not exist')
+    if '/' in mountpoint and not _os.path.exists(_os.path.dirname(mountpoint)):
+      raise ValueError('Mountpoint must be in a directory that exists')
   except:
     d.terminate(force=True)
     raise
