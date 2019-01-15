@@ -214,7 +214,14 @@ def infer_expression_result(expr, global_ns, local_ns):
   Returns:
     the result or None
   """
-  tree = ast.parse(expr, mode='eval')
+  global _last_autocompletion_error
+  try:
+    tree = ast.parse(expr, mode='eval')
+  except SyntaxError as e:
+    # If the code can't be parsed, we want to fail gracefully instead of
+    # throwing an exception.
+    _last_autocompletion_error = e
+    return
   _FuncTransformer().visit(tree)
   local_ns = dict(local_ns) if local_ns else {}
   local_ns['_autocomplete_infertype'] = _infertype
@@ -223,7 +230,6 @@ def infer_expression_result(expr, global_ns, local_ns):
     return eval(  # pylint: disable=eval-used
         compile(tree, '<string>', 'eval'), global_ns, local_ns)
   except Exception as e:  # pylint: disable=broad-except
-    global _last_autocompletion_error
     _last_autocompletion_error = e
 
     return None
