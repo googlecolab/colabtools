@@ -34,14 +34,15 @@ def get_gpu_usage():
         '/usr/bin/timeout', '-sKILL', '1s', 'nvidia-smi',
         '--query-gpu=memory.used,memory.total', '--format=csv,nounits,noheader'
     ]).decode('utf-8')
-    r = csv.reader([ns])
+  except (OSError, IOError, subprocess.CalledProcessError):
+    # If timeout or nvidia-smi don't exist or the call errors, return zero
+    # values for usage and limit.
+    pass
+  else:
+    r = csv.reader(ns.splitlines() or [''])
     row = next(r)
     usage = int(row[0]) * 1024 * 1024
     limit = int(row[1]) * 1024 * 1024
-  # If timeout or nvidia-smi don't exist or the call errors, return default (0)
-  # values for usage and limit
-  except (OSError, IOError, subprocess.CalledProcessError):
-    pass
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
