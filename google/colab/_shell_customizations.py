@@ -32,7 +32,6 @@ SNIPPET_MODULES = set([
     'cartopy',
     'libarchive',
     'pydot',
-    'torch',
 ])
 
 
