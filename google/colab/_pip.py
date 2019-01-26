@@ -13,14 +13,11 @@ import os
 import re
 import site
 import sys
+from IPython.core.display import _display_mimetype
 
 __all__ = ["is_pip_install_command", "print_previous_import_warning"]
 
-IMPORT_WARNING = """\x1b[0;31;1m\
-WARNING: The following packages were previously imported in this runtime:
-  [{0}]
-You must restart the runtime in order to use newly installed versions.\
-\x1b[0m"""
+_COLAB_DATA_MIMETYPE = "application/vnd.colab-display-data+json"
 
 
 def is_pip_install_command(cmd, *args, **kwargs):  # pylint: disable=unused-argument
@@ -103,4 +100,12 @@ def print_previous_import_warning(output):
   """Prints a warning about previously imported packages."""
   packages = _previously_imported_packages(output)
   if packages:
-    print(IMPORT_WARNING.format(", ".join(packages)))
+    # display a list of packages using the colab-display-data mimetype, which
+    # will be printed as a warning + restart button by the Colab frontend.
+    _display_mimetype(
+        _COLAB_DATA_MIMETYPE, ({
+            "pip_warning": {
+                "packages": packages,
+            }
+        },),
+        raw=True)
