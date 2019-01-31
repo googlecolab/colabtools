@@ -133,11 +133,26 @@ def mount(mountpoint, force_remount=False):
       raise ValueError('mount failed')
     elif case == 2:
       # Not already authorized, so do the authorization dance.
-      prompt = d.match.group(1) + '\n\nEnter your authorization code:\n'
-      d.send(_getpass.getpass(prompt) + '\n')
+      auth_prompt = d.match.group(1) + '\n\nEnter your authorization code:\n'
+      d.send(_getpass.getpass(auth_prompt) + '\n')
   d.sendcontrol('z')
   d.expect(u'Stopped')
-  d.sendline('bg; disown; exit')
+  d.expect(prompt)
+  d.sendline('bg; disown')
+  d.expect(prompt)
+  # LINT.IfChange(drivetimeoutlogfile)
+  filtered_logfile = '/root/.config/Google/DriveFS/Logs/timeouts.txt'
+  # LINT.ThenChange(_serverextension/_handlers.py:drivetimeoutlogfile)
+  d.sendline('rm -rf {}'.format(filtered_logfile))
+  d.expect(prompt)
+  # LINT.IfChange(drivetimedout)
+  pattern = 'QueryManager timed out'
+  # LINT.ThenChange()
+  d.sendline(('tail -n +0 -F /root/.config/Google/DriveFS/Logs/drive_fs.txt | '
+              'grep --line-buffered "{}" > {} &'.format(pattern,
+                                                        filtered_logfile)))
+  d.expect(prompt)
+  d.sendline('disown; exit')
   d.expect(_pexpect.EOF)
   assert not d.isalive()
   assert d.exitstatus == 0

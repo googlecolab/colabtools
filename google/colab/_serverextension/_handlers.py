@@ -14,6 +14,7 @@
 """Custom Jupyter notebook API handlers."""
 
 import json
+import subprocess
 
 from notebook.base import handlers
 
@@ -40,4 +41,38 @@ class ResourceUsageHandler(handlers.APIHandler):
         'ram': ram,
         'gpu': gpu,
         'disk': disk
+    }))
+
+
+class DriveHandler(handlers.APIHandler):
+  """Handles requests for drive errors."""
+
+  def _get_drive_errors(self):
+    """Reports errors from Drive.
+
+    Returns:
+      A list of strings describing evidence of unhealth, or [].
+    """
+
+    try:
+      # LINT.IfChange(drivetimeoutlogfile)
+      filtered_logfile = '/root/.config/Google/DriveFS/Logs/timeouts.txt'
+      # LINT.ThenChange(../drive.py:drivetimeoutlogfile)
+      # Only return the most recent match since we only care to warn the user
+      # about changes to this status.
+      return [
+          subprocess.check_output(
+              'tail -1 {}'.format(filtered_logfile),
+              shell=True).decode('utf-8').strip()
+      ]
+    except subprocess.CalledProcessError:  # Missing log file isn't fatal.
+      pass
+
+    return []
+
+  @tornado.web.authenticated
+  def get(self, *unused_args, **unused_kwargs):
+    drive_status = self._get_drive_errors()
+    self.finish(_XSSI_PREFIX + json.dumps({
+        'dfs': drive_status,
     }))

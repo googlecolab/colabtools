@@ -44,5 +44,6 @@ def load_jupyter_server_extension(nb_server_app):
       (url_maker(monitor_relative_path), _handlers.ResourceUsageHandler, {
           'kernel_manager': app.settings['kernel_manager']
       }),
+      (url_maker('/api/colab/drive'), _handlers.DriveHandler),
   ])
   nb_server_app.log.info('google.colab serverextension initialized.')
