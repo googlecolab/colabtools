@@ -67,7 +67,6 @@ class Kernel(ipkernel.IPythonKernel):
       ident: Identity of the requester.
       parent: Parent request message.
     """
-
     content = parent['content']
     code = content['code']
     cursor_pos = content['cursor_pos']
@@ -75,10 +74,21 @@ class Kernel(ipkernel.IPythonKernel):
     matches = self.do_complete(code, cursor_pos)
     if parent.get('metadata', {}).get('colab_options',
                                       {}).get('include_colab_metadata'):
+      # If we're fetching additional metadata on each item, we want to restrict
+      # the number of items. We also want to signal that not all matches were
+      # included.
+      #
+      # Note that 100 is an arbitrarily chosen bound for the number of
+      # completions to return.
+      matches_incomplete = len(matches['matches']) > 100
+      if matches_incomplete:
+        matches['matches'] = matches['matches'][:100]
       matches['metadata'] = {
           'colab_types_experimental':
               _shell_customizations.compute_completion_metadata(
                   self.shell, matches['matches']),
+          'matches_incomplete':
+              matches_incomplete,
       }
     matches = json_clean(matches)
 
