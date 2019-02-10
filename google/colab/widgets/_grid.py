@@ -9,7 +9,7 @@ from google.colab.widgets import _widget
 
 
 class Grid(_widget.OutputAreaWidget):
-  """Grid widget allows organing outputs into NxM of individual cells.
+  """Grid widget allows organizing outputs into NxM grid of individual cells.
 
   Each cell in this grid can be populated independently using standard
   ipython output functionality (such as print/display.HTML/matplotlib)
