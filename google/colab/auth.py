@@ -20,6 +20,7 @@ from __future__ import print_function as _
 
 import contextlib as _contextlib
 import getpass as _getpass
+import json as _json
 import logging as _logging
 import os as _os
 import sqlite3 as _sqlite3  # pylint: disable=g-bad-import-order
@@ -145,6 +146,15 @@ def authenticate_user(clear_output=True):
     with context_manager():
       _gcloud_login()
     _install_adc()
+    colab_tpu_addr = _os.environ.get('COLAB_TPU_ADDR', '')
+    if 'COLAB_SKIP_AUTOMATIC_TPU_AUTH' not in _os.environ and colab_tpu_addr:
+      # If we've got a TPU attached, we want to run a TF operation to provide
+      # our new credentials to the TPU for GCS operations.
+      import tensorflow as tf  # pylint: disable=g-import-not-at-top
+      with tf.Session('grpc://{}'.format(colab_tpu_addr)) as sess:
+        with open(_get_adc_path()) as auth_info:
+          tf.contrib.cloud.configure_gcs(
+              sess, credentials=_json.load(auth_info))
   if _check_adc():
     return
   raise _errors.AuthorizationError('Failed to fetch user credentials')
