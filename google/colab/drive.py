@@ -21,6 +21,7 @@ import getpass as _getpass
 import os as _os
 import re as _re
 import socket as _socket
+import subprocess as _subprocess
 import sys as _sys
 import uuid as _uuid
 
@@ -29,7 +30,7 @@ import pexpect as _pexpect
 __all__ = ['mount']
 
 
-def mount(mountpoint, force_remount=False):
+def mount(mountpoint, force_remount=False, timeout_ms=15000):
   """Mount your Google Drive at the specified mountpoint path."""
 
   mountpoint = _os.path.expanduser(mountpoint)
@@ -113,24 +114,38 @@ def mount(mountpoint, force_remount=False):
   d.sendline(success_watcher)
   d.expect(prompt)  # Eat the match of the input command above being echoed.
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
-  d.sendline(
-      ('{d}/drive --features=opendir_timeout_ms:15000,virtual_folders:true '
-       '--inet_family=' + inet_family + ' '
-       '--preferences=trusted_root_certs_file_path:'
-       '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
-           d=drive_dir, mnt=mountpoint))
+  d.sendline(('{d}/drive '
+              '--features=opendir_timeout_ms:{timeout_ms},virtual_folders:true '
+              '--inet_family=' + inet_family + ' '
+              '--preferences=trusted_root_certs_file_path:'
+              '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
+                  d=drive_dir, timeout_ms=timeout_ms, mnt=mountpoint))
+
+  # TODO(b/122739883): write a probe ensuring this pattern is relevant.
+  # LINT.IfChange(drivetimedout)
+  timeout_pattern = 'QueryManager timed out'
+  # LINT.ThenChange()
+  dfs_log = '/root/.config/Google/DriveFS/Logs/drive_fs.txt'
 
   while True:
     case = d.expect([
-        success, prompt,
-        _re.compile(u'(Go to this URL in a browser: https://.*)\r\n')
+        success,
+        prompt,
+        _re.compile(u'(Go to this URL in a browser: https://.*)\r\n'),
+        u'Drive File Stream encountered a problem and has stopped',
     ])
     if case == 0:
       break
-    elif case == 1:
+    elif (case == 1 or case == 3):
       # Prompt appearing here means something went wrong with the drive binary.
       d.terminate(force=True)
-      raise ValueError('mount failed')
+      extra_reason = ''
+      if 0 == _subprocess.call(
+          'grep -q "' + timeout_pattern + '" ' + dfs_log, shell=True):
+        extra_reason = (
+            ': timeout during initial read of root folder; for more info: '
+            'https://research.google.com/colaboratory/faq.html#drive-timeout')
+      raise ValueError('mount failed' + extra_reason)
     elif case == 2:
       # Not already authorized, so do the authorization dance.
       auth_prompt = d.match.group(1) + '\n\nEnter your authorization code:\n'
@@ -145,12 +160,9 @@ def mount(mountpoint, force_remount=False):
   # LINT.ThenChange(_serverextension/_handlers.py:drivetimeoutlogfile)
   d.sendline('rm -rf {}'.format(filtered_logfile))
   d.expect(prompt)
-  # LINT.IfChange(drivetimedout)
-  pattern = 'QueryManager timed out'
-  # LINT.ThenChange()
-  d.sendline(('tail -n +0 -F /root/.config/Google/DriveFS/Logs/drive_fs.txt | '
-              'grep --line-buffered "{}" > {} &'.format(pattern,
-                                                        filtered_logfile)))
+  d.sendline(('tail -n +0 -F {} | '
+              'grep --line-buffered "{}" > {} &'.format(
+                  dfs_log, timeout_pattern, filtered_logfile)))
   d.expect(prompt)
   d.sendline('disown; exit')
   d.expect(_pexpect.EOF)
