@@ -67,32 +67,49 @@ class Kernel(ipkernel.IPythonKernel):
       ident: Identity of the requester.
       parent: Parent request message.
     """
-    content = parent['content']
-    code = content['code']
-    cursor_pos = content['cursor_pos']
+    try:
+      content = parent['content']
+      code = content['code']
+      cursor_pos = content['cursor_pos']
 
-    matches = self.do_complete(code, cursor_pos)
-    if parent.get('metadata', {}).get('colab_options',
-                                      {}).get('include_colab_metadata'):
-      # If we're fetching additional metadata on each item, we want to restrict
-      # the number of items. We also want to signal that not all matches were
-      # included.
-      #
-      # Note that 100 is an arbitrarily chosen bound for the number of
-      # completions to return.
-      matches_incomplete = len(matches['matches']) > 100
-      if matches_incomplete:
-        matches['matches'] = matches['matches'][:100]
-      matches['metadata'] = {
-          'colab_types_experimental':
-              _shell_customizations.compute_completion_metadata(
-                  self.shell, matches['matches']),
-          'matches_incomplete':
-              matches_incomplete,
-      }
-    matches = json_clean(matches)
+      matches = self.do_complete(code, cursor_pos)
+      if parent.get('metadata', {}).get('colab_options',
+                                        {}).get('include_colab_metadata'):
+        # If we're fetching additional metadata on each item, we want to
+        # restrict the number of items. We also want to signal that not all
+        # matches were included.
+        #
+        # Note that 100 is an arbitrarily chosen bound for the number of
+        # completions to return.
+        matches_incomplete = len(matches['matches']) > 100
+        if matches_incomplete:
+          matches['matches'] = matches['matches'][:100]
+        matches['metadata'] = {
+            'colab_types_experimental':
+                _shell_customizations.compute_completion_metadata(
+                    self.shell, matches['matches']),
+            'matches_incomplete':
+                matches_incomplete,
+        }
+      matches = json_clean(matches)
+    except BaseException as e:  # pylint: disable=broad-except
+      # TODO(b/124400682): Return an error here and ensure it's threaded through
+      # to the completion failure dialog.
+      self.log.info('Error caught during completion: %s', e)
+      matches = '{"status":"ok"}'
 
     self.session.send(stream, 'complete_reply', matches, parent, ident)
+
+  def inspect_request(self, stream, ident, parent):
+    try:
+      super(Kernel, self).inspect_request(stream, ident, parent)
+    except BaseException as e:  # pylint: disable=broad-except
+      # TODO(b/124400682): Consider returning an error here.
+      self.log.info('Error caught during object inspection: %s', e)
+      reply_content = '{"status":"ok","found":false}'
+      msg = self.session.send(stream, 'inspect_reply', reply_content, parent,
+                              ident)
+      self.log.debug('%s', msg)
 
 
 def _to_primitive(o):
