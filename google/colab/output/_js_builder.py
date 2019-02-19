@@ -265,6 +265,9 @@ class Js(object):
   def __div__(self, other):
     return self._get_expr_result('%s / %s' % self._arith_args(other))
 
+  def __truediv__(self, other):
+    return self._get_expr_result('%s / %s' % self._arith_args(other))
+
   def __mod__(self, other):
     return self._get_expr_result('%s % %s' % self._arith_args(other))
 
