@@ -149,12 +149,14 @@ class _CustomErrorHandlers(object):
     return msg, details
 
 
-def compute_completion_metadata(shell, matches):
+def compute_completion_metadata(shell, matches, inspect_magics=True):
   """Computes completion item metadata.
 
   Args:
     shell: IPython shell
     matches: List of string completion matches.
+    inspect_magics: (optional, default: True) If unset, don't call
+        object_inspect on any symbols starting with %.
 
   Returns:
     Metadata for each of the matches.
@@ -171,6 +173,10 @@ def compute_completion_metadata(shell, matches):
       if '#' in match:
         # Runtime type information added by customization._add_type_information.
         info['type_name'] = match.split('#')[1]
+      elif match.startswith('%') and not inspect_magics:
+        # Inspecting magics may involve loading slow-to-import modules, so we
+        # avoid it until the user requests additional information.
+        info['type_name'] = 'Magic function'
       else:
         inspect_results = shell.object_inspect(match)
         # Use object_inspect to find the type and filter to only what is needed
