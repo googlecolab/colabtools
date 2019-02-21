@@ -17,10 +17,10 @@ import os
 
 import notebook.transutils as _  # must import before below to prevent NameError
 # pylint: disable=g-bad-import-order
-from notebook.services.contents import filemanager
+from notebook.services.contents import largefilemanager
 
 
-class ColabFileContentsManager(filemanager.FileContentsManager):
+class ColabFileContentsManager(largefilemanager.LargeFileManager):
   """Class that extends Jupyter's FileContentsManager to include file size."""
 
   # TODO(b/124535699): can be removed after updating jupyter/notebook to >=5.5.0
