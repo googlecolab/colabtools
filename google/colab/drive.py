@@ -33,6 +33,9 @@ __all__ = ['mount']
 def mount(mountpoint, force_remount=False, timeout_ms=15000):
   """Mount your Google Drive at the specified mountpoint path."""
 
+  if ' ' in mountpoint:
+    raise ValueError('Mountpoint must not contain a space.')
+
   mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
   already_mounted = _os.path.isdir(_os.path.join(mountpoint, 'My Drive'))
