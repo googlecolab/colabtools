@@ -24,7 +24,7 @@ DEPENDENCIES = (
     'six~=1.11.0',
     'portpicker~=1.2.0',
     'requests~=2.18.0',
-    'tornado~=4.5.0',
+    'tornado~=5.0.0',
 )
 
 setup(
