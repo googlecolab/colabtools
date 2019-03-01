@@ -29,7 +29,7 @@ DEPENDENCIES = (
 
 setup(
     name='google-colab',
-    version='0.0.1a1',
+    version='1.0.0',
     author='Google Colaboratory team',
     author_email='colaboratory-team@google.com',
     description='Google Colaboratory tools',

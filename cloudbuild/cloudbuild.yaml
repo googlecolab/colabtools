@@ -4,6 +4,6 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-f', 'cloudbuild/Dockerfile', '-t', 'colabtools', '.']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['run', '-v', '/workspace:/out', 'colabtools', 'cp', '/colabtools/dist/google_colab-0.0.1a1-py2.py3-none-any.whl', '/out']
+  args: ['run', '-v', '/workspace:/out', 'colabtools', 'cp', '/colabtools/dist/google_colab-1.0.0-py2.py3-none-any.whl', '/out']
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/google_colab-0.0.1a1-py2.py3-none-any.whl', 'gs://colabtools/${COMMIT_SHA}${_PREFIX}/']
+  args: ['cp', '/workspace/google_colab-1.0.0-py2.py3-none-any.whl', 'gs://colabtools/${COMMIT_SHA}${_PREFIX}/']
