@@ -17,6 +17,7 @@ from __future__ import absolute_import as _
 from __future__ import division as _
 from __future__ import print_function as _
 
+import collections as _collections
 import getpass as _getpass
 import os as _os
 import re as _re
@@ -28,6 +29,39 @@ import uuid as _uuid
 import pexpect as _pexpect
 
 __all__ = ['mount']
+
+
+_Environment = _collections.namedtuple(
+    '_Environment',
+    ('home', 'root_dir', 'inet_family', 'dev', 'path', 'config_dir'))
+
+
+def _env():
+  """Create and return an _Environment to use."""
+  home = _os.environ['HOME']
+  root_dir = _os.path.realpath(
+      _os.path.join(_os.environ['CLOUDSDK_CONFIG'], '../..'))
+  inet_family = 'IPV4_ONLY'
+  dev = '/dev/fuse'
+  path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
+  if len(root_dir) > 1 and not root_dir.startswith('/usr/local/google/tmp/'):
+    home = _os.path.join(root_dir, home)
+    inet_family = 'IPV6_ONLY'
+    fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
+    dev = fum + '/dev/fuse'
+    path = path + ':' + fum + '/bin'
+  config_dir = _os.path.join(home, '.config', 'Google')
+  return _Environment(
+      home=home,
+      root_dir=root_dir,
+      inet_family=inet_family,
+      dev=dev,
+      path=path,
+      config_dir=config_dir)
+
+
+def _timeouts_path():
+  return _os.path.join(_env().config_dir, 'DriveFS/Logs/timeouts.txt')
 
 
 def mount(mountpoint, force_remount=False, timeout_ms=15000):
@@ -44,19 +78,15 @@ def mount(mountpoint, force_remount=False, timeout_ms=15000):
           'call drive.mount("{}", force_remount=True).'.format(
               mountpoint, mountpoint))
     return
-  home = _os.environ['HOME']
-  root_dir = _os.path.realpath(
-      _os.path.join(_os.environ['CLOUDSDK_CONFIG'], '../..'))
-  inet_family = 'IPV4_ONLY'
-  dev = '/dev/fuse'
-  path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
-  if len(root_dir) > 1:
-    home = _os.path.join(root_dir, home)
-    inet_family = 'IPV6_ONLY'
-    fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
-    dev = fum + '/dev/fuse'
-    path = path + ':' + fum + '/bin'
-  config_dir = _os.path.join(home, '.config', 'Google')
+
+  env = _env()
+  home = env.home
+  root_dir = env.root_dir
+  inet_family = env.inet_family
+  dev = env.dev
+  path = env.path
+  config_dir = env.config_dir
+
   try:
     _os.makedirs(config_dir)
   except OSError:
@@ -128,7 +158,7 @@ def mount(mountpoint, force_remount=False, timeout_ms=15000):
   # LINT.IfChange(drivetimedout)
   timeout_pattern = 'QueryManager timed out'
   # LINT.ThenChange()
-  dfs_log = '/root/.config/Google/DriveFS/Logs/drive_fs.txt'
+  dfs_log = _os.path.join(config_dir, 'DriveFS/Logs/drive_fs.txt')
 
   while True:
     case = d.expect([
@@ -144,7 +174,7 @@ def mount(mountpoint, force_remount=False, timeout_ms=15000):
       d.terminate(force=True)
       extra_reason = ''
       if 0 == _subprocess.call(
-          'grep -q "' + timeout_pattern + '" ' + dfs_log, shell=True):
+          'grep -q "{}" "{}"'.format(timeout_pattern, dfs_log), shell=True):
         extra_reason = (
             ': timeout during initial read of root folder; for more info: '
             'https://research.google.com/colaboratory/faq.html#drive-timeout')
@@ -158,13 +188,11 @@ def mount(mountpoint, force_remount=False, timeout_ms=15000):
   d.expect(prompt)
   d.sendline('bg; disown')
   d.expect(prompt)
-  # LINT.IfChange(drivetimeoutlogfile)
-  filtered_logfile = '/root/.config/Google/DriveFS/Logs/timeouts.txt'
-  # LINT.ThenChange(_serverextension/_handlers.py:drivetimeoutlogfile)
-  d.sendline('rm -rf {}'.format(filtered_logfile))
+  filtered_logfile = _timeouts_path()
+  d.sendline('rm -rf "{}"'.format(filtered_logfile))
   d.expect(prompt)
-  d.sendline(('tail -n +0 -F {} | '
-              'grep --line-buffered "{}" > {} &'.format(
+  d.sendline(('tail -n +0 -F "{}" | '
+              'grep --line-buffered "{}" > "{}" &'.format(
                   dfs_log, timeout_pattern, filtered_logfile)))
   d.expect(prompt)
   d.sendline('disown; exit')
