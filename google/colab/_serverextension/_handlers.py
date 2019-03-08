@@ -14,6 +14,7 @@
 """Custom Jupyter notebook API handlers."""
 
 import json
+import os
 import subprocess
 
 from notebook.base import handlers
@@ -57,13 +58,14 @@ class DriveHandler(handlers.APIHandler):
 
     try:
       filtered_logfile = drive._timeouts_path()  # pylint:disable=protected-access
-      # Only return the most recent match since we only care to warn the user
-      # about changes to this status.
-      return [
-          subprocess.check_output(
-              'tail -1 "{}"'.format(filtered_logfile),
-              shell=True).decode('utf-8').strip()
-      ]
+      if os.path.isfile(filtered_logfile):
+        # Only return the most recent match since we only care to warn the user
+        # about changes to this status.
+        return [
+            subprocess.check_output(
+                'tail -1 "{}"'.format(filtered_logfile),
+                shell=True).decode('utf-8').strip()
+        ]
     except subprocess.CalledProcessError:  # Missing log file isn't fatal.
       pass
 
