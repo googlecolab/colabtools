@@ -23,8 +23,10 @@ import sys
 from ipykernel import jsonutil
 from ipykernel import zmqshell
 from IPython.core import interactiveshell
+from IPython.core.events import available_events
 from ipython_genutils import py3compat
 
+from google.colab import _event_manager
 from google.colab import _pip
 from google.colab import _shell_customizations
 from google.colab import _system_commands
@@ -39,6 +41,10 @@ def _show_pip_warning():
 
 class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
+
+  def init_events(self):
+    self.events = _event_manager.ColabEventManager(self, available_events)
+    self.events.register('pre_execute', self._clear_warning_registry)
 
   def _should_use_native_system_methods(self):
     return os.getenv('USE_NATIVE_IPYTHON_SYSTEM_COMMANDS', False)
