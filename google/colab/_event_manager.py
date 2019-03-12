@@ -13,6 +13,8 @@
 # limitations under the License.
 """Custom IPython EventManager."""
 
+from __future__ import print_function
+
 import IPython.core.events as events
 
 
@@ -25,5 +27,5 @@ class ColabEventManager(events.EventManager):
       try:
         func(*args, **kwargs)
       except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
-        print("Error in callback {} (for {}):".format(func, event))  # pylint: disable=superfluous-parens
+        print("Error in callback {} (for {}):".format(func, event))
         self.shell.showtraceback()
