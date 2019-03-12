@@ -18,6 +18,7 @@ import textwrap
 
 from IPython.utils import coloransi
 from google.colab import _ipython as ipython
+from google.colab._import_hooks._cv2 import DisabledFunctionError
 
 
 _GREEN = coloransi.TermColors.Green
@@ -69,6 +70,7 @@ class _CustomErrorHandlers(object):
     # (custom_message, additional error details).
     self.custom_error_handlers = {
         ImportError: _CustomErrorHandlers.import_message,
+        DisabledFunctionError: _CustomErrorHandlers.disabled_message,
     }
     shell.set_custom_exc(
         tuple(self.custom_error_handlers.keys()), self.handle_error)
@@ -96,6 +98,23 @@ class _CustomErrorHandlers(object):
       wrapped = FormattedTracebackError(
           str(exception), structured_traceback, details)
       return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
+
+  @staticmethod
+  def disabled_message(error):
+    """Return a helpful message for disabled functions."""
+    funcname = getattr(error, 'funcname', None)
+    msg = str(error)
+
+    if funcname:
+      msg = "For suggestions on how to proceed, see Colab's code snippets:"
+      details = {
+          'actions': [{
+              'action': 'open_snippet',
+              'action_text': 'Search Snippets for {}'.format(funcname),
+              'snippet_filter': funcname,
+          },],
+      }
+      return msg, details
 
   @staticmethod
   def import_message(error):

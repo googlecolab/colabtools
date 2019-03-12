@@ -31,10 +31,12 @@ class AltairImportHookTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
+    super(AltairImportHookTest, cls).setUpClass()
     cls.orig_meta_path = sys.meta_path
     cls.orig_env = dict(os.environ)
 
   def setUp(self):
+    super(AltairImportHookTest, self).setUp()
     sys.meta_path = self.orig_meta_path
 
     os.environ.clear()

@@ -14,7 +14,9 @@
 """Colab import customizations to the IPython runtime."""
 
 from google.colab._import_hooks import _altair
+from google.colab._import_hooks import _cv2
 
 
 def _register_hooks():
   _altair._register_hook()  # pylint:disable=protected-access
+  _cv2._register_hook()  # pylint:disable=protected-access
