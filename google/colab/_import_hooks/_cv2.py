@@ -49,9 +49,8 @@ def disable_function(func, reason, env_var, name=None):
 {name} is disabled in Colab: {reason}
 If you would like to re-enable this function, first run:
   import os
-  os.environ["{env_var}"] = 'true'
-""".format(
-    name=name or func.__name__, reason=reason, env_var=env_var)
+  os.environ["{env_var}"] = 'true'""".format(
+      name=name or func.__name__, reason=reason, env_var=env_var)
 
   @functools.wraps(func)
   def wrapped(*args, **kwargs):

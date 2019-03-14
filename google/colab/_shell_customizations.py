@@ -103,10 +103,9 @@ class _CustomErrorHandlers(object):
   def disabled_message(error):
     """Return a helpful message for disabled functions."""
     funcname = getattr(error, 'funcname', None)
-    msg = str(error)
 
     if funcname:
-      msg = "For suggestions on how to proceed, see Colab's code snippets:"
+      msg = "For an alternative, see Colab's code snippets:"
       details = {
           'actions': [{
               'action': 'open_snippet',
