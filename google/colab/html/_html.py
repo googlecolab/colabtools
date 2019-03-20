@@ -90,12 +90,18 @@ def _call_js_function(js_function, *args):
 def _proxy(guid, msg):
   """Makes a proxy call on an element."""
   template = _resources.get_data(__name__, 'js/_proxy.js')
+  if six.PY3:
+    # pkgutil.get_data returns bytes, but we want a str.
+    template = template.decode('utf8')
   return _call_js_function(template, guid, msg)
 
 
 def _exists(guid):
   """Checks if an element with the given guid exists."""
   template = _resources.get_data(__name__, 'js/_proxy.js')
+  if six.PY3:
+    # pkgutil.get_data returns bytes, but we want a str.
+    template = template.decode('utf8')
   return _call_js_function(template, guid, {'method': 'exists'}, False)
 
 
@@ -292,4 +298,7 @@ class Element(object):
     self._could_exist = True
     view = _ElementView(self)
     template = _resources.get_data(__name__, 'templates/_element.mustache')
+    if six.PY3:
+      # pkgutil.get_data returns bytes, but we want a str.
+      template = template.decode('utf8')
     return pystache.render(template, view)
