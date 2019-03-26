@@ -17,13 +17,14 @@
 
 import base64
 import json
+import string
 import uuid
 import IPython
-import pystache
 
 import six
 
 from google.colab import output
+from google.colab.html import _provide
 from google.colab.html import _resources
 
 _MSG_CHUNK_SIZE = 1 * 1024 * 1024
@@ -105,32 +106,48 @@ def _exists(guid):
   return _call_js_function(template, guid, {'method': 'exists'}, False)
 
 
-class _ElementView(object):
-  """View container used for rendering element template in mustache."""
+_utils_ref = None
 
-  def __init__(self, element):
-    # pylint: disable=protected-access
-    self.guid = element._guid
-    self.tag = element._tag
-    self.src = element._src
-    self.attributes = [{
-        'name': k,
-        'value': v
-    } for k, v in element._attributes.items()]
-    self.properties = [{
-        'name': k,
-        'value': json.dumps(v)
-    } for k, v in element._properties.items()]
-    self.js_listeners = [{
-        'name': k,
-        'value': json.dumps(c)
-    } for k, v in element._js_listeners.items() for c in v.values()]
-    self.py_listeners = [{
-        'name': k,
-        'value': c
-    } for k, v in element._py_listeners.items() for c in v.values()]
-    self.children = [_to_html_str(c) for c in element._children]
-    # pylint: enable=protected-access
+
+def _utils_url():
+  """Return the url to the utils script."""
+  global _utils_ref
+  if not _utils_ref:
+    src = _resources.get_data(__name__, 'js/_html.js')
+    if six.PY3:
+      # pkgutil.get_data returns bytes, but we want a str.
+      src = src.decode('utf8')
+    _utils_ref = _provide.create(content=src, extension='js')
+  return _utils_ref.url
+
+
+_element_template = string.Template("""
+$deps
+<$tag id="$guid">
+  $children
+</$tag>
+<script>
+  (function() {
+    async function init() {
+      const name = '_google_colab_output_html';
+      let script = document.getElementById(name);
+      if (!script) {
+        script = document.createElement('script');
+        script.id = name;
+        script._is_loaded = new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+        });
+        script.src = '$utils';
+        document.body.appendChild(script);
+      }
+      await script._is_loaded;
+      await window.google.colab.html._createElement($config);
+    }
+    window.google.colab.output.pauseOutputUntil(init());
+  })();
+</script>
+""")
 
 
 class Element(object):
@@ -296,9 +313,37 @@ class Element(object):
   def _repr_html_(self):
     """Converts element to HTML string."""
     self._could_exist = True
-    view = _ElementView(self)
-    template = _resources.get_data(__name__, 'templates/_element.mustache')
-    if six.PY3:
-      # pkgutil.get_data returns bytes, but we want a str.
-      template = template.decode('utf8')
-    return pystache.render(template, view)
+    deps = ''
+    if self._src:
+      if 'script' in self._src:
+        deps = '<script src="{}"></script>'.format(self._src['script'])
+      elif 'module' in self._src:
+        deps = '<script type="module">import "{}";</script>'.format(
+            self._src['module'])
+      elif 'html' in self._src:
+        deps = '<link rel="import" href="{}" />'.format(self._src['html'])
+    return _element_template.safe_substitute({
+        'tag':
+            self._tag,
+        'guid':
+            self._guid,
+        'deps':
+            deps,
+        'utils':
+            _utils_url(),
+        'children':
+            '\n'.join([_to_html_str(c) for c in self._children]),
+        'config':
+            json.dumps({
+                'tag': self._tag,
+                'guid': self._guid,
+                'attributes': self._attributes,
+                'properties': self._properties,
+                'js_listeners': {
+                    k: list(v.values()) for k, v in self._js_listeners.items()
+                },
+                'py_listeners': {
+                    k: list(v.values()) for k, v in self._py_listeners.items()
+                },
+            }),
+    })
