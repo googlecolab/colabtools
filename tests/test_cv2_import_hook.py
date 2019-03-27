@@ -99,7 +99,7 @@ class OpenCVImportHookTest(unittest.TestCase):
     with self.assertRaises(_cv2.DisabledFunctionError) as err:
       disabled_func()
     self.assertIn(reason, str(err.exception))
-    self.assertIn("a_very_bad_func", str(err.exception))
+    self.assertIn(reason, str(err.exception))
 
     os.environ[env_var] = "true"
     self.assertEqual(disabled_func(), a_very_bad_func())
@@ -115,8 +115,8 @@ class OpenCVImportHookTest(unittest.TestCase):
     # Calling the function leads to the custom error.
     with self.assertRaises(_cv2.DisabledFunctionError) as err:
       cv.imshow()
-    self.assertIn(
-        _cv2._OpenCVImportHook.reason.format("cv"), str(err.exception))
+    self.assertEqual(
+        _cv2._OpenCVImportHook.message.format("cv"), str(err.exception))
 
     # After Enabling, we get a TypeError (because we pass no arguments).
     os.environ[_cv2._OpenCVImportHook.env_var] = "true"
@@ -134,8 +134,8 @@ class OpenCVImportHookTest(unittest.TestCase):
     # Calling the function leads to the custom error.
     with self.assertRaises(_cv2.DisabledFunctionError) as err:
       cv2.imshow()
-    self.assertIn(
-        _cv2._OpenCVImportHook.reason.format("cv2"), str(err.exception))
+    self.assertEqual(
+        _cv2._OpenCVImportHook.message.format("cv2"), str(err.exception))
 
     # After Enabling, we get a TypeError (because we pass no arguments).
     os.environ[_cv2._OpenCVImportHook.env_var] = "true"

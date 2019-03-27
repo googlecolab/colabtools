@@ -32,12 +32,12 @@ class DisabledFunctionError(ValueError):
     self.funcname = funcname
 
 
-def disable_function(func, reason, env_var, name=None):
+def disable_function(func, message, env_var, name=None):
   """Wrapper that prevents a user from calling a function.
 
   Args:
     func : The function to wrap & disable.
-    reason : The user-facing explanation for why this function is disabled.
+    message : The user-facing explanation for why this function is disabled.
     env_var : The name of the environment variable that can optionally be used
       to re-enable the function.
     name : The function name to use within the error message.
@@ -45,12 +45,6 @@ def disable_function(func, reason, env_var, name=None):
   Returns:
     wrapped : the wrapped function
   """
-  message = """
-{name} is disabled in Colab: {reason}
-If you would like to re-enable this function, first run:
-  import os
-  os.environ["{env_var}"] = 'true'""".format(
-      name=name or func.__name__, reason=reason, env_var=env_var)
 
   @functools.wraps(func)
   def wrapped(*args, **kwargs):
@@ -58,15 +52,19 @@ If you would like to re-enable this function, first run:
       raise DisabledFunctionError(message, name or func.__name__)
     return func(*args, **kwargs)
 
+  wrapped.env_var = env_var
+
   return wrapped
 
 
 class _OpenCVImportHook(object):
   """Disables cv.imshow() and cv2.imshow() on import of cv or cv2."""
 
-  reason = (
-      '\nRunning {}.imshow causes jupyter sessions to crash;'
-      '\nfor details see https://github.com/jupyter/notebook/issues/3935.')
+  message = (
+      '{0}.imshow() is disabled in Colab, because it causes Jupyter sessions\n'
+      'to crash; see https://github.com/jupyter/notebook/issues/3935.\n'
+      'As a substitution, consider using\n'
+      '  from google.colab.patches import {0}_imshow\n')
   env_var = 'ENABLE_CV2_IMSHOW'
 
   def find_module(self, fullname, path=None):
@@ -84,12 +82,13 @@ class _OpenCVImportHook(object):
 
     if not previously_loaded:
       try:
-        cv_module.imshow = disable_function(cv_module.imshow,
-                                            self.reason.format(name),
-                                            self.env_var,
-                                            '{}.imshow'.format(name))
+        cv_module.imshow = disable_function(
+            cv_module.imshow,
+            message=self.message.format(name),
+            env_var=self.env_var,
+            name='{}.imshow'.format(name))
       except:  # pylint: disable=bare-except
-        logging.exception('Error disabling cv2.imshow().')
+        logging.exception('Error disabling %s.imshow().', name)
         os.environ['COLAB_CV2_IMPORT_HOOK_EXCEPTION'] = '1'
 
     return cv_module

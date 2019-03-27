@@ -94,7 +94,8 @@ class _CustomErrorHandlers(object):
           etype, exception, tb, tb_offset=tb_offset)
       # Ensure a blank line appears between the standard traceback and custom
       # error messaging.
-      structured_traceback += ['', custom_message]
+      if custom_message:
+        structured_traceback += ['', custom_message]
       wrapped = FormattedTracebackError(
           str(exception), structured_traceback, details)
       return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
@@ -105,7 +106,7 @@ class _CustomErrorHandlers(object):
     funcname = getattr(error, 'funcname', None)
 
     if funcname:
-      msg = "For an alternative, see Colab's code snippets:"
+      msg = ''
       details = {
           'actions': [{
               'action': 'open_snippet',
