@@ -13,6 +13,8 @@
 # limitations under the License.
 """Colab-specific kernel customizations."""
 
+import sys
+
 from ipykernel import ipkernel
 from ipykernel.jsonutil import json_clean
 from IPython.utils.tokenutil import token_at_cursor
@@ -29,10 +31,18 @@ class Kernel(ipkernel.IPythonKernel):
 
   def do_inspect(self, code, cursor_pos, detail_level=0):
     name = token_at_cursor(code, cursor_pos)
-    info = self.shell.object_inspect(name)
+    info = self.shell._ofind(name)  # pylint: disable=protected-access
 
     data = {}
-    if info['found']:
+    # If the object is large, we want to avoid possibly creating its string
+    # form, as this is also likely to be large.
+    if info['found'] and sys.getsizeof(info.get('obj', '')) > 5000:
+      info.pop('obj')
+      info['string_form'] = '<Object too large to display>'
+      data['text/plain'] = info['string_form']
+      data['application/json'] = info
+    elif info['found']:
+      info = self.shell.object_inspect(name)
       info_text = self.shell.object_inspect_text(
           name,
           detail_level=detail_level,
