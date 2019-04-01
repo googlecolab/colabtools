@@ -154,7 +154,6 @@ def mount(mountpoint, force_remount=False, timeout_ms=15000):
               '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
                   d=drive_dir, timeout_ms=timeout_ms, mnt=mountpoint))
 
-  # TODO(b/122739883): write a probe ensuring this pattern is relevant.
   # LINT.IfChange(drivetimedout)
   timeout_pattern = 'QueryManager timed out'
   # LINT.ThenChange()
