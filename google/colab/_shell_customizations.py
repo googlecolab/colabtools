@@ -201,9 +201,9 @@ def compute_completion_metadata(shell, matches, inspect_magics=True):
         # Use object_inspect to find the type and filter to only what is needed
         # since there can be a lot of completions to send.
         info['type_name'] = inspect_results['type_name']
-        if inspect_results['definition']:
+        if inspect_results.get('definition', ''):
           info['definition'] = inspect_results['definition']
-        elif inspect_results['init_definition']:
+        elif inspect_results.get('init_definition', ''):
           info['definition'] = inspect_results['init_definition']
       infos.append(info)
     return infos

@@ -109,5 +109,15 @@ class Shell(zmqshell.ZMQInteractiveShell):
     self._send_error(exc_content)
     self._last_traceback = stb
 
+  def object_inspect(self, oname, detail_level=0):
+    info = self._ofind(oname)
+    if info['found'] and sys.getsizeof(info.get('obj', '')) > 5000:
+      obj = info.pop('obj')
+      info['name'] = oname
+      info['string_form'] = '<Object too large to display>'
+      info['type_name'] = type(obj).__name__
+      return info
+    return super(Shell, self).object_inspect(oname, detail_level=detail_level)
+
 
 interactiveshell.InteractiveShellABC.register(Shell)
