@@ -91,8 +91,11 @@ def get_ram_usage(kernel_manager):
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
-def get_disk_usage():
+def get_disk_usage(path=None):
   """Reports total disk usage.
+
+  Args:
+    path: path at which disk to be measured is mounted
 
   Returns:
     A dict of the form {
@@ -100,10 +103,12 @@ def get_disk_usage():
       limit: int,
     }
   """
+  if not path:
+    path = '/'
   usage = 0
   limit = 0
   if psutil is not None:
-    disk_usage = psutil.disk_usage('/')
+    disk_usage = psutil.disk_usage(path)
     usage = disk_usage.used
     limit = disk_usage.total
   return {'usage': usage, 'limit': limit}
