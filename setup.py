@@ -24,7 +24,6 @@ DEPENDENCIES = (
     'ipython~=5.5.0',
     'notebook~=5.2.0',
     'six~=1.12.0',
-    'pandas~=0.24.0',
     'portpicker~=1.2.0',
     'requests~=2.21.0',
     'tornado~=4.5.0',
