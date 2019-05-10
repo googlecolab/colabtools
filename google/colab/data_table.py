@@ -70,7 +70,7 @@ class DataTable(_IPython.display.DisplayObject):
   def __init__(self,
                dataframe,
                include_index=True,
-               num_rows_per_page=30,
+               num_rows_per_page=25,
                max_rows=20000,
                max_columns=20):
     """Constructor.
