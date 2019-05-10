@@ -114,10 +114,7 @@ class DataTable(_IPython.display.DisplayObject):
     if dataframe.size == 0:
       return 'The table is empty'
     try:
-      # TODO(b/129873703): Convert this to load the interactive table script as
-      # a module. This can occur after the binary has been updated to
-      # https://ssl.gstatic.com/colaboratory/data_table/496e58d5602d9b04/data_table.js
-      return ('<script src="{gviz_url}"></script>'
+      return ('<script src="{gviz_url}" type="module"></script>'
               '<div id="{id}"></div>'
               '<script>{js_code}</script>').format(
                   gviz_url=GVIZ_JS,
@@ -150,12 +147,12 @@ class DataTable(_IPython.display.DisplayObject):
       columns_and_types.append((column_type, str(header_formatters[i](column))))
 
     return """
-      google.colab.output.pauseOutputUntil(createDataTable({{
+      createDataTable({{
         data: {data},
         elementId: "{id}",
         columns: {columns},
         rowsPerPage: {num_rows_per_page},
-      }}));
+      }});
     //# sourceURL=table_{id}
     """.format(
         data=formatted_data['data'],
