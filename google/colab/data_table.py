@@ -33,7 +33,8 @@ import six as _six
 from google.colab import _interactive_table_helper
 
 __all__ = [
-    'DataTable', 'enable_dataframe_formatter', 'disable_dataframe_formatter'
+    'DataTable', 'enable_dataframe_formatter', 'disable_dataframe_formatter',
+    'GVIZ_JS'
 ]
 
 GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/ff215576a37b3124/data_table.js'
