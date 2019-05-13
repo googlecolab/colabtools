@@ -34,7 +34,7 @@ from google.colab import _interactive_table_helper
 
 __all__ = [
     'DataTable', 'enable_dataframe_formatter', 'disable_dataframe_formatter',
-    'GVIZ_JS'
+    'GVIZ_JS', 'load_ipython_extension', 'unload_ipython_extension'
 ]
 
 GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/ff215576a37b3124/data_table.js'
@@ -182,3 +182,13 @@ def disable_dataframe_formatter():
     formatters[key].pop('pandas.core.frame.DataFrame')
     formatters[key].for_type_by_name('pandas.core.frame', 'DataFrame',
                                      _original_formatters.pop(key))
+
+
+def load_ipython_extension(ipython):  # pylint: disable=unused-argument
+  """Enable DataTable output for all Pandas dataframes."""
+  enable_dataframe_formatter()
+
+
+def unload_ipython_extension(ipython):  # pylint: disable=unused-argument
+  """Disable DataTable output for all Pandas dataframes."""
+  disable_dataframe_formatter()
