@@ -37,7 +37,7 @@ __all__ = [
     'GVIZ_JS', 'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/ff215576a37b3124/data_table.js'
+GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/d7940075f867fb9b/data_table.js'
 
 #  pylint:disable=g-import-not-at-top
 #  pylint:disable=g-importing-member
