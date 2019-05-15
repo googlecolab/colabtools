@@ -59,9 +59,13 @@ class DataTableTest(unittest.TestCase):
   def testFormatterEnableDisable(self):
 
     def get_formatter():
+      key = data_table._JAVASCRIPT_MODULE_MIME_TYPE
       formatters = IPython.get_ipython().display_formatter.formatters
-      return formatters['text/html'].for_type_by_name('pandas.core.frame',
-                                                      'DataFrame')
+      if key in formatters:
+        return formatters[key].for_type_by_name('pandas.core.frame',
+                                                'DataFrame')
+      else:
+        return None
 
     # default formatter is None.
     self.assertIsNone(get_formatter())

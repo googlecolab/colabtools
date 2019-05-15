@@ -26,18 +26,20 @@ from __future__ import print_function as _
 
 import json as _json
 import traceback as _traceback
-import uuid as _uuid
 import IPython as _IPython
+from IPython.utils import traitlets as _traitlets
 import six as _six
 
 from google.colab import _interactive_table_helper
 
 __all__ = [
     'DataTable', 'enable_dataframe_formatter', 'disable_dataframe_formatter',
-    'GVIZ_JS', 'load_ipython_extension', 'unload_ipython_extension'
+    'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/d7940075f867fb9b/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/d7940075f867fb9b/data_table.js'
+
+_JAVASCRIPT_MODULE_MIME_TYPE = 'application/vnd.google.colaboratory.module+javascript'
 
 #  pylint:disable=g-import-not-at-top
 #  pylint:disable=g-importing-member
@@ -65,7 +67,7 @@ class DataTable(_IPython.display.DisplayObject):
 
   @classmethod
   def formatter(cls, dataframe, **kwargs):
-    return cls(dataframe, **kwargs)._repr_html_()  # pylint: disable=protected-access
+    return cls(dataframe, **kwargs)._repr_javascript_module_()  # pylint: disable=protected-access
 
   def __init__(self,
                dataframe,
@@ -91,13 +93,7 @@ class DataTable(_IPython.display.DisplayObject):
     self._max_rows = max_rows
     self._max_columns = max_columns
 
-  def _repr_html_(self):
-    """Used by frontend to generate the actual table.
-
-    Returns:
-
-    html representation and javascript hooks to generate the table.
-    """
+  def _preprocess_dataframe(self):
     dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
 
     if self._include_index or dataframe.shape[1] == 0:
@@ -107,24 +103,30 @@ class DataTable(_IPython.display.DisplayObject):
       df_copy.columns = range(dataframe.shape[1])
       records = df_copy.to_records(index=False)
       dataframe = records[[str(n) for n in list(records.dtype.names)]]
+    return dataframe
 
-    id_ = 'IT_' + str(_uuid.uuid4())
-
-    # implicit evalution of numpy.array into bool.  bad idea!
-    if dataframe.size == 0:
-      return 'The table is empty'
+  def _repr_mimebundle_(self, include=None, exclude=None):
+    mime_bundle = {'text/html': self._repr_html_()}
     try:
-      return ('<script src="{gviz_url}" type="module"></script>'
-              '<div id="{id}"></div>'
-              '<script>{js_code}</script>').format(
-                  gviz_url=GVIZ_JS,
-                  id=id_,
-                  js_code=self._gen_js(dataframe, id_))
+      dataframe = self._preprocess_dataframe()
+      if dataframe.size != 0:
+        mime_bundle[_JAVASCRIPT_MODULE_MIME_TYPE] = self._gen_js(dataframe)
+    except:  # pylint: disable=bare-except
+      # need to catch and print exception since it is user visible
+      _traceback.print_exc()
+    return mime_bundle
+
+  def _repr_html_(self):
+    return self._dataframe._repr_html_()  # pylint: disable=protected-access
+
+  def _repr_javascript_module_(self):
+    try:
+      return self._gen_js(self._preprocess_dataframe())
     except:  # pylint: disable=bare-except
       # need to catch and print exception since it is user visible
       _traceback.print_exc()
 
-  def _gen_js(self, dataframe, id_):
+  def _gen_js(self, dataframe):
     """Returns javascript for this table."""
     columns = dataframe.columns
     data = dataframe.values
@@ -147,18 +149,23 @@ class DataTable(_IPython.display.DisplayObject):
       columns_and_types.append((column_type, str(header_formatters[i](column))))
 
     return """
-      createDataTable({{
+      import "{gviz_url}";
+
+      window.createDataTable({{
         data: {data},
-        elementId: "{id}",
         columns: {columns},
         rowsPerPage: {num_rows_per_page},
       }});
-    //# sourceURL=table_{id}
     """.format(
+        gviz_url=_GVIZ_JS,
         data=formatted_data['data'],
-        id=id_,
         columns=_json.dumps(columns_and_types),
         num_rows_per_page=self._num_rows_per_page)
+
+
+class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
+  format_type = _traitlets.Unicode(_JAVASCRIPT_MODULE_MIME_TYPE)
+  print_method = _traitlets.ObjectName('_repr_javascript_module_')
 
 
 _original_formatters = {}
@@ -166,16 +173,19 @@ _original_formatters = {}
 
 def enable_dataframe_formatter():
   """Enables DataTable as the default IPython formatter for Pandas DataFrames."""
-  key = 'text/html'
+  key = _JAVASCRIPT_MODULE_MIME_TYPE
   if key not in _original_formatters:
-    formatters = _IPython.get_ipython().display_formatter.formatters
+    display_formatter = _IPython.get_ipython().display_formatter
+    formatters = display_formatter.formatters
+    if key not in formatters:
+      formatters[key] = _JavascriptModuleFormatter(parent=display_formatter)
     _original_formatters[key] = formatters[key].for_type_by_name(
         'pandas.core.frame', 'DataFrame', DataTable.formatter)
 
 
 def disable_dataframe_formatter():
   """Restores the original IPython formatter for Pandas DataFrames."""
-  key = 'text/html'
+  key = _JAVASCRIPT_MODULE_MIME_TYPE
   if key in _original_formatters:
     formatters = _IPython.get_ipython().display_formatter.formatters
     # pop() handles the case of original_formatter = None.
