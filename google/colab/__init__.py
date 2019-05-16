@@ -21,6 +21,7 @@ from google.colab import _import_hooks
 from google.colab import _installation_commands
 from google.colab import _shell_customizations
 from google.colab import _system_commands
+from google.colab import _tensorflow_magics
 from google.colab import auth
 from google.colab import data_table
 from google.colab import drive
@@ -52,3 +53,4 @@ def load_ipython_extension(ipython):
   _system_commands._register_magics(ipython)  # pylint:disable=protected-access
   _installation_commands._register_magics(ipython)  # pylint:disable=protected-access
   _import_hooks._register_hooks()  # pylint:disable=protected-access
+  _tensorflow_magics._register_magics(ipython)  # pylint:disable=protected-access
