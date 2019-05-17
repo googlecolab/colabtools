@@ -9,12 +9,14 @@ import subprocess
 import sys
 import unittest
 
-from six.moves import shlex_quote
+import six
 
 
 def _run_under_jupyter(code_lines):
-  command = 'echo {} | jupyter console --simple-prompt --kernel='.format(
-      shlex_quote('; '.join(code_lines)))
+  with open('jupyter_code', 'w') as f:
+    f.write('\n'.join(code_lines))
+
+  command = 'cat jupyter_code | jupyter console --simple-prompt --kernel='
   kernel = 'python{}'.format(sys.version_info[0])
   output = subprocess.check_output(command + kernel, shell=True)
   # subprocess output comes back as bytes, but we convert to unicode for easier
@@ -48,3 +50,13 @@ class JupyterAutocompleteTest(unittest.TestCase):
         'print(get_ipython().complete("", "d[", 2)[1])',
     ])
     self.assertIn("'key'", output)
+
+  @unittest.skipIf(six.PY2, 'Type annotations only supported in Python 3.')
+  def testTypeAnnotations(self):
+    output = _run_under_jupyter([
+        'from ipykernel.jsonutil import json_clean',
+        'def the_function(msg: str="here") -> str: pass',
+        'result = get_ipython().kernel.do_inspect("the_function", 1, 0)',
+        'json_clean(result)',
+    ])
+    self.assertIn('the_function', output)

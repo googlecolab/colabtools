@@ -51,6 +51,10 @@ class Kernel(ipkernel.IPythonKernel):
         defaults = argspec.get('defaults')
         if defaults:
           argspec['defaults'] = [_to_primitive(x) for x in defaults]
+        annotations = argspec.get('annotations')
+        if annotations:
+          for key, value in annotations.items():
+            annotations[key] = _to_primitive(value)
       data['application/json'] = info
 
     reply_content = {
