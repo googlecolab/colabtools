@@ -163,6 +163,13 @@ def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
     # encode below and we don't do double encoding.
     x = represent_as_string(x)
 
+  if isinstance(x, list):
+    # If this is a list of dictionaries, we need to convert each dict to
+    # a string.
+    if all(
+        (isinstance(el, dict) and not isinstance(el, _CellValue) for el in x)):
+      x = [represent_as_string(elem) for elem in x]
+
   # Ensure that we're returning JSON of a string value.
   double_encode_json = as_string and not isinstance(x, _six.string_types)
 
