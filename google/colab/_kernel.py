@@ -34,8 +34,7 @@ class Kernel(ipkernel.IPythonKernel):
     data = {}
     # If the object is large, we want to avoid possibly creating its string
     # form, as this is also likely to be large.
-    if (info['found'] and
-        info.get('string_form', '') == '<Object too large to display>'):
+    if info['found'] and info.get('string_form_abbreviated'):
       data['text/plain'] = info['string_form']
       data['application/json'] = info
     elif info['found']:

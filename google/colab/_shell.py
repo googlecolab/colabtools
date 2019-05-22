@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import logging
 import os
 import sys
 
@@ -114,10 +115,35 @@ class Shell(zmqshell.ZMQInteractiveShell):
     if info['found'] and sys.getsizeof(info.get('obj', '')) > 5000:
       obj = info.pop('obj')
       info['name'] = oname
-      info['string_form'] = '<Object too large to display>'
+      info['string_form'] = (
+          _extra_object_info(obj) + '<Object too large to display>')
+      info['string_form_abbreviated'] = True
       info['type_name'] = type(obj).__name__
       return info
-    return super(Shell, self).object_inspect(oname, detail_level=detail_level)
+    result = super(Shell, self).object_inspect(oname, detail_level=detail_level)
+    if result.get('string_form', None) is not None:
+      result['string_form'] = (
+          _extra_object_info(info['obj']) + result['string_form'])
+    return result
 
 
 interactiveshell.InteractiveShellABC.register(Shell)
+
+
+def _extra_object_info(obj):
+  """Return a string with any extra info to include for this object."""
+  try:
+    # We want to include DataFrame size info, but don't want to raise an
+    # exception in the case of a type called `DataFrame` with an unusual shape.
+    # We also want to avoid importing pandas, as it's slow to import.
+    if type(obj).__name__ == 'DataFrame' and hasattr(obj, 'shape'):
+      rows, cols = obj.shape
+      # We want this line to be separate from the DataFrame display, so we add
+      # *two* newlines to the end.
+      #
+      # TODO(b/133258663): We also add backticks around the newlines to work
+      # around a peculiarity in our markdown quoting; remove this.
+      return '{} rows x {} columns`\n\n`'.format(rows, cols)
+  except Exception as e:  # pylint: disable=broad-except
+    logging.warning('Exception caught during _extra_object_info: %s', e)
+  return ''
