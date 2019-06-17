@@ -20,9 +20,10 @@ version of TensorFlow will be loaded when they do 'import tensorflow as tf'.
 from __future__ import print_function
 
 import sys
+import textwrap
 
 # The selected TF version
-_tf_version = "1.13.1"
+_tf_version = "1.x"
 
 # A map of tensorflow version to installed location. If the installed
 # location is empty, TensorflowMagics assumes that the package is available
@@ -30,7 +31,7 @@ _tf_version = "1.13.1"
 #
 # This list must correspond to the TensorFlow installations on the host Colab
 # instance.
-_available_versions = {"1.13.1": "", "2.0.0a0": "/tensorflow-2.0.0a0"}
+_available_versions = {"1.x": "", "2.x": "/tensorflow-2.0.0b1"}
 
 
 def _get_path(version):
@@ -65,7 +66,21 @@ def _tensorflow_version(line):
     # Nothing to do
     return
 
-  if line in _available_versions:
+  if line not in _available_versions:
+    old_line = line
+    if line.startswith("1"):
+      line = "1.x"
+    if line.startswith("2"):
+      line = "2.x"
+    if line != old_line:
+      print(
+          textwrap.dedent("""\
+        `%tensorflow_version` only switches the major version: `1.x` or `2.x`.
+        You set: `{old_line}`. This will be interpreted as: `{line}`.
+
+        """.format(old_line=old_line, line=line)))
+
+  if line.lower() in _available_versions:
     if "tensorflow" in sys.modules:
       # TODO(b/132902517): add a 'restart runtime' button
       print("TensorFlow is already loaded. Please restart the runtime to "
@@ -85,7 +100,8 @@ def _tensorflow_version(line):
   else:
     print("Unknown TensorFlow version: {}".format(line))
     print("Currently selected TF version: {}".format(_tf_version))
-    print("Available versions:\n* {}".format("\n * ".join(_available_versions)))
+    print("Available versions:\n * {}".format(
+        "\n * ".join(_available_versions)))
 
 
 def _register_magics(ip):
