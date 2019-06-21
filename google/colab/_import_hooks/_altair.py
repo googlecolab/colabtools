@@ -23,17 +23,15 @@ class _AltairImportHook(object):
   """Enables Altair's Colab renderer upon import."""
 
   def find_module(self, fullname, path=None):
-    if fullname != 'altair':
+    if fullname not in ['altair.vegalite.v2', 'altair.vegalite.v3']:
       return None
-    self.path = path
+    self.module_info = imp.find_module(fullname.split('.')[-1], path)
     return self
 
-  def load_module(self, name):
+  def load_module(self, fullname):
     """Loads Altair normally and runs pre-initialization code."""
-    previously_loaded = name in sys.modules
-
-    module_info = imp.find_module(name, self.path)
-    altair_module = imp.load_module(name, *module_info)
+    previously_loaded = fullname in sys.modules
+    altair_module = imp.load_module(fullname, *self.module_info)
 
     if not previously_loaded:
       try:
