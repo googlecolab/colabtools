@@ -37,7 +37,7 @@ __all__ = [
     'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/d7940075f867fb9b/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/81868506e94e6988/data_table.js'
 
 _JAVASCRIPT_MODULE_MIME_TYPE = 'application/vnd.google.colaboratory.module+javascript'
 
