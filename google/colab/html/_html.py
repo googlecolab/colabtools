@@ -67,7 +67,7 @@ def _to_html_str(obj):
 
 
 def _call_js_function(js_function, *args):
-  """Evalutes a javascript string with arguments and returns its value."""
+  """Evaluates a javascript string with arguments and returns its value."""
   serialized = json.dumps(args)
   if len(serialized) < _MSG_CHUNK_SIZE:
     return output.eval_js('({})(...{})'.format(js_function, serialized))
@@ -77,7 +77,8 @@ def _call_js_function(js_function, *args):
     chunk = serialized[i:i + _MSG_CHUNK_SIZE]
     output.eval_js(
         """window["{name}"] = (window["{name}"] || "") + atob("{b64_chunk}");
-    """.format(name=name, b64_chunk=base64.b64encode(chunk)),
+    """.format(
+        name=name, b64_chunk=base64.b64encode(chunk.encode()).decode('ascii')),
         ignore_result=True)
   return output.eval_js("""
     (function() {{
