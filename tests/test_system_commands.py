@@ -38,12 +38,12 @@ from google.colab import _ipython
 from google.colab import _message
 from google.colab import _system_commands
 
-#  pylint:disable=g-import-not-at-top
+# pylint:disable=g-import-not-at-top
 try:
-  from unittest import mock
+  import unittest.mock as mock
 except ImportError:
   import mock
-#  pylint:enable=g-import-not-at-top
+# pylint:enable=g-import-not-at-top
 
 
 class FakeShell(interactiveshell.InteractiveShell):
@@ -71,6 +71,7 @@ class SystemCommandsTest(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
+    super(SystemCommandsTest, cls).setUpClass()
     ipython = FakeShell.instance()
     ipython.kernel = mock.Mock()
     cls.ip = IPython.get_ipython()
@@ -79,6 +80,7 @@ class SystemCommandsTest(unittest.TestCase):
     cls.orig_lc_all = os.environ.get('LC_ALL')
 
   def setUp(self):
+    super(SystemCommandsTest, self).setUp()
     self.ip.reset()
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = self.orig_pty_max_read_bytes
     if self.orig_lc_all is None:

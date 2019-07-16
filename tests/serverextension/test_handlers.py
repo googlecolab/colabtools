@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +19,10 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+from distutils import spawn
 import logging
 import subprocess
 import sys
-from distutils import spawn
 
 import psutil
 
@@ -32,12 +33,12 @@ from tornado import web
 from google.colab import _serverextension
 from google.colab._serverextension import _handlers
 
-#  pylint:disable=g-import-not-at-top
+# pylint:disable=g-import-not-at-top
 try:
-  from unittest import mock
+  import unittest.mock as mock
 except ImportError:
   import mock
-#  pylint:enable=g-import-not-at-top
+# pylint:enable=g-import-not-at-top
 
 
 class FakeNotebookServer(object):

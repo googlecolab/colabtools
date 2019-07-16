@@ -15,8 +15,8 @@
 import contextlib
 import six
 
-from google.colab.output import _publish
 from google.colab.output import _js_builder as js
+from google.colab.output import _publish
 from google.colab.widgets import _widget
 
 
@@ -50,7 +50,7 @@ class TabBar(_widget.OutputAreaWidget):
       ValueError: if location is not valid
     """
     if location not in ('top', 'bottom', 'start', 'end'):
-      raise ValueError('Invalid value for location: %r', location)
+      raise ValueError('Invalid value for location: {!r}'.format(location))
     self.tab_names = tab_names
     self._location = location
     self._active = 0
@@ -89,14 +89,15 @@ class TabBar(_widget.OutputAreaWidget):
     """Sets current output tab.
 
     Args:
-      tab: the tab's name matching one of the  tab_names provided in
-      the constructor. Alternatively a 0-based index can be used.
-      Note: if tab_names contains duplicates, they can only
-      be accessed via index. Trying to access by name will trigger
-      ValueError
+      tab: the tab's name matching one of the tab_names provided in the
+        constructor. Alternatively a 0-based index can be used. Note: if
+        tab_names contains duplicates, they can only be accessed via index.
+        Trying to access by name will trigger ValueError
+      select: if True this will also select the tab, otherwise the tab will be
+        updated in the background
 
-      select: if True this will also select the tab, otherwise
-      the tab will be updated in the background
+    Yields:
+      None (once tab is selected)
     """
     if not self._published:
       self._publish()

@@ -35,7 +35,7 @@ PERSISTENT = 'persistent'
 EVAL = 'eval'
 
 
-class JsException(Exception):
+class JsException(Exception):  # pylint: disable=g-bad-exception-name
   pass
 
 
