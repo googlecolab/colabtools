@@ -64,7 +64,7 @@ def _timeouts_path():
   return _os.path.join(_env().config_dir, 'DriveFS/Logs/timeouts.txt')
 
 
-def mount(mountpoint, force_remount=False, timeout_ms=15000):
+def mount(mountpoint, force_remount=False, timeout_ms=30000):
   """Mount your Google Drive at the specified mountpoint path."""
 
   if ' ' in mountpoint:
