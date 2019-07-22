@@ -17,17 +17,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import logging
 import os
 import sys
+import traceback
 
 from ipykernel import jsonutil
 from ipykernel import zmqshell
 from IPython.core import interactiveshell
+from IPython.core import oinspect
 from IPython.core.events import available_events
+from IPython.utils import PyColorize
 from ipython_genutils import py3compat
 
 from google.colab import _event_manager
+from google.colab import _inspector
 from google.colab import _pip
 from google.colab import _shell_customizations
 from google.colab import _system_commands
@@ -46,6 +49,13 @@ class Shell(zmqshell.ZMQInteractiveShell):
   def init_events(self):
     self.events = _event_manager.ColabEventManager(self, available_events)
     self.events.register('pre_execute', self._clear_warning_registry)
+
+  def init_inspector(self):
+    """Initialize colab's custom inspector."""
+    self.inspector = _inspector.ColabInspector(oinspect.InspectColors,
+                                               PyColorize.ANSICodeColors,
+                                               'NoColor',
+                                               self.object_info_string_level)
 
   def _should_use_native_system_methods(self):
     return os.getenv('USE_NATIVE_IPYTHON_SYSTEM_COMMANDS', False)
@@ -112,38 +122,26 @@ class Shell(zmqshell.ZMQInteractiveShell):
 
   def object_inspect(self, oname, detail_level=0):
     info = self._ofind(oname)
-    if info['found'] and sys.getsizeof(info.get('obj', '')) > 5000:
-      obj = info.pop('obj')
-      info['name'] = oname
-      info['string_form'] = (
-          _extra_object_info(obj) + '<Object too large to display>')
-      info['string_form_abbreviated'] = True
-      info['type_name'] = type(obj).__name__
-      return info
-    result = super(Shell, self).object_inspect(oname, detail_level=detail_level)
-    if result.get('string_form', None) is not None:
-      result['string_form'] = (
-          _extra_object_info(info['obj']) + result['string_form'])
+
+    if info['found']:
+      try:
+        info = self._object_find(oname)
+        # We need to avoid arbitrary python objects remaining in info (and
+        # potentially being serialized below); `obj` itself needs to be
+        # removed, but retained for use below, and `parent` isn't used at all.
+        obj = info.pop('obj', '')
+        info.pop('parent', '')
+        result = self.inspector.info(
+            obj, oname, info=info, detail_level=detail_level)
+      except Exception as e:  # pylint: disable=broad-except
+        self.kernel.log.info('Exception caught during object inspection: '
+                             '{!r}\nTraceback:\n{}'.format(
+                                 e, ''.join(
+                                     traceback.format_tb(sys.exc_info()[2]))))
+    else:
+      result = super(Shell, self).object_inspect(
+          oname, detail_level=detail_level)
     return result
 
 
 interactiveshell.InteractiveShellABC.register(Shell)
-
-
-def _extra_object_info(obj):
-  """Return a string with any extra info to include for this object."""
-  try:
-    # We want to include DataFrame size info, but don't want to raise an
-    # exception in the case of a type called `DataFrame` with an unusual shape.
-    # We also want to avoid importing pandas, as it's slow to import.
-    if type(obj).__name__ == 'DataFrame' and hasattr(obj, 'shape'):
-      rows, cols = obj.shape
-      # We want this line to be separate from the DataFrame display, so we add
-      # *two* newlines to the end.
-      #
-      # TODO(b/133258663): We also add backticks around the newlines to work
-      # around a peculiarity in our markdown quoting; remove this.
-      return '{} rows x {} columns`\n\n`'.format(rows, cols)
-  except Exception as e:  # pylint: disable=broad-except
-    logging.warning('Exception caught during _extra_object_info: %s', e)
-  return ''

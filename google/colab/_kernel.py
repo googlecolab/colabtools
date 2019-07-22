@@ -32,17 +32,7 @@ class Kernel(ipkernel.IPythonKernel):
     info = self.shell.object_inspect(name)
 
     data = {}
-    # If the object is large, we want to avoid possibly creating its string
-    # form, as this is also likely to be large.
-    if info['found'] and info.get('string_form_abbreviated'):
-      data['text/plain'] = info['string_form']
-      data['application/json'] = info
-    elif info['found']:
-      info_text = self.shell.object_inspect_text(
-          name,
-          detail_level=detail_level,
-      )
-      data['text/plain'] = info_text
+    if info['found']:
       # Provide the structured inspection information to allow the frontend to
       # format as desired.
       argspec = info.get('argspec')
