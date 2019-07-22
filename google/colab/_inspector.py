@@ -291,7 +291,7 @@ class ColabInspector(oinspect.Inspector):
     # * ismagic
     # * namespace
     #
-    # TODO(b/134847514): Handle class_docstring and call_def, or determine that
+    # TODO(b/138128444): Handle class_docstring and call_def, or determine that
     # we're safe ignoring them.
 
     obj_type = type(obj)
@@ -332,7 +332,7 @@ class ColabInspector(oinspect.Inspector):
     if detail_level == 1:
       # This should only ever happen if the user has asked for source (eg via
       # `obj??`), so we're OK with potentially calling repr for now.
-      # TODO(b/134847514): Ensure we don't call str() or repr().
+      # TODO(b/138128444): Ensure we don't call str() or repr().
       filename = oinspect.find_file(obj) or ''
       if (filename.endswith(('.py', '.py3', '.pyc')) or
           '<ipython-input' in filename):
