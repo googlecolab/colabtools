@@ -44,7 +44,7 @@ def _env():
   inet_family = 'IPV4_ONLY'
   dev = '/dev/fuse'
   path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
-  if len(root_dir) > 1 and not root_dir.startswith('/usr/local/google/tmp/'):
+  if len(root_dir) > 1 and not root_dir.startswith('/usr/local/google/'):
     home = _os.path.join(root_dir, home)
     inet_family = 'IPV6_ONLY'
     fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
