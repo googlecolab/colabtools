@@ -28,7 +28,7 @@ import uuid as _uuid
 
 import pexpect as _pexpect
 
-__all__ = ['mount']
+__all__ = ['flush_and_unmount', 'mount']
 
 
 _Environment = _collections.namedtuple(
@@ -62,6 +62,26 @@ def _env():
 
 def _timeouts_path():
   return _os.path.join(_env().config_dir, 'DriveFS/Logs/timeouts.txt')
+
+
+def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
+  """Unmount Google Drive and flush any outstanding writes to it."""
+  env = _env()
+  if b'type fuse.drive' not in _subprocess.check_output(['/bin/mount']):
+    print('Drive not mounted, so nothing to flush and unmount.')
+    return
+  drive_bin = _os.path.join(env.root_dir, 'opt/google/drive/drive')
+  p = _subprocess.Popen([
+      drive_bin, '--push_changes_and_quit', '--single_process',
+      '--timeout_sec={}'.format(int(timeout_ms / 1000))
+  ],
+                        stdout=_subprocess.PIPE,
+                        stderr=_subprocess.PIPE)
+  out, err = p.communicate()
+  if mount._DEBUG:  # pylint:disable=protected-access
+    print('flush_and_unmount: out: {}\nerr: {}'.format(out, err))
+  if p.returncode:
+    raise ValueError('flush_and_unmount failed')
 
 
 def mount(mountpoint, force_remount=False, timeout_ms=30000):
