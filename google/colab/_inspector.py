@@ -275,8 +275,11 @@ class ColabInspector(oinspect.Inspector):
     # * call_docstring
     # * definition
     # * docstring
+    # * file
     # * init_definition
     # * init_docstring
+    # * source_end_line
+    # * source_start_line
     #
     # For detail_level 1, we include:
     # * file
@@ -333,10 +336,6 @@ class ColabInspector(oinspect.Inspector):
       # This should only ever happen if the user has asked for source (eg via
       # `obj??`), so we're OK with potentially calling repr for now.
       # TODO(b/138128444): Ensure we don't call str() or repr().
-      filename = oinspect.find_file(obj) or ''
-      if (filename.endswith(('.py', '.py3', '.pyc')) or
-          '<ipython-input' in filename):
-        out['file'] = filename
       source = _getsource(obj)
       if source is None and hasattr(obj, '__class__'):
         source = _getsource(obj.__class__)
@@ -347,6 +346,19 @@ class ColabInspector(oinspect.Inspector):
       docstring = formatter(_getdoc(obj) or '<no docstring>')
       if docstring:
         out['docstring'] = docstring
+
+    if _iscallable(obj):
+      filename = oinspect.find_file(obj)
+      if filename and (filename.endswith(
+          ('.py', '.py3', '.pyc')) or '<ipython-input' in filename):
+        out['file'] = filename
+
+      line = oinspect.find_source_lines(obj)
+      out['source_start_line'] = line
+      # inspect.getsourcelines exposes the length of the source as well, which
+      # can be used to highlight the entire code block, but find_source_lines
+      # currently does not expose this. For now just highlight the first line.
+      out['source_end_line'] = line
 
     # For objects with an __init__, we set init_definition and init_docstring.
     init = getattr(obj, '__init__', None)
@@ -378,3 +390,9 @@ class ColabInspector(oinspect.Inspector):
       out['argspec'] = _getargspec(obj)
 
     return oinspect.object_info(**out)
+
+
+def _iscallable(obj):
+  """Check if an object is a callable object safe for inspect.find_file."""
+  return inspect.ismodule(obj) or inspect.isclass(obj) or inspect.ismethod(
+      obj) or inspect.isfunction(obj) or inspect.iscode(obj)
