@@ -84,7 +84,7 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
     raise ValueError('flush_and_unmount failed')
 
 
-def mount(mountpoint, force_remount=False, timeout_ms=30000):
+def mount(mountpoint, force_remount=False, timeout_ms=60000):
   """Mount your Google Drive at the specified mountpoint path."""
 
   if ' ' in mountpoint:
