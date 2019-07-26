@@ -19,6 +19,7 @@ version of TensorFlow will be loaded when they do 'import tensorflow as tf'.
 
 from __future__ import print_function
 
+import os
 import sys
 import textwrap
 
@@ -26,21 +27,90 @@ import textwrap
 _tf_version = "1.x"
 
 # A map of tensorflow version to installed location. If the installed
-# location is empty, TensorflowMagics assumes that the package is available
-# in sys.path already and no path hacks need to be done.
+# location is `None`, TensorflowMagics assumes that the package is
+# available in sys.path already and no path hacks need to be done.
 #
 # This list must correspond to the TensorFlow installations on the host Colab
 # instance.
-_available_versions = {"1.x": "", "2.x": "/tensorflow-2.0.0b1"}
+_available_versions = {"1.x": None, "2.x": "/tensorflow-2.0.0b1"}
 
 
-def _get_path(version):
-  if version in _available_versions:
-    location = _available_versions[version]
-    if not location:
-      return ""
-    return "{}/python{}.{}".format(location, sys.version_info[0],
-                                   sys.version_info[1])
+def _get_python_path(version):
+  """Gets the Python path entry for TensorFlow modules.
+
+  Args:
+    version: A version string, which should be a key of `_available_versions`.
+
+  Returns:
+    A string suitable for inclusion in the `PYTHONPATH` environment
+    variable or in `sys.path`, or `None` if no path manipulation is
+    required to use the provided version of TensorFlow.
+
+  Raises:
+    KeyError: If `version` is not a key of `_available_versions`.
+  """
+  location = _available_versions[version]
+  if location is None:
+    return None
+  return os.path.join(
+      location, "python{}.{}".format(sys.version_info[0], sys.version_info[1]))
+
+
+def _get_os_path(version):
+  """Gets the OS path entry for TensorFlow binaries.
+
+  Args:
+    version: A version string, which should be a key of `_available_versions`.
+
+  Returns:
+    A string suitable for inclusion in the `PATH` environment variable,
+    or `None` if no path manipulation is required to use binaries from
+    the provided version of TensorFlow.
+
+  Raises:
+    KeyError: If `version` is not a key of `_available_versions`.
+  """
+  python_path = _get_python_path(version)
+  if python_path is None:
+    return None
+  return os.path.join(python_path, "bin")
+
+
+def _drop_and_prepend(xs, to_drop, to_prepend):
+  """Filters a list in place (maybe), then prepend an element (maybe).
+
+  Args:
+    xs: A list to mutate in place.
+    to_drop: A string to remove from `xs` (all occurrences), or `None` to not
+      drop anything.
+    to_prepend: A string to prepend to `xs`, or `None` to not prepend anything.
+  """
+  if to_drop is not None:
+    xs[:] = [x for x in xs if x != to_drop]
+  if to_prepend is not None:
+    xs.insert(0, to_prepend)
+
+
+def _drop_and_prepend_env(key, to_drop, to_prepend, empty_includes_cwd):
+  """Like `_drop_and_prepend_env`, but mutate an environment variable.
+
+  Args:
+    key: The environment variable to modify.
+    to_drop: A path component to remove from the environment variable (all
+      occurrences), or `None` to not drop anything.
+    to_prepend: A path component to prepend to the environment variable, or
+      `None` to not prepend anything.
+    empty_includes_cwd: Whether the semantics of the given environment variable
+      treat an unset or empty value as including the current working directory
+      (as with POSIX `$PATH`) or not (as with Python 3 `$PYTHONPATH`).
+  """
+  env_value = os.environ.get(key, "")
+  if env_value:
+    parts = env_value.split(os.pathsep)
+  else:
+    parts = [""] if empty_includes_cwd else []
+  _drop_and_prepend(parts, to_drop, to_prepend)
+  os.environ[key] = os.pathsep.join(parts)
 
 
 def _tensorflow_version(line):
@@ -80,20 +150,31 @@ def _tensorflow_version(line):
 
         """.format(old_line=old_line, line=line)))
 
-  if line.lower() in _available_versions:
+  if line in _available_versions:
     if "tensorflow" in sys.modules:
       # TODO(b/132902517): add a 'restart runtime' button
       print("TensorFlow is already loaded. Please restart the runtime to "
             "change versions.")
     else:
-      # If necessary, remove old path hacks.
-      old_path = _get_path(_tf_version)
-      if old_path:
-        sys.path[:] = [e for e in sys.path if e != old_path]
+      old_python_path = _get_python_path(_tf_version)
+      new_python_path = _get_python_path(line)
 
-      new_path = _get_path(line)
-      if new_path:
-        sys.path.insert(0, new_path)
+      old_os_path = _get_os_path(_tf_version)
+      new_os_path = _get_os_path(line)
+
+      # Fix up `sys.path`, for Python imports within this process.
+      _drop_and_prepend(sys.path, old_python_path, new_python_path)
+
+      # Fix up `$PYTHONPATH`, for Python imports in subprocesses.
+      _drop_and_prepend_env(
+          "PYTHONPATH",
+          old_python_path,
+          new_python_path,
+          empty_includes_cwd=False)
+
+      # Fix up `$PATH`, for locations of subprocess binaries.
+      _drop_and_prepend_env(
+          "PATH", old_os_path, new_os_path, empty_includes_cwd=True)
 
       _tf_version = line
       print("TensorFlow {} selected.".format(line))
