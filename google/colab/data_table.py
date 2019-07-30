@@ -37,7 +37,9 @@ __all__ = [
     'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/81868506e94e6988/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/a036b366c3cace79/data_table.js'
+
+_DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.ipynb'
 
 _JAVASCRIPT_MODULE_MIME_TYPE = 'application/vnd.google.colaboratory.module+javascript'
 
@@ -155,12 +157,15 @@ class DataTable(_IPython.display.DisplayObject):
         data: {data},
         columns: {columns},
         rowsPerPage: {num_rows_per_page},
+        helpUrl: "{help_url}",
       }});
     """.format(
         gviz_url=_GVIZ_JS,
         data=formatted_data['data'],
         columns=_json.dumps(columns_and_types),
-        num_rows_per_page=self._num_rows_per_page)
+        num_rows_per_page=self._num_rows_per_page,
+        help_url=_DATA_TABLE_HELP_URL,
+    )
 
 
 class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
