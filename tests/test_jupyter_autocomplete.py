@@ -25,7 +25,8 @@ def _run_under_jupyter(code_lines):
 
 
 @unittest.skipIf(
-    os.environ.get('TRAVIS', '') == 'true', 'Skipping this test on Travis CI.')
+    os.environ.get('SKIP_JUPYTER_AUTOCOMPLETE', ''),
+    'Skipping this test outside of full VM.')
 class JupyterAutocompleteTest(unittest.TestCase):
 
   def testBasicAutocompletions(self):
