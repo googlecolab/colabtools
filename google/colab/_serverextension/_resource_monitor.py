@@ -47,6 +47,10 @@ def get_gpu_usage():
     row = next(r)
     usage = int(row[0]) * 1024 * 1024
     limit = int(row[1]) * 1024 * 1024
+
+  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
+    usage, limit, kernels = 123, 456, {'abc-789': 789, 'xyz-987': 987}
+
   return {'usage': usage, 'limit': limit, 'kernels': kernels}
 
 
