@@ -28,6 +28,7 @@ import json as _json
 import traceback as _traceback
 import IPython as _IPython
 from IPython.utils import traitlets as _traitlets
+import pandas as _pd
 import six as _six
 
 from google.colab import _interactive_table_helper
@@ -69,6 +70,9 @@ class DataTable(_IPython.display.DisplayObject):
 
   @classmethod
   def formatter(cls, dataframe, **kwargs):
+    # Don't use data table for hierarchical columns
+    if isinstance(dataframe.columns, _pd.MultiIndex):
+      return None
     return cls(dataframe, **kwargs)._repr_javascript_module_()  # pylint: disable=protected-access
 
   def __init__(self,
