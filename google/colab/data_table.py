@@ -177,6 +177,14 @@ class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
   print_method = _traitlets.ObjectName('_repr_javascript_module_')
 
 
+def _register_jsmodule_mimetype():
+  """Register _repr_javascript_module_ with the IPython display mechanism."""
+  display_formatter = _IPython.get_ipython().display_formatter
+  display_formatter.formatters.setdefault(
+      _JAVASCRIPT_MODULE_MIME_TYPE,
+      _JavascriptModuleFormatter(parent=display_formatter))
+
+
 _original_formatters = {}
 
 
@@ -184,10 +192,8 @@ def enable_dataframe_formatter():
   """Enables DataTable as the default IPython formatter for Pandas DataFrames."""
   key = _JAVASCRIPT_MODULE_MIME_TYPE
   if key not in _original_formatters:
-    display_formatter = _IPython.get_ipython().display_formatter
-    formatters = display_formatter.formatters
-    if key not in formatters:
-      formatters[key] = _JavascriptModuleFormatter(parent=display_formatter)
+    _register_jsmodule_mimetype()
+    formatters = _IPython.get_ipython().display_formatter.formatters
     _original_formatters[key] = formatters[key].for_type_by_name(
         'pandas.core.frame', 'DataFrame', DataTable.formatter)
 
