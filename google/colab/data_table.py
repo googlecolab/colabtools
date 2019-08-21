@@ -115,8 +115,7 @@ class DataTable(_IPython.display.DisplayObject):
     mime_bundle = {'text/html': self._repr_html_()}
     try:
       dataframe = self._preprocess_dataframe()
-      if dataframe.size != 0:
-        mime_bundle[_JAVASCRIPT_MODULE_MIME_TYPE] = self._gen_js(dataframe)
+      mime_bundle[_JAVASCRIPT_MODULE_MIME_TYPE] = self._gen_js(dataframe)
     except:  # pylint: disable=bare-except
       # need to catch and print exception since it is user visible
       _traceback.print_exc()

@@ -293,10 +293,36 @@ def _get_column_type(data, column_index):
   return _determine_column_type(data_types)
 
 
+def _num_columns(data):
+  """Find the number of columns in a raw data source.
+
+  Args:
+    data: 2D numpy array, 1D record array, or list of lists representing the
+      contents of the source dataframe.
+
+  Returns:
+    num_columns: number of columns in the data.
+  """
+  if hasattr(data, 'shape'):  # True for numpy arrays
+    if data.ndim == 1:
+      # 1D record array; number of columns is length of compound dtype.
+      return len(data.dtype)
+    elif data.ndim == 2:
+      # 2D array of values: number of columns is in the shape.
+      return data.shape[1]
+    else:
+      raise ValueError('data expected to be a 2D array or 1D record array.')
+  elif data:
+    # List of lists: first entry is first row.
+    return len(data[0])
+  else:
+    # Empty list has zero columns
+    return 0
+
+
 def _format_data(data, default_formatter, custom_formatters):
   """Formats the given data and determines column types."""
-  num_columns = len(data[0])
-  column_types = [_get_column_type(data, i) for i in range(num_columns)]
+  column_types = [_get_column_type(data, i) for i in range(_num_columns(data))]
   formatted_values = []
   for row in data:
     formatted_row = []
@@ -319,6 +345,9 @@ def _format_data(data, default_formatter, custom_formatters):
 
     formatted_values.append(',\n'.join(formatted_row))
 
-  formatted_data = '[[%s]]' % ('],\n ['.join(formatted_values))
+  if formatted_values:
+    formatted_data = '[[%s]]' % ('],\n ['.join(formatted_values))
+  else:
+    formatted_data = '[]'
 
   return {'column_types': column_types, 'data': formatted_data}
