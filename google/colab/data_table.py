@@ -66,38 +66,62 @@ else:
 
 
 class DataTable(_IPython.display.DisplayObject):
-  """An interactive data table display."""
+  """An interactive data table display.
+
+  Attributes:
+    include_index: (boolean) whether to include the index in a table by default.
+    num_rows_per_page: (int) default number of rows per page.
+    max_rows: (int) number of rows beyond which the table will be truncated.
+    max_columns: (int) number of columns beyond which the table will be
+      truncated.
+  """
+  # Configurable defaults for initialization.
+  include_index = True
+  num_rows_per_page = 25
+  max_rows = 20000
+  max_columns = 20
 
   @classmethod
   def formatter(cls, dataframe, **kwargs):
-    # Don't use data table for hierarchical columns
+    # Don't use data table for hierarchical columns.
     if isinstance(dataframe.columns, _pd.MultiIndex):
+      return None
+    # For large dataframes, fall back to pandas rather than truncating.
+    if dataframe.shape[0] > cls.max_rows:
+      return None
+    if dataframe.shape[1] > cls.max_columns:
       return None
     return cls(dataframe, **kwargs)._repr_javascript_module_()  # pylint: disable=protected-access
 
   def __init__(self,
                dataframe,
-               include_index=True,
-               num_rows_per_page=25,
-               max_rows=20000,
-               max_columns=20):
+               include_index=None,
+               num_rows_per_page=None,
+               max_rows=None,
+               max_columns=None):
     """Constructor.
 
     Args:
        dataframe: the dataframe source for the table
        include_index: boolean specifying whether index should be included.
-       num_rows_per_page: display that many rows per page initially. uses
-         _DEFAULT_ROWS_PER_PAGE if not provided.
+         Defaults to DataTable.include_index
+       num_rows_per_page: display that many rows per page initially. Defaults to
+         DataTable.num_rows_per_page.
        max_rows: if len(data) exceeds this value a warning will be printed and
-         the table truncated. Uses _DEFAULT_MAX_ROWS if not provided
+         the table truncated. Defaults to DataTable.max_rows.
        max_columns: if len(columns) exceeds this value a warning will be printed
-         and truncated. Uses _DEFAULT_MAX_COLUMNS if not provided
+         and truncated. Defaults to DataTable.max_columns.
     """
+
+    def _default(value, default):
+      return default if value is None else value
+
     self._dataframe = dataframe
-    self._include_index = include_index
-    self._num_rows_per_page = num_rows_per_page
-    self._max_rows = max_rows
-    self._max_columns = max_columns
+    self._include_index = _default(include_index, self.include_index)
+    self._num_rows_per_page = _default(num_rows_per_page,
+                                       self.num_rows_per_page)
+    self._max_rows = _default(max_rows, self.max_rows)
+    self._max_columns = _default(max_columns, self.max_columns)
 
   def _preprocess_dataframe(self):
     dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
