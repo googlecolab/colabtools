@@ -19,15 +19,6 @@ from __future__ import print_function
 
 import logging
 
-# Allow imports of submodules without Jupyter
-try:
-  # pylint: disable=g-import-not-at-top
-  from notebook import utils
-  from notebook.base import handlers
-  from google.colab._serverextension import _handlers
-except ImportError:
-  pass
-
 
 class _ColabLoggingFilter(logging.Filter):
 
@@ -46,6 +37,14 @@ def _jupyter_server_extension_paths():
 
 def load_jupyter_server_extension(nb_server_app):
   """Called by Jupyter when starting the notebook manager."""
+  # We only want to import these modules when setting up a server extension, and
+  # want to avoid raising an exception when the `notebook` package isn't
+  # available.
+  # pylint: disable=g-import-not-at-top
+  from notebook import utils
+  from google.colab._serverextension import _handlers
+  # pylint: enable=g-import-not-at-top
+
   nb_server_app.log.addFilter(_ColabLoggingFilter())
   app = nb_server_app.web_app
 
