@@ -38,7 +38,7 @@ __all__ = [
     'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/0ec71e3130d2d2b2/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/6adb00bb049ef96e/data_table.js'
 
 _DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.ipynb'
 
@@ -177,11 +177,14 @@ class DataTable(_IPython.display.DisplayObject):
     for i, (column_type, column) in enumerate(zip(column_types, columns)):
       columns_and_types.append((column_type, str(header_formatters[i](column))))
 
-    column_widths = []
+    column_options = []
     if self._include_index:
       # Collapse index columns to minimum necessary width. We specify 1px but
       # they will auto-expand as necessary.
-      column_widths = ['1px'] * self._dataframe.index.nlevels
+      column_options = [{
+          'width': '1px',
+          'className': 'index_column'
+      }] * self._dataframe.index.nlevels
 
     return """
       import "{gviz_url}";
@@ -189,7 +192,7 @@ class DataTable(_IPython.display.DisplayObject):
       window.createDataTable({{
         data: {data},
         columns: {columns},
-        columnWidths: {column_widths},
+        columnOptions: {column_options},
         rowsPerPage: {num_rows_per_page},
         helpUrl: "{help_url}",
       }});
@@ -197,7 +200,7 @@ class DataTable(_IPython.display.DisplayObject):
         gviz_url=_GVIZ_JS,
         data=formatted_data['data'],
         columns=_json.dumps(columns_and_types),
-        column_widths=_json.dumps(column_widths),
+        column_options=_json.dumps(column_options),
         num_rows_per_page=self._num_rows_per_page,
         help_url=_DATA_TABLE_HELP_URL,
     )
