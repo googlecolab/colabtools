@@ -83,8 +83,10 @@ class DataTable(_IPython.display.DisplayObject):
 
   @classmethod
   def formatter(cls, dataframe, **kwargs):
-    # Don't use data table for hierarchical columns.
+    # Don't use data table for hierarchical index or columns.
     if isinstance(dataframe.columns, _pd.MultiIndex):
+      return None
+    if isinstance(dataframe.index, _pd.MultiIndex):
       return None
     # For large dataframes, fall back to pandas rather than truncating.
     if dataframe.shape[0] > cls.max_rows:
