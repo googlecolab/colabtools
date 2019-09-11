@@ -235,7 +235,11 @@ def _safe_repr(obj, depth=0, visited=None):
 
   # Other sized objects get a simple summary.
   if isinstance(obj, collections_abc.Sized):
-    return '{} with {} items'.format(type_name, len(obj))
+    try:
+      obj_len = len(obj)
+      return '{} with {} items'.format(type_name, obj_len)
+    except Exception:  # pylint: disable=broad-except
+      pass
 
   # We didn't know what it was; we give up and just give the type name.
   name = getattr(type(obj), '__qualname__', type_name)
