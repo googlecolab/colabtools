@@ -31,8 +31,9 @@ if six.PY2:
 else:
   import collections.abc as collections_abc  # pylint: disable=g-import-not-at-top
 
+# We also iterate over dicts, but the logic differs slightly (due to compound
+# entries), so they don't appear in this mapping.
 _APPROVED_ITERABLES = {
-    dict: ('{', '}'),
     set: ('{', '}'),
     frozenset: ('frozenset({', '})'),
     list: ('[', ']'),
@@ -159,6 +160,10 @@ def _safe_repr(obj, depth=0, visited=None):
 
   type_name = type(obj).__name__
   module_name = type(obj).__module__
+  fully_qualified_type_name = '.'.join((
+      module_name,
+      getattr(type(obj), '__qualname__', type_name),
+  ))
   size = sys.getsizeof(obj)
 
   # Next, we want to allow printing for ~all builtin types other than iterables.
@@ -200,6 +205,10 @@ def _safe_repr(obj, depth=0, visited=None):
   if isinstance(obj, dict):
     s = []
     suffix = ''
+    # If this is a subclass of dict, include that in the print repr.
+    prefix = ''
+    if dict is not type(obj):
+      prefix = fully_qualified_type_name
     for i, (k, v) in enumerate(six.iteritems(obj)):
       if i >= _ITERABLE_SIZE_THRESHOLD:
         s.append('...')
@@ -214,24 +223,31 @@ def _safe_repr(obj, depth=0, visited=None):
           _safe_repr(k, depth=depth + 1, visited=visited),
           _safe_repr(v, depth=depth + 1, visited=visited),
       )))
-    return ''.join(('{', ', '.join(s), '}', suffix))
+    return ''.join((prefix, '{', ', '.join(s), '}', suffix))
 
   if isinstance(obj, tuple(_APPROVED_ITERABLES)):
     # Empty sets and frozensets get special treatment.
-    if not obj and isinstance(obj, frozenset):
-      return 'frozenset()'
-    elif not obj and isinstance(obj, set):
-      return 'set()'
-    start, end = _APPROVED_ITERABLES[type(obj)]
-    s = []
-    suffix = ''
-    for i, v in enumerate(obj):
-      if i >= _ITERABLE_SIZE_THRESHOLD:
-        s.append('...')
-        suffix = ' ({} items total)'.format(len(obj))
-        break
-      s.append(_safe_repr(v, depth=depth + 1, visited=visited))
-    return ''.join((start, ', '.join(s), end, suffix))
+    if not obj and isinstance(obj, (set, frozenset)):
+      return '{}()'.format(type_name)
+    # The object we're formatting is just a subclass of one of the
+    # _APPROVED_ITERABLES; we iterate through to find the first such iterable,
+    # and then format the result.
+    for collection_type, (start, end) in _APPROVED_ITERABLES.items():
+      if isinstance(obj, collection_type):
+        # If this is a subclass of one of the basic types, include that in the
+        # print repr.
+        prefix = ''
+        if collection_type is not type(obj):
+          prefix = fully_qualified_type_name
+        s = []
+        suffix = ''
+        for i, v in enumerate(obj):
+          if i >= _ITERABLE_SIZE_THRESHOLD:
+            s.append('...')
+            suffix = ' ({} items total)'.format(len(obj))
+            break
+          s.append(_safe_repr(v, depth=depth + 1, visited=visited))
+        return ''.join((prefix, start, ', '.join(s), end, suffix))
 
   # Other sized objects get a simple summary.
   if isinstance(obj, collections_abc.Sized):
@@ -242,8 +258,7 @@ def _safe_repr(obj, depth=0, visited=None):
       pass
 
   # We didn't know what it was; we give up and just give the type name.
-  name = getattr(type(obj), '__qualname__', type_name)
-  return '{}.{} instance'.format(module_name, name)
+  return '{} instance'.format(fully_qualified_type_name)
 
 
 class ColabInspector(oinspect.Inspector):
