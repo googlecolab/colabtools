@@ -130,11 +130,6 @@ class DataTable(_IPython.display.DisplayObject):
 
     if self._include_index or dataframe.shape[1] == 0:
       dataframe = dataframe.reset_index()
-    if not dataframe.columns.is_unique:
-      df_copy = dataframe.copy(deep=False)
-      df_copy.columns = range(dataframe.shape[1])
-      records = df_copy.to_records(index=False)
-      dataframe = records[[str(n) for n in list(records.dtype.names)]]
     return dataframe
 
   def _repr_mimebundle_(self, include=None, exclude=None):
