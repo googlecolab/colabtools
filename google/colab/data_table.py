@@ -139,6 +139,12 @@ class DataTable(_IPython.display.DisplayObject):
 
     if self._include_index or dataframe.shape[1] == 0:
       dataframe = dataframe.reset_index()
+
+    # if the column is uint64 and contains large numbers, convert to object.
+    # (see b/140769413 for details)
+    for i, dtype in enumerate(dataframe.dtypes):
+      if dtype == 'uint64' and (dataframe.iloc[:, i] > 2**63).any():
+        dataframe.iloc[:, i] = dataframe.iloc[:, i].astype(object)
     return dataframe
 
   def _repr_mimebundle_(self, include=None, exclude=None):
