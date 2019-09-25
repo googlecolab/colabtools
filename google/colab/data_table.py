@@ -126,6 +126,15 @@ class DataTable(_IPython.display.DisplayObject):
     self._max_columns = _default(max_columns, self.max_columns)
 
   def _preprocess_dataframe(self):
+    if len(self._dataframe.columns) > self._max_columns:
+      print(('Warning: Total number of columns (%d) exceeds max_columns (%d)'
+             ' limiting to first max_columns ') %
+            (len(self._dataframe.columns), self._max_columns))
+    if len(self._dataframe) > self._max_rows:
+      print(('Warning: total number of rows (%d) exceeds max_rows (%d). '
+             'Limiting to first max_rows.') %
+            (len(self._dataframe), self._max_rows))
+
     dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
 
     if self._include_index or dataframe.shape[1] == 0:
