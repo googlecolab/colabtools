@@ -59,10 +59,7 @@ def _force_to_latin1(x):
 
 
 _DEFAULT_NONUNICODE_FORMATTER = _force_to_latin1
-if _six.PY2:
-  _DEFAULT_FORMATTERS = {unicode: lambda x: x.encode('utf8')}
-else:
-  _DEFAULT_FORMATTERS = {str: lambda x: x}
+_DEFAULT_FORMATTERS = {_six.text_type: _six.ensure_str}
 
 
 class DataTable(_IPython.display.DisplayObject):

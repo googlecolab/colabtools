@@ -114,6 +114,14 @@ def _process_custom_formatters(formatters, columns):
   return output_formatters
 
 
+def _fix_large_ints(x):
+  # javascript stores all numbers as floats, so large integers must be
+  # represented as strings.
+  if isinstance(x, _six.integer_types) and abs(x) > 2**52:
+    return str(x)
+  return x
+
+
 def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
   """Formats given x into js-parseable structure.
 
@@ -153,8 +161,9 @@ def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
         x = float(x)
     elif type(x).__name__ in _NP_INT_TYPES:
       x = int(x)
-  if isinstance(x, _six.integer_types) and abs(x) > 2**52:
-    x = '%d' % x
+
+  x = _fix_large_ints(x)
+
   represent_as_string = lambda x: _escape(str(x))
   if isinstance(x, dict) and not isinstance(x, _CellValue):
     # dictionaries need to be converted to string, if not they will be passed
@@ -169,6 +178,8 @@ def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
     if all(
         (isinstance(el, dict) and not isinstance(el, _CellValue) for el in x)):
       x = [represent_as_string(elem) for elem in x]
+    else:
+      x = [_fix_large_ints(item) for item in x]
 
   # Ensure that we're returning JSON of a string value.
   double_encode_json = as_string and not isinstance(x, _six.string_types)
