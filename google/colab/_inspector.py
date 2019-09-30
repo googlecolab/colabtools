@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 
 import inspect
-import sys
 import types
 
 from IPython.core import oinspect
@@ -41,7 +40,6 @@ _APPROVED_ITERABLES = {
 }
 _ITERABLE_SIZE_THRESHOLD = 5
 _MAX_RECURSION_DEPTH = 4
-_OBJ_SIZE_LIMIT = 5000
 _STRING_ABBREV_LIMIT = 20
 
 # Unhelpful docstrings we avoid surfacing to users.
@@ -122,9 +120,7 @@ def _safe_repr(obj, depth=0, visited=None):
   in practice, too many objects can have a repr which is expensive to compute.
 
   To make this work, we whitelist a set of types for which we compute a repr:
-   * "large" objects (as determined by sys.getsizeof) get a summary with type
-     name and size info
-   * builtin types which aren't Iterable are safe, up to size constraints
+   * builtin types which aren't Iterable are safe
    * Sized objects with a `.shape` tuple attribute (eg ndarrays and dataframes)
      get a summary with type name and shape
    * list, dict, set, frozenset, and tuple objects we format recursively, up to
@@ -164,7 +160,6 @@ def _safe_repr(obj, depth=0, visited=None):
       module_name,
       getattr(type(obj), '__qualname__', type_name),
   ))
-  size = sys.getsizeof(obj)
 
   # Next, we want to allow printing for ~all builtin types other than iterables.
   if isinstance(obj, (six.binary_type, six.text_type)):
@@ -182,10 +177,6 @@ def _safe_repr(obj, depth=0, visited=None):
   # type(None)) don't appear in the dir() of any module in py3.
   if (not isinstance(obj, collections_abc.Iterable) and
       module_name == builtins.__name__):
-    if size > _OBJ_SIZE_LIMIT:
-      # We don't have any examples of objects that meet this criteria, but we
-      # still want to be safe.
-      return '<{} object with size {}>'.format(type_name, size)
     return repr(obj)
 
   # If it wasn't a primitive object, we may need to recur; we see if we've
