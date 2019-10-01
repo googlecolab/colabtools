@@ -20,13 +20,14 @@ from __future__ import print_function as _
 import collections as _collections
 import getpass as _getpass
 import os as _os
-import re as _re
+import signal as _signal
 import socket as _socket
 import subprocess as _subprocess
 import sys as _sys
+import tempfile as _tempfile
 import uuid as _uuid
 
-import pexpect as _pexpect
+import pexpect.popen_spawn as _popen_spawn
 
 __all__ = ['flush_and_unmount', 'mount']
 
@@ -113,27 +114,23 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
     if not _os.path.isdir(config_dir):
       raise ValueError('{} must be a directory if present'.format(config_dir))
 
-  # Launch an intermediate bash inside of which drive is launched, so that
-  # after auth is done we can daemonize drive with its stdout/err no longer
-  # being captured by pexpect. Otherwise buffers will eventually fill up and
-  # drive may hang, because pexpect doesn't have a .startDiscardingOutput()
-  # call (https://github.com/pexpect/pexpect/issues/54).
+  # Launch an intermediate bash to manage DriveFS' I/O (b/141747058#comment6).
   prompt = u'root@{}-{}: '.format(_socket.gethostname(), _uuid.uuid4().hex)
-  d = _pexpect.spawn(
-      '/bin/bash',
-      args=['--noediting'],
+  logfile = None
+  if mount._DEBUG:  # pylint:disable=protected-access
+    logfile = _sys.stdout
+  d = _popen_spawn.PopenSpawn(
+      '/bin/bash --noediting -i',  # Need -i to get prompt echo.
       timeout=120,
       maxread=int(1e6),
       encoding='utf-8',
+      logfile=logfile,
       env={
           'HOME': home,
           'FUSE_DEV_NAME': dev,
           'PATH': path
       })
-  if mount._DEBUG:  # pylint:disable=protected-access
-    d.logfile_read = _sys.stdout
   d.sendline('export PS1="{}"'.format(prompt))
-  d.expect(prompt)  # The echoed input above.
   d.expect(prompt)  # The new prompt.
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
   # because that leaves enough cruft behind in the mount table that future
@@ -141,7 +138,6 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
   d.sendline('umount -f {mnt} || umount {mnt}; pkill -9 -x drive'.format(
       mnt=mountpoint))
   # Wait for above to be received, using the next prompt.
-  d.expect(u'pkill')  # Echoed command.
   d.expect(prompt)
   # Only check the mountpoint after potentially unmounting/pkill'ing above.
   try:
@@ -155,7 +151,7 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
     if '/' in normed and not _os.path.exists(_os.path.dirname(normed)):
       raise ValueError('Mountpoint must be in a directory that exists')
   except:
-    d.terminate(force=True)
+    d.kill(_signal.SIGKILL)
     raise
 
   # Watch for success.
@@ -165,32 +161,56 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
       'then echo "{s}"; break; fi; done ) &').format(
           m=mountpoint, s=success)
   d.sendline(success_watcher)
-  d.expect(prompt)  # Eat the match of the input command above being echoed.
+  d.expect(prompt)
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
-  d.sendline(('{d}/drive '
-              '--features=opendir_timeout_ms:{timeout_ms},virtual_folders:true '
-              '--inet_family=' + inet_family + ' '
-              '--preferences=trusted_root_certs_file_path:'
-              '{d}/roots.pem,mount_point_path:{mnt} --console_auth').format(
-                  d=drive_dir, timeout_ms=timeout_ms, mnt=mountpoint))
+
+  oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
+  problem_and_stopped = (
+      u'Drive File Stream encountered a problem and has stopped')
+  drive_exited = u'drive EXITED'
+
+  # Create a pipe for sending the oauth code to a backgrounded drive binary.
+  # (popen -> no pty -> no bash job control -> can't background post-launch).
+  fifo_dir = _tempfile.mkdtemp()
+  fifo = _os.path.join(fifo_dir, 'drive.fifo')
+  _os.mkfifo(fifo)
+  # cat is needed below since the FIFO isn't opened for writing yet.
+  d.sendline(
+      ('cat {fifo} | head -1 | ( {d}/drive '
+       '--features=opendir_timeout_ms:{timeout_ms},virtual_folders:true '
+       '--inet_family=' + inet_family + ' '
+       '--preferences=trusted_root_certs_file_path:'
+       '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
+       '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}"; '
+       'echo "{drive_exited}"; ) &').format(
+           d=drive_dir,
+           timeout_ms=timeout_ms,
+           mnt=mountpoint,
+           fifo=fifo,
+           oauth_prompt=oauth_prompt,
+           problem_and_stopped=problem_and_stopped,
+           drive_exited=drive_exited))
+  d.expect(prompt)
 
   # LINT.IfChange(drivetimedout)
   timeout_pattern = 'QueryManager timed out'
   # LINT.ThenChange()
   dfs_log = _os.path.join(config_dir, 'DriveFS/Logs/drive_fs.txt')
 
+  wrote_to_fifo = False
   while True:
     case = d.expect([
         success,
         prompt,
-        _re.compile(u'(Go to this URL in a browser: https://.*)\r\n'),
-        u'Drive File Stream encountered a problem and has stopped',
+        oauth_prompt,
+        problem_and_stopped,
+        drive_exited,
     ])
     if case == 0:
       break
-    elif (case == 1 or case == 3):
+    elif (case == 1 or case == 3 or case == 4):
       # Prompt appearing here means something went wrong with the drive binary.
-      d.terminate(force=True)
+      d.kill(_signal.SIGKILL)
       extra_reason = ''
       if 0 == _subprocess.call(
           'grep -q "{}" "{}"'.format(timeout_pattern, dfs_log), shell=True):
@@ -200,24 +220,25 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
       raise ValueError('mount failed' + extra_reason)
     elif case == 2:
       # Not already authorized, so do the authorization dance.
-      auth_prompt = d.match.group(1) + '\n\nEnter your authorization code:\n'
-      d.send(_getpass.getpass(auth_prompt) + '\n')
-  d.sendcontrol('z')
-  d.expect(u'Stopped')
-  d.expect(prompt)
-  d.sendline('bg; disown')
-  d.expect(prompt)
+      auth_prompt = d.match.group(1) + '\nEnter your authorization code:\n'
+      with open(fifo, 'w') as fifo_file:
+        fifo_file.write(_getpass.getpass(auth_prompt) + '\n')
+      wrote_to_fifo = True
+  if not wrote_to_fifo:
+    with open(fifo, 'w') as fifo_file:
+      fifo_file.write('ignored\n')
   filtered_logfile = _timeouts_path()
   d.sendline('rm -rf "{}"'.format(filtered_logfile))
   d.expect(prompt)
-  d.sendline(('tail -n +0 -F "{}" | '
-              'grep --line-buffered "{}" > "{}" &'.format(
-                  dfs_log, timeout_pattern, filtered_logfile)))
+  d.sendline(
+      ("""nohup bash -c 'tail -n +0 -F "{}" | """
+       """grep --line-buffered "{}" > "{}" ' < /dev/null > /dev/null 2>&1 &"""
+      ).format(dfs_log, timeout_pattern, filtered_logfile))
   d.expect(prompt)
-  d.sendline('disown; exit')
-  d.expect(_pexpect.EOF)
-  assert not d.isalive()
-  assert d.exitstatus == 0
+  d.sendline('disown -a')
+  d.expect(prompt)
+  d.sendline('exit')
+  assert d.wait() == 0
   print('Mounted at {}'.format(mountpoint))
 
 
