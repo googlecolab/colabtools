@@ -122,6 +122,8 @@ class DataTable(_IPython.display.DisplayObject):
     self._max_rows = _default(max_rows, self.max_rows)
     self._max_columns = _default(max_columns, self.max_columns)
 
+    _register_jsmodule_mimetype()
+
   def _preprocess_dataframe(self):
     dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
 
@@ -213,7 +215,10 @@ class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
 
 def _register_jsmodule_mimetype():
   """Register _repr_javascript_module_ with the IPython display mechanism."""
-  display_formatter = _IPython.get_ipython().display_formatter
+  shell = _IPython.get_ipython()
+  if not shell:
+    return
+  display_formatter = shell.display_formatter
   display_formatter.formatters.setdefault(
       _JAVASCRIPT_MODULE_MIME_TYPE,
       _JavascriptModuleFormatter(parent=display_formatter))
