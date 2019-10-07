@@ -17,12 +17,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import __future__
+import datetime
 import os
 import sys
 import traceback
 
 from ipykernel import jsonutil
 from ipykernel import zmqshell
+from IPython.core import alias
+from IPython.core import inputsplitter
 from IPython.core import interactiveshell
 from IPython.core import oinspect
 from IPython.core.events import available_events
@@ -34,6 +38,14 @@ from google.colab import _inspector
 from google.colab import _pip
 from google.colab import _shell_customizations
 from google.colab import _system_commands
+
+
+# Python doesn't expose a name in builtins for a getset descriptor attached to a
+# python class implemented in C, eg an entry in this array:
+#   https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_getset
+#
+# We punt and use a known example of such a descriptor.
+_GetsetDescriptorType = type(datetime.datetime.year)
 
 
 # The code below warns the user that a runtime restart is necessary if a
@@ -119,6 +131,177 @@ class Shell(zmqshell.ZMQInteractiveShell):
       exc_content['error_details'] = error_details
     self._send_error(exc_content)
     self._last_traceback = stb
+
+  # We want to customize the behavior of `_ofind` and `_getattr_property` around
+  # handling of attribute descriptors defined in C; this method and the one
+  # below are slightly modified copies of the version upstream:
+  #   https://github.com/ipython/ipython/blob/5be56c736c794d7ba597394a16a670ef17d0558d/IPython/core/interactiveshell.py#L1374-L1512
+  def _ofind(self, oname, namespaces=None):
+    """Find an object in the available namespaces.
+
+    self._ofind(oname) -> dict with keys: found,obj,ospace,ismagic
+
+    Has special code to detect magic functions.
+
+    Args:
+      oname: Name to look up.
+      namespaces: A list of additional namespaces to search.
+
+    Returns:
+      Information about the object.
+    """
+    oname = oname.strip()
+    # print '1- oname: <%r>' % oname  # dbg
+    if (not oname.startswith(inputsplitter.ESC_MAGIC) and
+        not oname.startswith(inputsplitter.ESC_MAGIC2) and
+        not py3compat.isidentifier(oname, dotted=True)):
+      return dict(found=False)
+
+    if namespaces is None:
+      # Namespaces to search in:
+      # Put them in a list. The order is important so that we
+      # find things in the same order that Python finds them.
+      namespaces = [
+          ('Interactive', self.user_ns),
+          ('Interactive (global)', self.user_global_ns),
+          ('Python builtin', py3compat.builtin_mod.__dict__),
+      ]
+
+    # initialize results to 'null'
+    found = False
+    obj = None
+    ospace = None
+    ismagic = False
+    isalias = False
+    parent = None
+
+    # We need to special-case 'print', which as of python2.6 registers as a
+    # function but should only be treated as one if print_function was
+    # loaded with a future import.  In this case, just bail.
+    if (oname == 'print' and not py3compat.PY3 and
+        not (self.compile.compiler_flags
+             & __future__.CO_FUTURE_PRINT_FUNCTION)):
+      return {
+          'found': found,
+          'obj': obj,
+          'namespace': ospace,
+          'ismagic': ismagic,
+          'isalias': isalias,
+          'parent': parent
+      }
+
+    # Look for the given name by splitting it in parts.  If the head is
+    # found, then we look for all the remaining parts as members, and only
+    # declare success if we can find them all.
+    oname_parts = oname.split('.')
+    oname_head, oname_rest = oname_parts[0], oname_parts[1:]
+    for nsname, ns in namespaces:
+      try:
+        obj = ns[oname_head]
+      except KeyError:
+        continue
+      else:
+        # print 'oname_rest:', oname_rest  # dbg
+        for idx, part in enumerate(oname_rest):
+          try:
+            parent = obj
+            # The last part is looked up in a special way to avoid
+            # descriptor invocation as it may raise or have side
+            # effects.
+            if idx == len(oname_rest) - 1:
+              obj = self._getattr_property(obj, part)
+            else:
+              obj = getattr(obj, part)
+          except:  # pylint: disable=bare-except
+            # Blanket except b/c some badly implemented objects
+            # allow __getattr__ to raise exceptions other than
+            # AttributeError, which then crashes IPython.
+            break
+        else:
+          # If we finish the for loop (no break), we got all members
+          found = True
+          ospace = nsname
+          break  # namespace loop
+
+    # Try to see if it's magic
+    if not found:
+      obj = None
+      if oname.startswith(inputsplitter.ESC_MAGIC2):
+        oname = oname.lstrip(inputsplitter.ESC_MAGIC2)
+        obj = self.find_cell_magic(oname)
+      elif oname.startswith(inputsplitter.ESC_MAGIC):
+        oname = oname.lstrip(inputsplitter.ESC_MAGIC)
+        obj = self.find_line_magic(oname)
+      else:
+        # search without prefix, so run? will find %run?
+        obj = self.find_line_magic(oname)
+        if obj is None:
+          obj = self.find_cell_magic(oname)
+      if obj is not None:
+        found = True
+        ospace = 'IPython internal'
+        ismagic = True
+        isalias = isinstance(obj, alias.Alias)
+
+    # Last try: special-case some literals like '', [], {}, etc:
+    if not found and oname_head in ["''", '""', '[]', '{}', '()']:
+      obj = eval(oname_head)  # pylint: disable=eval-used
+      found = True
+      ospace = 'Interactive'
+
+    return {
+        'found': found,
+        'obj': obj,
+        'namespace': ospace,
+        'ismagic': ismagic,
+        'isalias': isalias,
+        'parent': parent
+    }
+
+  @staticmethod
+  def _getattr_property(obj, attrname):
+    """Property-aware getattr to use in object finding.
+
+    If attrname represents a property, return it unevaluated (in case it has
+    side effects or raises an error.
+
+    Args:
+      obj: Object to look up an attribute on.
+      attrname: Name of the attribute to look up.
+
+    Returns:
+      An attribute from either the object or its type.
+    """
+    if not isinstance(obj, type):
+      try:
+        # `getattr(type(obj), attrname)` is not guaranteed to return
+        # `obj`, but does so for property:
+        #
+        # property.__get__(self, None, cls) -> self
+        #
+        # The universal alternative is to traverse the mro manually
+        # searching for attrname in class dicts.
+        attr = getattr(type(obj), attrname)
+      except AttributeError:
+        pass
+      else:
+        # This relies on the fact that data descriptors (with both
+        # __get__ & __set__ magic methods) take precedence over
+        # instance-level attributes:
+        #
+        #    class A(object):
+        #        @property
+        #        def foobar(self): return 123
+        #    a = A()
+        #    a.__dict__['foobar'] = 345
+        #    a.foobar  # == 123
+        #
+        # So, a property may be returned right away.
+        if isinstance(attr, (property, _GetsetDescriptorType)):
+          return attr
+
+    # Nothing helped, fall back.
+    return getattr(obj, attrname)
 
   def object_inspect(self, oname, detail_level=0):
     info = self._ofind(oname)
