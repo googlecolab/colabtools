@@ -32,7 +32,7 @@ _tf_version = "1.x"
 #
 # This list must correspond to the TensorFlow installations on the host Colab
 # instance.
-_available_versions = {"1.x": None, "2.x": "/tensorflow-2.0.0-rc2"}
+_available_versions = {"1.x": None, "2.x": "/tensorflow-2.0.0"}
 
 
 def _get_python_path(version):
