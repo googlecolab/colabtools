@@ -151,10 +151,12 @@ def authenticate_user(clear_output=True):
       # If we've got a TPU attached, we want to run a TF operation to provide
       # our new credentials to the TPU for GCS operations.
       import tensorflow as tf  # pylint: disable=g-import-not-at-top
-      with tf.compat.v1.Session('grpc://{}'.format(colab_tpu_addr)) as sess:
-        with open(_get_adc_path()) as auth_info:
-          tf.contrib.cloud.configure_gcs(
-              sess, credentials=_json.load(auth_info))
+      # TODO(b/135524562): Add support for authenticating TPUs in TF2.
+      if tf.__version__.startswith('1'):
+        with tf.compat.v1.Session('grpc://{}'.format(colab_tpu_addr)) as sess:
+          with open(_get_adc_path()) as auth_info:
+            tf.contrib.cloud.configure_gcs(
+                sess, credentials=_json.load(auth_info))
   if _check_adc():
     return
   raise _errors.AuthorizationError('Failed to fetch user credentials')
