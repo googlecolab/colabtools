@@ -25,6 +25,7 @@ import textwrap
 
 # The selected TF version
 _tf_version = "1.x"
+_explicitly_set = False
 
 # A map of tensorflow version to installed location. If the installed
 # location is `None`, TensorflowMagics assumes that the package is
@@ -124,6 +125,7 @@ def _tensorflow_version(line):
     line: the version parameter or the empty string.
   """
   global _tf_version
+  global _explicitly_set
 
   line = line.strip()
 
@@ -132,6 +134,7 @@ def _tensorflow_version(line):
     print("Available versions:\n* {}".format("\n* ".join(_available_versions)))
     return
 
+  _explicitly_set = True
   if line == _tf_version:
     # Nothing to do
     return
@@ -183,6 +186,10 @@ def _tensorflow_version(line):
     print("Currently selected TF version: {}".format(_tf_version))
     print("Available versions:\n * {}".format(
         "\n * ".join(_available_versions)))
+
+
+def explicitly_set():
+  return _explicitly_set
 
 
 def _register_magics(ip):
