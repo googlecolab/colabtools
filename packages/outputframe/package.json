@@ -1,0 +1,9 @@
+{
+  "name": "googlecolab/outputframe",
+  "version": "0.0.1",
+  "description": "Typings for Google Colaboratory's Javascript output APIs",
+  "types": "./lib/index.d.ts",
+  "files": [
+    "lib/**/*.d.ts"
+  ]
+}
