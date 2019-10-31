@@ -120,7 +120,7 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
   if mount._DEBUG:  # pylint:disable=protected-access
     logfile = _sys.stdout
   d = _popen_spawn.PopenSpawn(
-      '/bin/bash --noediting -i',  # Need -i to get prompt echo.
+      '/usr/bin/setsid /bin/bash --noediting -i',  # Need -i to get prompt echo.
       timeout=120,
       maxread=int(1e6),
       encoding='utf-8',
