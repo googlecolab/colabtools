@@ -23,6 +23,8 @@ import os
 import sys
 import textwrap
 
+import requests
+
 # The selected TF version
 _tf_version = "1.x"
 _explicitly_set = False
@@ -114,6 +116,18 @@ def _drop_and_prepend_env(key, to_drop, to_prepend, empty_includes_cwd):
   os.environ[key] = os.pathsep.join(parts)
 
 
+def _maybe_switch_tpu_version():
+  if "COLAB_TPU_ADDR" not in os.environ:
+    return
+  import tensorflow as tf  # pylint: disable=g-import-not-at-top
+  # See b/141173168 for why this path.
+  url = "http://{}:8475/requestversion/{}".format(
+      os.environ["COLAB_TPU_ADDR"].split(":")[0], tf.__version__)
+  resp = requests.post(url)
+  if resp.status_code != 200:
+    print("Failed to switch the TPU to TF {}".format(tf.__version__))
+
+
 def _tensorflow_version(line):
   """Implements the tensorflow_version line magic.
 
@@ -179,6 +193,7 @@ def _tensorflow_version(line):
       _drop_and_prepend_env(
           "PATH", old_os_path, new_os_path, empty_includes_cwd=True)
 
+      _maybe_switch_tpu_version()
       _tf_version = line
       print("TensorFlow {} selected.".format(line))
   else:
