@@ -177,7 +177,9 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
   # cat is needed below since the FIFO isn't opened for writing yet.
   d.sendline(
       ('cat {fifo} | head -1 | ( {d}/drive '
-       '--features=opendir_timeout_ms:{timeout_ms},virtual_folders:true '
+       '--features=max_parallel_push_task_instances:10,'
+       'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms},'
+       'virtual_folders:true '
        '--inet_family=' + inet_family + ' '
        '--preferences=trusted_root_certs_file_path:'
        '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
