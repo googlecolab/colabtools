@@ -85,7 +85,10 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
     raise ValueError('flush_and_unmount failed')
 
 
-def mount(mountpoint, force_remount=False, timeout_ms=60000):
+def mount(mountpoint,
+          force_remount=False,
+          timeout_ms=60000,
+          use_metadata_server=False):
   """Mount your Google Drive at the specified mountpoint path."""
 
   if ' ' in mountpoint:
@@ -168,6 +171,12 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
   problem_and_stopped = (
       u'Drive File Stream encountered a problem and has stopped')
   drive_exited = u'drive EXITED'
+  metadata_auth_arg = (
+      '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
+          metadata_server=_os.environ['TBE_CREDS_ADDR'])
+      if use_metadata_server else '')
+  drive_binary_dir = _os.path.join(
+      root_dir, 'opt/google/drive_latest') if use_metadata_server else drive_dir
 
   # Create a pipe for sending the oauth code to a backgrounded drive binary.
   # (popen -> no pty -> no bash job control -> can't background post-launch).
@@ -176,16 +185,17 @@ def mount(mountpoint, force_remount=False, timeout_ms=60000):
   _os.mkfifo(fifo)
   # cat is needed below since the FIFO isn't opened for writing yet.
   d.sendline(
-      ('cat {fifo} | head -1 | ( {d}/drive '
+      ('cat {fifo} | head -1 | ( {drive_binary_dir}/drive '
        '--features=max_parallel_push_task_instances:10,'
        'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms},'
        'virtual_folders:true '
-       '--inet_family=' + inet_family + ' '
+       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
        '--preferences=trusted_root_certs_file_path:'
        '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
        '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}"; '
        'echo "{drive_exited}"; ) &').format(
            d=drive_dir,
+           drive_binary_dir=drive_binary_dir,
            timeout_ms=timeout_ms,
            mnt=mountpoint,
            fifo=fifo,
