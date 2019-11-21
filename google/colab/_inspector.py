@@ -187,9 +187,12 @@ def _safe_repr(obj, depth=0, visited=None):
   visited = visited.union({id(obj)})
 
   # Sized & shaped objects get a simple summary.
-  if (isinstance(obj, collections_abc.Sized) and
-      isinstance(getattr(obj, 'shape', None), tuple)):
-    return '{} with shape {}'.format(type_name, obj.shape)
+  if isinstance(obj, collections_abc.Sized):
+    shape = getattr(obj, 'shape', None)
+    if (isinstance(shape, tuple) or hasattr(shape, '__module__') and
+        isinstance(shape.__module__, six.string_types) and
+        'tensorflow.' in shape.__module__):
+      return '{} with shape {}'.format(type_name, shape)
 
   # We recur on the types whitelisted above; the logic is slightly different for
   # dicts, as they have compound entries.
