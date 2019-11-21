@@ -373,17 +373,17 @@ class ColabInspector(oinspect.Inspector):
       # currently does not expose this. For now just highlight the first line.
       out['source_end_line'] = line
 
-    # For objects with an __init__, we set init_definition and init_docstring.
-    init = getattr(obj, '__init__', None)
-    if init:
-      init_docstring = _getdoc(init)
-      if init_docstring and init_docstring != _BASE_INIT_DOC:
-        out['init_docstring'] = init_docstring
-      init_def = self._getdef(init, oname)
-      if init_def:
-        out['init_definition'] = self.format(init_def)
     # The remaining attributes only apply to classes or callables.
     if inspect.isclass(obj):
+      # For classes with an __init__, we set init_definition and init_docstring.
+      init = getattr(obj, '__init__', None)
+      if init:
+        init_docstring = _getdoc(init)
+        if init_docstring and init_docstring != _BASE_INIT_DOC:
+          out['init_docstring'] = init_docstring
+        init_def = self._getdef(init, oname)
+        if init_def:
+          out['init_definition'] = self.format(init_def)
       # For classes, the __init__ method is the method invoked on call, but
       # old-style classes may not have an __init__ method.
       if init:
