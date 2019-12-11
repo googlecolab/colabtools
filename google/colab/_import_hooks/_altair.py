@@ -23,7 +23,9 @@ class _AltairImportHook(object):
   """Enables Altair's Colab renderer upon import."""
 
   def find_module(self, fullname, path=None):
-    if fullname not in ['altair.vegalite.v2', 'altair.vegalite.v3']:
+    if fullname not in [
+        'altair.vegalite.v2', 'altair.vegalite.v3', 'altair.vegalite.v4'
+    ]:
       return None
     self.module_info = imp.find_module(fullname.split('.')[-1], path)
     return self
