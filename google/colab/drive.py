@@ -175,8 +175,6 @@ def mount(mountpoint,
       '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
           metadata_server=_os.environ['TBE_CREDS_ADDR'])
       if use_metadata_server else '')
-  drive_binary_dir = _os.path.join(
-      root_dir, 'opt/google/drive_latest') if use_metadata_server else drive_dir
 
   # Create a pipe for sending the oauth code to a backgrounded drive binary.
   # (popen -> no pty -> no bash job control -> can't background post-launch).
@@ -185,7 +183,7 @@ def mount(mountpoint,
   _os.mkfifo(fifo)
   # cat is needed below since the FIFO isn't opened for writing yet.
   d.sendline(
-      ('cat {fifo} | head -1 | ( {drive_binary_dir}/drive '
+      ('cat {fifo} | head -1 | ( {d}/drive '
        '--features=max_parallel_push_task_instances:10,'
        'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms},'
        'virtual_folders:true '
@@ -195,7 +193,6 @@ def mount(mountpoint,
        '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}"; '
        'echo "{drive_exited}"; ) &').format(
            d=drive_dir,
-           drive_binary_dir=drive_binary_dir,
            timeout_ms=timeout_ms,
            mnt=mountpoint,
            fifo=fifo,
