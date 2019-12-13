@@ -134,7 +134,13 @@ class DataTable(_IPython.display.DisplayObject):
              'Limiting to first max_rows.') %
             (len(self._dataframe), self._max_rows))
 
-    dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
+    # Avoid calling iloc on columns unless necessary, because of
+    # https://github.com/pandas-dev/pandas/issues/30263
+    # TODO(b/146079360): undo this workaround when fixed in Pandas.
+    if self._dataframe.shape[1] > self._max_columns:
+      dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
+    else:
+      dataframe = self._dataframe.iloc[:self._max_rows]
 
     if self._include_index or dataframe.shape[1] == 0:
       dataframe = dataframe.reset_index()
