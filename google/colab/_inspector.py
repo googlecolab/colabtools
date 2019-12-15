@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import inspect
+import logging
 import types
 
 from IPython.core import oinspect
@@ -83,14 +84,56 @@ def _getdoc(obj):
 
 
 def _getargspec(obj):
-  """Wrapper for oinspect.getargspec."""
+  """Wrapper for oinspect.getargspec.
+
+  This wraps the parent to swallow exceptions.
+
+  Args:
+    obj: object whose argspec we return
+
+  Returns:
+    The result of getargspec or None.
+  """
   try:
     argspec = oinspect.getargspec(obj)
   except (TypeError, AttributeError):
     return None
+  if argspec.args and argspec.args[0] == 'self':
+    argspec = argspec._replace(args=argspec.args[1:])
+  return argspec
+
+
+def _getargspec_dict(obj):
+  """Py2/Py3 compability wrapper for _getargspec.
+
+  Python's `inspect.getargspec` returns different types in python2 and python3,
+  and this function exists to paper over the difference: we always move
+  `spec.keywords` to `spec.varkw`; in order to make this possible, we return a
+  dict instead of a namedtuple.
+
+  We also call `_safe_repr` on all values in `defaults`, to avoid potentially
+  expensive computation of string representations.
+
+  Args:
+    obj: object whose argspec we return
+
+  Returns:
+    a dict with the argspec, or None.
+  """
+  argspec = _getargspec(obj)
+  if argspec is None:
+    return None
   d = dict(argspec._asdict())
-  # Work around py2/py3 argspec differences
-  # TODO(b/136556288): Remove this.
+  # We need to avoid potentially computing expensive string representations, so
+  # we proactively call _safe_repr ourselves.
+  if d['defaults']:
+    d['defaults'] = [_safe_repr(val) for val in d['defaults']]
+  # We want to always return `varkw` if the response is going to the frontend,
+  # as the code there assumes the key is present. However, if we're returning
+  # the type returned by inspect.getargspec, we can't add another key
+  # willy-nilly.
+  #
+  # TODO(b/136556288): Remove this tweak.
   if 'varkw' not in d:
     d['varkw'] = d.pop('keywords')
   return d
@@ -258,6 +301,33 @@ def _safe_repr(obj, depth=0, visited=None):
 class ColabInspector(oinspect.Inspector):
   """Colab-specific object inspector."""
 
+  def _getdef(self, obj, oname=''):
+    """Safe variant of oinspect.Inspector._getdef.
+
+    The upstream _getdef method includes the full string representation of all
+    default arguments, which may run arbitrary code. We intercede to apply our
+    custom getargspec wrapper, which uses _safe_repr.
+
+    Args:
+      obj: function whose definition we want to format.
+      oname: (optional) If provided, prefix the definition with this name.
+
+    Returns:
+      A formatted definition or None.
+    """
+
+    def formatvalue(value):
+      return '=' + _safe_repr(value)
+
+    try:
+      argspec = _getargspec(obj)
+      if argspec is None:
+        return None
+      return six.ensure_text(
+          oname + inspect.formatargspec(*argspec, formatvalue=formatvalue))
+    except:  # pylint: disable=bare-except
+      logging.exception('Exception raised in ColabInspector._getdef')
+
   def info(self, obj, oname='', formatter=None, info=None, detail_level=0):
     """Compute a dict with detailed information about an object.
 
@@ -387,7 +457,7 @@ class ColabInspector(oinspect.Inspector):
       # For classes, the __init__ method is the method invoked on call, but
       # old-style classes may not have an __init__ method.
       if init:
-        argspec = _getargspec(init)
+        argspec = _getargspec_dict(init)
         if argspec:
           out['argspec'] = argspec
     elif callable(obj):
@@ -400,7 +470,7 @@ class ColabInspector(oinspect.Inspector):
         if call_docstring and call_docstring != _BASE_CALL_DOC:
           out['call_docstring'] = call_docstring
 
-      out['argspec'] = _getargspec(obj)
+      out['argspec'] = _getargspec_dict(obj)
 
     return oinspect.object_info(**out)
 
