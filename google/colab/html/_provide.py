@@ -45,7 +45,6 @@ import weakref
 
 import six
 import tornado.web
-import tornado.wsgi
 
 from google.colab.html import _background_server
 
@@ -127,7 +126,25 @@ class _HandlerResource(_Resource):
     handler.write(content)
 
 
-class _Provider(_background_server._WsgiServer):  # pylint: disable=protected-access
+class _ResourceHandler(tornado.web.RequestHandler):
+  """Serves the `Resource` objects."""
+
+  def initialize(self, resources):
+    self._resources = resources
+
+  def get(self):
+    path = self.request.path
+    resource = self._resources.get(path.lstrip('/'))
+    if not resource:
+      raise tornado.web.HTTPError(404, 'Resource at %s not found', path)
+
+    content_type, _ = mimetypes.guess_type(path)
+    if content_type:
+      self.set_header('Content-Type', content_type)
+    resource.get(self)
+
+
+class _Provider(_background_server._BackgroundServer):  # pylint: disable=protected-access
   """Background server which can provide a set of resources."""
 
   def __init__(self):
@@ -135,22 +152,8 @@ class _Provider(_background_server._WsgiServer):  # pylint: disable=protected-ac
     resources = weakref.WeakValueDictionary()
     self._resources = resources
 
-    class ResourceHandler(tornado.web.RequestHandler):
-      """Serves the `_Resource` objects."""
-
-      def get(self):
-        path = self.request.path
-        resource = resources.get(path.lstrip('/'))
-        if not resource:
-          self.set_status(404)
-          return
-        content_type, _ = mimetypes.guess_type(path)
-        if content_type:
-          self.set_header('Content-Type', content_type)
-        resource.get(self)
-
-    app = tornado.wsgi.WSGIApplication([
-        (r'.*', ResourceHandler),
+    app = tornado.web.Application([
+        (r'.*', _ResourceHandler, dict(resources=self._resources)),
     ])
 
     super(_Provider, self).__init__(app)
@@ -214,7 +217,8 @@ class _Provider(_background_server._WsgiServer):  # pylint: disable=protected-ac
       raise ValueError('Must provide one of content, filepath, or handler.')
 
     self._resources[resource.guid] = resource
-    self.start()
+    if self._server_thread is None:
+      self.start()
     return resource
 
 

@@ -11,93 +11,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""WSGI server utilities to run in thread. WSGI chosen for easier interop."""
+"""Tornado server running in a background thread."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import socket
 import threading
-import wsgiref.simple_server
+
 import portpicker
+import tornado
+import tornado.httpserver
+import tornado.ioloop
+import tornado.web
 
 
-def _build_server(started, stopped, stopping, timeout):
-  """Closure to build the server function to be passed to the thread.
+class _BackgroundServer(object):
+  """HTTP server that runs in a background thread."""
 
-  Args:
-    started: Threading event to notify when started.
-    stopped: Threading event to notify when stopped.
-    stopping: Threading event to notify when stopping.
-    timeout: Http timeout in seconds.
-  Returns:
-    A function that function that takes a port and WSGI app and notifies
-      about its status via the threading events provided.
-  """
-
-  def server(port, wsgi_app):
-    """Serve a WSGI application until stopped.
+  def __init__(self, app):
+    """Initialize (but do not start) background server.
 
     Args:
-      port: Port number to serve on.
-      wsgi_app: WSGI application to serve.
+      app: server application to run.
     """
-    host = ''  # Bind to all.
-    try:
-      httpd = wsgiref.simple_server.make_server(
-          host, port, wsgi_app, handler_class=SilentWSGIRequestHandler)
-    except socket.error:
-      # Try IPv6
-      httpd = wsgiref.simple_server.make_server(
-          host,
-          port,
-          wsgi_app,
-          server_class=_WSGIServerIPv6,
-          handler_class=SilentWSGIRequestHandler)
-    started.set()
-    httpd.timeout = timeout
-    while not stopping.is_set():
-      httpd.handle_request()
-    stopped.set()
+    self._app = app
 
-  return server
-
-
-class SilentWSGIRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
-  """WSGIRequestHandler that generates no logging output."""
-
-  def log_message(self, format, *args):  # pylint: disable=redefined-builtin
-    pass
-
-
-class _WSGIServerIPv6(wsgiref.simple_server.WSGIServer):
-  """IPv6 based extension of the simple WSGIServer."""
-
-  address_family = socket.AF_INET6
-
-
-class _WsgiServer(object):
-  """Wsgi server."""
-
-  def __init__(self, wsgi_app):
-    """Initialize the WsgiServer.
-
-    Args:
-      wsgi_app: WSGI pep-333 application to run.
-    """
-    self._app = wsgi_app
+    # These will be initialized when starting the server.
+    self._port = None
     self._server_thread = None
-    # Threading.Event objects used to communicate about the status
-    # of the server running in the background thread.
-    # These will be initialized after building the server.
-    self._stopped = None
-    self._stopping = None
-
-  @property
-  def wsgi_app(self):
-    """Returns the wsgi app instance."""
-    return self._app
+    self._ioloop = None
+    self._server = None
 
   @property
   def port(self):
@@ -113,12 +57,24 @@ class _WsgiServer(object):
     return self._port
 
   def stop(self):
-    """Stops the server thread."""
+    """Stops the server thread.
+
+    Raises:
+      RuntimeError: if server is already stopped.
+    """
     if self._server_thread is None:
-      return
-    self._stopping.set()
-    self._server_thread = None
-    self._stopped.wait()
+      raise RuntimeError('stop() called on stopped server')
+
+    def shutdown():
+      self._server.stop()
+      self._ioloop.stop()
+
+    try:
+      self._ioloop.add_callback(shutdown)
+      self._server_thread.join()
+      self._ioloop.close(all_fds=True)
+    finally:
+      self._server_thread = None
 
   def start(self, port=None, timeout=1):
     """Starts a server in a thread using the WSGI application provided.
@@ -128,23 +84,42 @@ class _WsgiServer(object):
 
     Args:
       port: Number of the port to use for the application, will find an open
-        port if one is not provided.
-      timeout: Http timeout in seconds.
+        port if a nonzero port is not provided.
+      timeout: Http timeout in seconds. Note that this is only respected under
+        tornado v4.
+
+    Raises:
+      RuntimeError: if server is already started.
     """
     if self._server_thread is not None:
-      return
-    started = threading.Event()
-    self._stopped = threading.Event()
-    self._stopping = threading.Event()
+      raise RuntimeError('start() called on running background server.')
 
-    wsgi_app = self.wsgi_app
-    server = _build_server(started, self._stopped, self._stopping, timeout)
-    if port is None:
-      self._port = portpicker.pick_unused_port()
+    self._port = port or portpicker.pick_unused_port()
+
+    # Support both internal & external colab (tornado v3 vs. v4)
+    # TODO(b/115764744): remove tornado v3 handling
+    if tornado.version[0] >= '4':
+      kwds = {'idle_connection_timeout': timeout, 'body_timeout': timeout}
     else:
-      self._port = port
-    server_thread = threading.Thread(target=server, args=(self._port, wsgi_app))
-    self._server_thread = server_thread
+      kwds = {}
+    self._server = tornado.httpserver.HTTPServer(self._app, **kwds)
+    self._ioloop = tornado.ioloop.IOLoop()
 
-    server_thread.start()
+    def start_server(httpd, ioloop, port):
+      # TODO(b/147233568): Restrict this to local connections.
+      host = ''  # Bind to all
+      ioloop.make_current()
+      httpd.listen(port=port, address=host)
+      ioloop.start()
+
+    self._server_thread = threading.Thread(
+        target=start_server,
+        kwargs={
+            'httpd': self._server,
+            'ioloop': self._ioloop,
+            'port': self._port
+        })
+    started = threading.Event()
+    self._ioloop.add_callback(started.set)
+    self._server_thread.start()
     started.wait()
