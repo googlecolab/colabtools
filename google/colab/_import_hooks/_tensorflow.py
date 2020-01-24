@@ -14,7 +14,6 @@
 """Import hook for the upcoming tensorflow default switch on package import."""
 
 import imp
-import os
 import sys
 from IPython import display
 from google.colab import _tensorflow_magics
@@ -35,8 +34,7 @@ class _TensorflowImportHook(object):
     tf_module = imp.load_module(fullname, *self.module_info)
 
     if (tf_module.__version__.startswith('1') and
-        not _tensorflow_magics.explicitly_set() and not previously_loaded and
-        'COLAB_TPU_ADDR' not in os.environ):
+        not _tensorflow_magics.explicitly_set() and not previously_loaded):
       display.display(
           display.HTML("""<p style="color: red;">
 The default version of TensorFlow in Colab will soon switch to TensorFlow 2.x.<br>
