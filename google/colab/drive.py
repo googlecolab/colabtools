@@ -61,8 +61,12 @@ def _env():
       config_dir=config_dir)
 
 
+def _logs_dir():
+  return _os.path.join(_env().config_dir, 'DriveFS/Logs/')
+
+
 def _timeouts_path():
-  return _os.path.join(_env().config_dir, 'DriveFS/Logs/timeouts.txt')
+  return _os.path.join(_logs_dir(), 'timeouts.txt')
 
 
 def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
