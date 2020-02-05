@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import inspect
 import logging
+import math
 import types
 
 from IPython.core import oinspect
@@ -220,6 +221,19 @@ def _safe_repr(obj, depth=0, visited=None):
   # type(None)) don't appear in the dir() of any module in py3.
   if (not isinstance(obj, collections_abc.Iterable) and
       module_name == builtins.__name__):
+    # The only arbitrary-sized builtin type is int; we compute the first and
+    # last 10 digits if the number is larger than 30 digits.
+    if obj and isinstance(obj, six.integer_types):
+      sign = '-' if obj < 0 else ''
+      a = abs(obj)
+      ndigits = int(math.log10(a) + 1)
+      if ndigits > 30:
+        start = int(a // 10**(ndigits - 10))
+        # Our log10 might be wrong, due to rounding errors; we recalculate based
+        # on how many digits remain here (which is either 9 or 10).
+        ndigits = (ndigits - 10) + len(str(start))
+        end = a % (10**10)
+        return '{}{}...{} ({} digit int)'.format(sign, start, end, ndigits)
     return repr(obj)
 
   # If it wasn't a primitive object, we may need to recur; we see if we've
