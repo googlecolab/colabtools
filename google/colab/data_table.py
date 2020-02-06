@@ -38,7 +38,7 @@ __all__ = [
     'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/9e554b27bdd509f3/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/bf71794ebc503bf2/data_table.js'
 
 _DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.ipynb'
 
@@ -60,6 +60,7 @@ def _force_to_latin1(x):
 
 _DEFAULT_NONUNICODE_FORMATTER = _force_to_latin1
 _DEFAULT_FORMATTERS = {_six.text_type: _six.ensure_str}
+_DEFAULT_SUPPRESS_OUTPUT_SCROLLING = False
 
 
 class DataTable(_IPython.display.DisplayObject):
@@ -212,6 +213,7 @@ class DataTable(_IPython.display.DisplayObject):
         columnOptions: {column_options},
         rowsPerPage: {num_rows_per_page},
         helpUrl: "{help_url}",
+        suppressOutputScrolling: {suppress_output_scrolling},
       }});
     """.format(
         gviz_url=_GVIZ_JS,
@@ -220,6 +222,8 @@ class DataTable(_IPython.display.DisplayObject):
         column_options=_json.dumps(column_options),
         num_rows_per_page=self._num_rows_per_page,
         help_url=_DATA_TABLE_HELP_URL,
+        suppress_output_scrolling=_json.dumps(
+            _DEFAULT_SUPPRESS_OUTPUT_SCROLLING),
     )
 
 
