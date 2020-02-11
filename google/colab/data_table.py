@@ -38,7 +38,7 @@ __all__ = [
     'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/bf71794ebc503bf2/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/84ef27dae82052e3/data_table.js'
 
 _DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.ipynb'
 
