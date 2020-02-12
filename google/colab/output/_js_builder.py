@@ -188,6 +188,9 @@ class Js(object):
     result = '%s = %s;' % (self._join(self._js_value(), name), v)
     self._run_js(result)
 
+  def _ipython_display_(self):
+    print(repr(self))
+
   def __getattr__(self, name):
     """Returns a JS object pointing to context.name.
 
