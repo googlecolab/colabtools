@@ -42,6 +42,7 @@ _APPROVED_ITERABLES = {
 }
 _ITERABLE_SIZE_THRESHOLD = 5
 _MAX_RECURSION_DEPTH = 4
+_MAX_DECORATOR_DEPTH = 12
 _STRING_ABBREV_LIMIT = 20
 
 # Unhelpful docstrings we avoid surfacing to users.
@@ -84,6 +85,26 @@ def _getdoc(obj):
   return six.ensure_text(docstring, errors='backslashreplace')
 
 
+def _unwrap(obj):
+  """Safe version of inspect.unwrap.
+
+  If the object is decorated with more than _MAX_DECORATOR_DEPTH decorators,
+  the original object is returned.
+
+  Args:
+    obj: object to unwrap
+
+  Returns:
+    The unwrapped object.
+  """
+  original = obj
+  for _ in range(_MAX_DECORATOR_DEPTH):
+    if not hasattr(obj, '__wrapped__'):
+      return obj
+    obj = obj.__wrapped__
+  return original
+
+
 def _getargspec(obj):
   """Wrapper for oinspect.getargspec.
 
@@ -95,6 +116,7 @@ def _getargspec(obj):
   Returns:
     The result of getargspec or None.
   """
+  obj = _unwrap(obj)
   try:
     argspec = oinspect.getargspec(obj)
   except (TypeError, AttributeError):
