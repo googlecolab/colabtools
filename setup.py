@@ -19,14 +19,14 @@ from setuptools import setup
 DEPENDENCIES = (
     # Note: these dependency versions should be kept in-sync with the versions
     # specified in the docker container requirements files.
-    'google-auth~=1.4.0',
+    'google-auth~=1.7.2',
     'ipykernel~=4.6.0',
     'ipython~=5.5.0',
     'notebook~=5.2.0',
     'six~=1.12.0',
     'pandas~=0.24.0; python_version < "3.0"',
     'pandas~=0.25.0; python_version >= "3.0"',
-    'portpicker~=1.2.0',
+    'portpicker~=1.3.1',
     'requests~=2.21.0',
     'tornado~=4.5.0',
 )
