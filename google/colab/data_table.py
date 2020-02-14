@@ -60,7 +60,7 @@ def _force_to_latin1(x):
 
 _DEFAULT_NONUNICODE_FORMATTER = _force_to_latin1
 _DEFAULT_FORMATTERS = {_six.text_type: _six.ensure_str}
-_DEFAULT_SUPPRESS_OUTPUT_SCROLLING = False
+_DEFAULT_SUPPRESS_OUTPUT_SCROLLING = True
 
 
 class DataTable(_IPython.display.DisplayObject):
