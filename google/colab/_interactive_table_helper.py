@@ -119,6 +119,8 @@ def _fix_large_ints(x):
   # represented as strings.
   if isinstance(x, _six.integer_types) and abs(x) > 2**52:
     return str(x)
+  elif isinstance(x, list):
+    return [_fix_large_ints(e) for e in x]
   return x
 
 
