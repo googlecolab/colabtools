@@ -34,7 +34,7 @@ class _TensorflowImportHook(object):
     tf_module = imp.load_module(fullname, *self.module_info)
 
     if (tf_module.__version__.startswith('1') and
-        not _tensorflow_magics.explicitly_set() and not previously_loaded):
+        not _tensorflow_magics._explicitly_set() and not previously_loaded):  # pylint:disable=protected-access
       display.display(
           display.HTML("""<p style="color: red;">
 The default version of TensorFlow in Colab will soon switch to TensorFlow 2.x.<br>

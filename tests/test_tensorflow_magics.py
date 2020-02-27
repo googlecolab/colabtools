@@ -29,14 +29,14 @@ class TensorflowMagicsTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(TensorflowMagicsTest, cls).setUpClass()
-    cls._original_version = _tensorflow_magics._tf_version
     cls._original_sys_path = sys.path[:]
     cls._original_os_path = os.environ.get("PATH", None)
     cls._original_os_pythonpath = os.environ.get("PYTHONPATH", None)
 
   def setUp(self):
     super(TensorflowMagicsTest, self).setUp()
-    _tensorflow_magics._tf_version = self._original_version
+    _tensorflow_magics._instance = None
+    _tensorflow_magics._initialize()
     sys.path[:] = self._original_sys_path
     self._reset_env("PATH", self._original_os_path)
     self._reset_env("PYTHONPATH", self._original_os_pythonpath)
@@ -64,7 +64,7 @@ class TensorflowMagicsTest(unittest.TestCase):
   def test_switch_1x_to_2x_no_paths(self):
     os.environ.pop("PATH", None)
     os.environ.pop("PYTHONPATH", None)
-    tf2_path = _tensorflow_magics._available_versions["2.x"]
+    tf2_path = _tensorflow_magics._VERSIONS["2"].path
 
     _tensorflow_magics._tensorflow_version("2.x")
 
@@ -84,7 +84,7 @@ class TensorflowMagicsTest(unittest.TestCase):
     original_os_path = os.pathsep.join(("/bar/foo", "/quux/baz"))
     os.environ["PYTHONPATH"] = original_pythonpath
     os.environ["PATH"] = original_os_path
-    tf2_path = _tensorflow_magics._available_versions["2.x"]
+    tf2_path = _tensorflow_magics._VERSIONS["2"].path
 
     _tensorflow_magics._tensorflow_version("2.x")
 
