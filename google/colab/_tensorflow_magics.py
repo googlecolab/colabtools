@@ -116,6 +116,16 @@ def _drop_and_prepend_env(key, to_drop, to_prepend, empty_includes_cwd):
   os.environ[key] = os.pathsep.join(parts)
 
 
+def _get_tf_version():
+  # pkg_resources.get_distribution uses sys.path at the time pkg_resources was
+  # imported, so we constsruct our own WorkingSet here.
+  tf_dist = pkg_resources.WorkingSet(sys.path).find(
+      pkg_resources.Requirement.parse("tensorflow"))
+  if tf_dist is None:
+    return None
+  return tf_dist.version
+
+
 _instance = None
 
 
@@ -125,9 +135,8 @@ class _TFVersionManager(object):
   def __init__(self):
     self._version = _DEFAULT_VERSION
     self.explicitly_set = False
-    try:
-      tf_version = pkg_resources.get_distribution("tensorflow").version
-    except pkg_resources.DistributionNotFound:
+    tf_version = _get_tf_version()
+    if tf_version is None:
       return
     if tf_version == _DEFAULT_VERSION.version:
       return
@@ -136,13 +145,13 @@ class _TFVersionManager(object):
   def _maybe_switch_tpu_version(self):
     if "COLAB_TPU_ADDR" not in os.environ:
       return
-    import tensorflow as tf  # pylint: disable=g-import-not-at-top
+    tf_version = _get_tf_version()
     # See b/141173168 for why this path.
     url = "http://{}:8475/requestversion/{}".format(
-        os.environ["COLAB_TPU_ADDR"].split(":")[0], tf.__version__)
+        os.environ["COLAB_TPU_ADDR"].split(":")[0], tf_version)
     resp = requests.post(url)
     if resp.status_code != 200:
-      print("Failed to switch the TPU to TF {}".format(tf.__version__))
+      print("Failed to switch the TPU to TF {}".format(tf_version))
 
   def _set_version(self, version):
     """Perform version change by manipulating PATH/PYTHONPATH."""

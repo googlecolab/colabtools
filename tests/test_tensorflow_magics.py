@@ -17,11 +17,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import os
 import sys
 import unittest
 
+import requests
+
 from google.colab import _tensorflow_magics
+
+# pylint:disable=g-import-not-at-top
+try:
+  import unittest.mock as mock
+except ImportError:
+  import mock
+# pylint:enable=g-import-not-at-top
 
 
 class TensorflowMagicsTest(unittest.TestCase):
@@ -32,10 +42,16 @@ class TensorflowMagicsTest(unittest.TestCase):
     cls._original_sys_path = sys.path[:]
     cls._original_os_path = os.environ.get("PATH", None)
     cls._original_os_pythonpath = os.environ.get("PYTHONPATH", None)
+    os.environ["COLAB_TPU_ADDR"] = "0.0.0.0:8470"
+    _tensorflow_magics._get_tf_version = mock.Mock(
+        return_value=_tensorflow_magics._VERSIONS["1"].version)
 
   def setUp(self):
     super(TensorflowMagicsTest, self).setUp()
     _tensorflow_magics._instance = None
+
+    fake_response = collections.namedtuple("FakeResponse", ["status_code"])
+    requests.post = mock.Mock(return_value=fake_response(200))
     _tensorflow_magics._initialize()
     sys.path[:] = self._original_sys_path
     self._reset_env("PATH", self._original_os_path)
@@ -118,12 +134,30 @@ class TensorflowMagicsTest(unittest.TestCase):
     os.environ["PYTHONPATH"] = original_pythonpath
     os.environ["PATH"] = original_os_path
 
-    _tensorflow_magics._tensorflow_version("2.x")
-    _tensorflow_magics._tensorflow_version("1.x")
-
     self.assertEqual(sys.path, self._original_sys_path)
     self.assertEqual(os.environ["PATH"], original_os_path)
     self.assertEqual(os.environ["PYTHONPATH"], original_pythonpath)
+
+  def test_switch_back_does_not_import(self):
+    _tensorflow_magics._tensorflow_version("2.x")
+    _tensorflow_magics._tensorflow_version("1.x")
+
+    self.assertNotIn("tensorflow", sys.modules)
+
+  def test_tpu_version_switch(self):
+    _tensorflow_magics._get_tf_version = mock.Mock(
+        return_value=_tensorflow_magics._VERSIONS["2"].version)
+    _tensorflow_magics._tensorflow_version("2.x")
+    _tensorflow_magics._get_tf_version = mock.Mock(
+        return_value=_tensorflow_magics._VERSIONS["1"].version)
+    _tensorflow_magics._tensorflow_version("1.x")
+
+    expected = "http://0.0.0.0:8475/requestversion/{}"
+    calls = [
+        mock.call(expected.format(_tensorflow_magics._VERSIONS["2"].version)),
+        mock.call(expected.format(_tensorflow_magics._VERSIONS["1"].version)),
+    ]
+    self.assertEqual(requests.post.mock_calls, calls)
 
 
 if __name__ == "__main__":
