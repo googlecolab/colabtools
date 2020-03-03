@@ -39,12 +39,18 @@ class TensorflowMagicsTest(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(TensorflowMagicsTest, cls).setUpClass()
+    _tensorflow_magics._get_tf_version = mock.Mock(
+        return_value=_tensorflow_magics._VERSIONS["2"].version)
+
+    # TODO(b/141887595): Remove this comment when it is no longer true (i.e.
+    # when TF2 becomes the default).
+    # All prefixed with 1.x directory by default.
+    _tensorflow_magics._instance = None
+    _tensorflow_magics._initialize()
     cls._original_sys_path = sys.path[:]
     cls._original_os_path = os.environ.get("PATH", None)
     cls._original_os_pythonpath = os.environ.get("PYTHONPATH", None)
     os.environ["COLAB_TPU_ADDR"] = "0.0.0.0:8470"
-    _tensorflow_magics._get_tf_version = mock.Mock(
-        return_value=_tensorflow_magics._VERSIONS["1"].version)
 
   def setUp(self):
     super(TensorflowMagicsTest, self).setUp()
@@ -69,74 +75,126 @@ class TensorflowMagicsTest(unittest.TestCase):
   def _assert_ends_with(self, x, y):
     self.assertTrue(x.endswith(y), "%r does not end with %r" % (x, y))
 
-  def _assert_len(self, xs, n):
-    actual_len = len(xs)
+  def test_paths_post_init(self):
+    _tensorflow_magics._instance = None
+    _tensorflow_magics._initialize()
+
+    tf1_path = _tensorflow_magics._VERSIONS["1"].path
+
+    self._assert_starts_with(sys.path[0], tf1_path)
+    path_head = os.environ["PATH"].split(os.pathsep)[0]
+    self._assert_starts_with(path_head, tf1_path)
+    self._assert_ends_with(path_head, "bin")
+    self._assert_starts_with(os.environ["PYTHONPATH"].split(os.pathsep)[0],
+                             tf1_path)
+
+  def test_switch_1x_to_2x_default_path(self):
+    _tensorflow_magics._tensorflow_version("2.x")
+
+    self.assertEqual(sys.path, self._original_sys_path[1:])
     self.assertEqual(
-        actual_len,
-        n,
-        "%r has length %r; expected %r" % (xs, actual_len, n),
-    )
+        os.environ["PATH"],
+        os.pathsep.join(self._original_os_path.split(os.pathsep, 1)[1:]))
+    self.assertEqual(
+        os.environ["PYTHONPATH"],
+        os.pathsep.join(self._original_os_pythonpath.split(os.pathsep, 1)[1:]))
 
-  def test_switch_1x_to_2x_no_paths(self):
-    os.environ.pop("PATH", None)
-    os.environ.pop("PYTHONPATH", None)
-    tf2_path = _tensorflow_magics._VERSIONS["2"].path
-
-    _tensorflow_magics._tensorflow_version("2.x")
-
-    self.assertEqual(sys.path[1:], self._original_sys_path)
-    self._assert_starts_with(sys.path[0], tf2_path)
-
-    self._assert_starts_with(os.environ["PYTHONPATH"], tf2_path)
-    self._assert_len(os.environ["PYTHONPATH"].split(os.pathsep), 1)
-
-    os_path_head, os_path_tail = os.environ["PATH"].split(os.pathsep, 1)
-    self._assert_starts_with(os_path_head, tf2_path)
-    self._assert_ends_with(os_path_head, "bin")
-    self.assertEqual(os_path_tail, "")
-
-  def test_switch_1x_to_2x_existing_paths(self):
-    original_pythonpath = os.pathsep.join(("/foo/bar", "/baz/quux"))
-    original_os_path = os.pathsep.join(("/bar/foo", "/quux/baz"))
-    os.environ["PYTHONPATH"] = original_pythonpath
-    os.environ["PATH"] = original_os_path
-    tf2_path = _tensorflow_magics._VERSIONS["2"].path
+  def test_switch_1x_to_2x_modified_path(self):
+    new_path = os.pathsep.join(("/bar/foo", "quux/baz"))
+    os.environ["PATH"] = os.pathsep.join((new_path, self._original_os_path))
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        (new_path, self._original_os_pythonpath))
 
     _tensorflow_magics._tensorflow_version("2.x")
 
-    self.assertEqual(sys.path[1:], self._original_sys_path)
-    self._assert_starts_with(sys.path[0], tf2_path)
+    self.assertEqual(sys.path, self._original_sys_path[1:])
+    self.assertEqual(
+        os.environ["PATH"],
+        os.pathsep.join([new_path] +
+                        self._original_os_path.split(os.pathsep, 1)[1:]))
+    self.assertEqual(
+        os.environ["PYTHONPATH"],
+        os.pathsep.join([new_path] +
+                        self._original_os_pythonpath.split(os.pathsep, 1)[1:]))
 
-    (pythonpath_head,
-     pythonpath_tail) = os.environ["PYTHONPATH"].split(os.pathsep, 1)
-    self._assert_starts_with(pythonpath_head, tf2_path)
-    self.assertEqual(pythonpath_tail, original_pythonpath)
-
-    (os_path_head, os_path_tail) = os.environ["PATH"].split(os.pathsep, 1)
-    self._assert_starts_with(os_path_head, tf2_path)
-    self._assert_ends_with(os_path_head, "bin")
-    self.assertEqual(os_path_tail, original_os_path)
-
-  def test_switch_back_no_paths(self):
-    os.environ.pop("PATH", None)
-    os.environ.pop("PYTHONPATH", None)
-
+  def test_switch_back_default_path(self):
     _tensorflow_magics._tensorflow_version("2.x")
     _tensorflow_magics._tensorflow_version("1.x")
 
     self.assertEqual(sys.path, self._original_sys_path)
-    self.assertEqual(os.environ.get("PATH", ""), "")
-    self.assertEqual(os.environ.get("PYTHONPATH", ""), "")
+    self.assertEqual(os.environ["PATH"], self._original_os_path)
+    self.assertEqual(os.environ["PYTHONPATH"], self._original_os_pythonpath)
 
-  def test_switch_back_with_paths(self):
-    original_pythonpath = os.pathsep.join(("/foo/bar", "/baz/quux"))
-    original_os_path = os.pathsep.join(("/bar/foo", "/quux/baz"))
-    os.environ["PYTHONPATH"] = original_pythonpath
-    os.environ["PATH"] = original_os_path
+  def test_switch_back_modified_path(self):
+    new_path = os.pathsep.join(("/bar/foo", "quux/baz"))
+    os.environ["PATH"] = os.pathsep.join((new_path, self._original_os_path))
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        (new_path, self._original_os_pythonpath))
 
+    _tensorflow_magics._tensorflow_version("2.x")
+    _tensorflow_magics._tensorflow_version("1.x")
+
+    tf1_path = _tensorflow_magics._VERSIONS["1"].path
+
+    self._assert_starts_with(sys.path[0], tf1_path)
     self.assertEqual(sys.path, self._original_sys_path)
-    self.assertEqual(os.environ["PATH"], original_os_path)
-    self.assertEqual(os.environ["PYTHONPATH"], original_pythonpath)
+
+    (path_head, path_tail) = os.environ["PATH"].split(os.pathsep, 1)
+    self._assert_starts_with(path_head, tf1_path)
+    self._assert_ends_with(path_head, "bin")
+    self.assertEqual(
+        path_tail,
+        os.pathsep.join([new_path] +
+                        self._original_os_path.split(os.pathsep, 1)[1:]))
+    (pythonpath_head,
+     pythonpath_tail) = os.environ["PYTHONPATH"].split(os.pathsep, 1)
+    self._assert_starts_with(pythonpath_head, tf1_path)
+    self.assertEqual(
+        pythonpath_tail,
+        os.pathsep.join([new_path] +
+                        self._original_os_pythonpath.split(os.pathsep, 1)[1:]))
+
+  def test_handle_tf_install_post_init(self):
+    _tensorflow_magics._handle_tf_install()
+
+    # Path should revert to being un-prefixed.
+    self.assertFalse(_tensorflow_magics._explicitly_set())
+    self.assertEqual(sys.path, self._original_sys_path[1:])
+    self.assertEqual(
+        os.environ["PATH"],
+        os.pathsep.join(self._original_os_path.split(os.pathsep, 1)[1:]))
+    self.assertEqual(
+        os.environ["PYTHONPATH"],
+        os.pathsep.join(self._original_os_pythonpath.split(os.pathsep, 1)[1:]))
+
+  def test_handle_tf_install_multiple_calls(self):
+    _tensorflow_magics._handle_tf_install()
+    _tensorflow_magics._handle_tf_install()
+
+    # Path should be un-prefixed, no errors should be raised.
+    self.assertFalse(_tensorflow_magics._explicitly_set())
+    self.assertEqual(sys.path, self._original_sys_path[1:])
+    self.assertEqual(
+        os.environ["PATH"],
+        os.pathsep.join(self._original_os_path.split(os.pathsep, 1)[1:]))
+    self.assertEqual(
+        os.environ["PYTHONPATH"],
+        os.pathsep.join(self._original_os_pythonpath.split(os.pathsep, 1)[1:]))
+
+  def test_handle_tf_install_after_setting_version(self):
+    _tensorflow_magics._tensorflow_version("1.x")
+    _tensorflow_magics._handle_tf_install()
+
+    # _handle_tf_install should be a no-op because magic was invoked.
+    self.assertTrue(_tensorflow_magics._explicitly_set())
+    tf1_path = _tensorflow_magics._VERSIONS["1"].path
+
+    self._assert_starts_with(sys.path[0], tf1_path)
+    path_head = os.environ["PATH"].split(os.pathsep)[0]
+    self._assert_starts_with(path_head, tf1_path)
+    self._assert_ends_with(path_head, "bin")
+    self._assert_starts_with(os.environ["PYTHONPATH"].split(os.pathsep)[0],
+                             tf1_path)
 
   def test_switch_back_does_not_import(self):
     _tensorflow_magics._tensorflow_version("2.x")
