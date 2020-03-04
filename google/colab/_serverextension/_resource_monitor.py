@@ -13,6 +13,9 @@ try:
 except ImportError:
   psutil = None
 
+# Track whether user has used the GPU in the current session.
+_GPU_EVER_USED = False
+
 
 def get_gpu_usage():
   """Reports total and per-kernel GPU memory usage.
@@ -22,8 +25,11 @@ def get_gpu_usage():
       usage: int,
       limit: int,
       kernels: A dict mapping kernel UUIDs to ints (memory usage in bytes),
+      ever_used : bool,
     }
   """
+  global _GPU_EVER_USED
+
   gpu_memory_path = '/var/colab/gpu-memory'
   kernels = {}
   usage = 0
@@ -51,7 +57,15 @@ def get_gpu_usage():
   if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
     usage, limit, kernels = 123, 456, {'abc-789': 789, 'xyz-987': 987}
 
-  return {'usage': usage, 'limit': limit, 'kernels': kernels}
+  if usage:
+    _GPU_EVER_USED = True
+
+  return {
+      'usage': usage,
+      'limit': limit,
+      'kernels': kernels,
+      'ever_used': _GPU_EVER_USED
+  }
 
 
 def get_ram_usage(kernel_manager):
@@ -59,7 +73,7 @@ def get_ram_usage(kernel_manager):
 
   Arguments:
     kernel_manager: an IPython MultiKernelManager that owns child kernel
-        processes
+      processes
 
   Returns:
     A dict of the form {
@@ -78,9 +92,10 @@ def get_ram_usage(kernel_manager):
   if line:
     limit = int(line[0].split()[1]) * 1024
   usage = limit - free
-  pids_to_kernel_ids = dict([(str(
-      kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
-                             for kernel_id in kernel_manager.list_kernel_ids()])
+  pids_to_kernel_ids = dict([
+      (str(kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
+      for kernel_id in kernel_manager.list_kernel_ids()
+  ])
   kernels = {}
   if pids_to_kernel_ids:
     ps = subprocess.check_output([
