@@ -124,7 +124,11 @@ def _fix_large_ints(x):
   return x
 
 
-def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
+def _to_js(x,
+           default_nonunicode_formatter,
+           formatter=None,
+           as_string=False,
+           html_encode=False):
   """Formats given x into js-parseable structure.
 
   Args:
@@ -132,6 +136,7 @@ def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
     default_nonunicode_formatter: The default formatter to use for non-Unicode.
     formatter: function-like object that takes x and returns html string.
     as_string: force the value to be a string in the JSON.
+    html_encode: escape HTML characters in strings.
 
   Returns:
     string - the javascript representation
@@ -166,7 +171,10 @@ def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
 
   x = _fix_large_ints(x)
 
-  represent_as_string = lambda x: _escape(str(x))
+  represent_as_string = str
+  if html_encode:
+    represent_as_string = lambda x: _escape(str(x))
+
   if isinstance(x, dict) and not isinstance(x, _CellValue):
     # dictionaries need to be converted to string, if not they will be passed
     # verbatim to json and they will be shown as Object on javascript side.
@@ -192,8 +200,10 @@ def _to_js(x, default_nonunicode_formatter, formatter=None, as_string=False):
     if isinstance(x, _six.string_types):
       result = _json.dumps(default_nonunicode_formatter(x))
     else:
-      result = _json.dumps(
-          [_to_js(el, default_nonunicode_formatter) for el in x])
+      result = _json.dumps([
+          _to_js(el, default_nonunicode_formatter, html_encode=html_encode)
+          for el in x
+      ])
   result = result.replace('</', '<\\/')
   if double_encode_json:
     result = _json.dumps(result)
@@ -220,8 +230,11 @@ def _to_js_matrix(matrix, default_nonunicode_formatter, custom_formatters,
 
   def _row_to_js(row):
     for i, el in enumerate(row):
-      yield _to_js(el, default_nonunicode_formatter,
-                   custom_formatters.get(i, None))
+      yield _to_js(
+          el,
+          default_nonunicode_formatter,
+          custom_formatters.get(i, None),
+          html_encode=True)
 
   values = [','.join(_row_to_js(row)) for row in matrix]
   total = 0
@@ -333,7 +346,7 @@ def _num_columns(data):
     return 0
 
 
-def _format_data(data, default_formatter, custom_formatters):
+def _format_data(data, default_formatter, custom_formatters, html_encode=False):
   """Formats the given data and determines column types."""
   column_types = [_get_column_type(data, i) for i in range(_num_columns(data))]
   formatted_values = []
@@ -346,11 +359,16 @@ def _format_data(data, default_formatter, custom_formatters):
         formatted_value = custom_formatter(formatted_value)
       column_type = column_types[column_index]
       if column_type != 'number' or not custom_formatter:
-        formatted_row.append(_to_js(formatted_value, default_formatter))
+        formatted_row.append(
+            _to_js(formatted_value, default_formatter, html_encode=html_encode))
       else:
-        raw_value = _to_js(_get_value(cell), default_formatter)
+        raw_value = _to_js(
+            _get_value(cell), default_formatter, html_encode=html_encode)
         formatted_value = _to_js(
-            _get_formatted(formatted_value), default_formatter, as_string=True)
+            _get_formatted(formatted_value),
+            default_formatter,
+            as_string=True,
+            html_encode=html_encode)
         formatted_row.append("""{
             'v': %s,
             'f': %s,
