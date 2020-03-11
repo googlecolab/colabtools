@@ -37,11 +37,12 @@ import requests
 _VersionInfo = collections.namedtuple("_VersionInfo",
                                       ["name", "path", "version"])
 _VERSIONS = {
-    "1": _VersionInfo("1.x", None, "1.15.0"),
-    "2": _VersionInfo("2.x", "/tensorflow-2.1.0", "2.1.0"),
+    "1": _VersionInfo("1.x", "/tensorflow-1.15.0", "1.15.0"),
+    "2": _VersionInfo("2.x", None, "2.1.0"),
 }
 
 _DEFAULT_VERSION = _VERSIONS["1"]
+_INSTALLED_VERSION = _VERSIONS["2"]
 
 
 def _get_python_path(version):
@@ -143,7 +144,7 @@ class _TFVersionManager(object):
     self._set_version(_DEFAULT_VERSION)
 
   def _maybe_switch_tpu_version(self):
-    if "COLAB_TPU_ADDR" not in os.environ:
+    if "COLAB_TPU_ADDR" not in os.environ or not self.explicitly_set:
       return
     tf_version = _get_tf_version()
     # See b/141173168 for why this path.
@@ -235,6 +236,15 @@ def _tensorflow_version(line):
     version = [v for v in _VERSIONS.values() if v.name == line][0]
     _instance._set_version(version)  # pylint: disable=protected-access
     print("TensorFlow {} selected.".format(line))
+
+
+def _handle_tf_install():
+  if _instance is None:
+    return
+  if (not _instance.explicitly_set and
+      _instance.current_version() != _INSTALLED_VERSION and
+      "tensorflow" not in sys.modules):
+    _instance._set_version(_INSTALLED_VERSION)  # pylint: disable=protected-access
 
 
 def _explicitly_set():

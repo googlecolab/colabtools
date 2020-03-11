@@ -18,7 +18,10 @@ def _run_under_jupyter(code_lines):
 
   command = 'cat jupyter_code | jupyter console --simple-prompt --kernel='
   kernel = 'python{}'.format(sys.version_info[0])
-  output = subprocess.check_output(command + kernel, shell=True)
+  # Clear PYTHONPATH to ignore any path munging done in _tensorflow_magics.
+  # In the real container, Jupyter is not subject to path changes anyway.
+  output = subprocess.check_output(
+      command + kernel, shell=True, env={'PYTHONPATH': ''})
   # subprocess output comes back as bytes, but we convert to unicode for easier
   # comparison.
   return output.decode('utf8')
