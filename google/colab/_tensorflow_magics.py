@@ -41,6 +41,9 @@ _VERSIONS = {
     "2": _VersionInfo("2.x", None, "2.1.0"),
 }
 
+# TODO(b/152041702): Once experimentFlag-based default switching mechanism is
+# gone, move _DEFAULT_VERSION to TF2. If TPU is still on 1.15 at that point
+# (b/151765674) restore TPU switching on init below.
 _DEFAULT_VERSION = _VERSIONS["1"]
 _INSTALLED_VERSION = _VERSIONS["2"]
 
@@ -141,10 +144,10 @@ class _TFVersionManager(object):
       return
     if tf_version == _DEFAULT_VERSION.version:
       return
-    self._set_version(_DEFAULT_VERSION)
+    self._set_version(_DEFAULT_VERSION, initial=True)
 
   def _maybe_switch_tpu_version(self):
-    if "COLAB_TPU_ADDR" not in os.environ or not self.explicitly_set:
+    if "COLAB_TPU_ADDR" not in os.environ:
       return
     tf_version = _get_tf_version()
     # See b/141173168 for why this path.
@@ -154,7 +157,7 @@ class _TFVersionManager(object):
     if resp.status_code != 200:
       print("Failed to switch the TPU to TF {}".format(tf_version))
 
-  def _set_version(self, version):
+  def _set_version(self, version, initial=False):
     """Perform version change by manipulating PATH/PYTHONPATH."""
     old_python_path = _get_python_path(self._version)
     new_python_path = _get_python_path(version)
@@ -176,7 +179,12 @@ class _TFVersionManager(object):
     _drop_and_prepend_env(
         "PATH", old_os_path, new_os_path, empty_includes_cwd=True)
 
-    self._maybe_switch_tpu_version()
+    # The TPU defaults to _DEFAULT_VERSION. Therefore, initially we do not send
+    # a POST to switch versions as it takes O(s).
+    # TODO(b/151765674): Swap TPU version to 2.x and switch version on init. If
+    # _DEFAULT_VERSION is already 2, restore no-switching on init.
+    if not initial:
+      self._maybe_switch_tpu_version()
     self._version = version
 
   def current_version(self):
@@ -258,6 +266,16 @@ def _initialize():
   if _instance is not None:
     raise TypeError("Initialize called multiple times.")
   _instance = _TFVersionManager()
+
+
+# Change version, bypassing the magic. This is used for experimentFlag-based
+# tensorflow version default switching.
+# TODO(b/152041702): Delete this along with the experiment flag.
+def _set_version(version):
+  if _instance is None:
+    raise TypeError("Not yet initialized.")
+  if version != _instance.current_version():
+    _instance._set_version(version)  # pylint: disable=protected-access
 
 
 def _register_magics(ip):
