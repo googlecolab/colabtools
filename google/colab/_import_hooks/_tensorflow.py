@@ -37,8 +37,8 @@ class _TensorflowImportHook(object):
         not _tensorflow_magics._explicitly_set() and not previously_loaded):  # pylint:disable=protected-access
       display.display(
           display.HTML("""<p style="color: red;">
-The default version of TensorFlow in Colab will soon switch to TensorFlow 2.x.<br>
-We recommend you <a href="https://www.tensorflow.org/guide/migrate" target="_blank">upgrade</a> now 
+The default version of TensorFlow in Colab will switch to TensorFlow 2.x on the 27th of March, 2020.<br>
+We recommend you <a href="https://www.tensorflow.org/guide/migrate" target="_blank">upgrade</a> now
 or ensure your notebook will continue to use TensorFlow 1.x via the <code>%tensorflow_version 1.x</code> magic:
 <a href="https://colab.research.google.com/notebooks/tensorflow_version.ipynb" target="_blank">more info</a>.</p>
 """))
