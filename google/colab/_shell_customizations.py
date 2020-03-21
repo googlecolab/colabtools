@@ -13,11 +13,14 @@
 # limitations under the License.
 """Colab-specific shell customizations."""
 
+import os
 import re
+import sys
 import textwrap
 
 from IPython.utils import coloransi
 from google.colab import _ipython as ipython
+from google.colab import _tensorflow_magics
 from google.colab._import_hooks._cv2 import DisabledFunctionError
 
 
@@ -72,13 +75,22 @@ class _CustomErrorHandlers(object):
         ImportError: _CustomErrorHandlers.import_message,
         DisabledFunctionError: _CustomErrorHandlers.disabled_message,
     }
-    shell.set_custom_exc(
-        tuple(self.custom_error_handlers.keys()), self.handle_error)
+    self._tf_version_error_shown = False
+    shell.set_custom_exc((Exception,), self.handle_error)
 
   def _get_error_handler(self, etype):
+    """Choose error handler for error of etype based on runtime state."""
     for handled_type in self.custom_error_handlers:
       if issubclass(etype, handled_type):
         return self.custom_error_handlers[handled_type]
+    if ('tensorflow' in sys.modules and
+        not _tensorflow_magics._explicitly_set() and  # pylint: disable=protected-access
+        _tensorflow_magics._instance.current_version() ==  # pylint: disable=protected-access
+        _tensorflow_magics._VERSIONS['2'] and  # pylint: disable=protected-access
+        not self._tf_version_error_shown and
+        os.environ.get('ENABLE_TF_VERSION_ON_ERROR')):
+      self._tf_version_error_shown = True
+      return _CustomErrorHandlers.tf_version_message
     return None
 
   def handle_error(self, shell, etype, exception, tb, tb_offset=None):
@@ -99,6 +111,30 @@ class _CustomErrorHandlers(object):
       wrapped = FormattedTracebackError(
           str(exception), structured_traceback, details)
       return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
+
+  @staticmethod
+  def tf_version_message(_):
+    """Assume all errors post-tf-import are due to version skew. Notify user."""
+    tf = sys.modules['tensorflow']
+    msg = textwrap.dedent("""\
+      {sep}{green}
+      NOTE: Current TensorFlow version is {version}. To use TF {v1} instead,
+      restart your runtime (Ctrl+M .) and run "%tensorflow_version {v1}" before
+      you run "import tensorflow".
+      {sep}{normal}\n""".format(
+          sep=_SEP,
+          green=_GREEN,
+          normal=_NORMAL,
+          version=tf.__version__,
+          v1=_tensorflow_magics._VERSIONS['1'].name))  # pylint: disable=protected-access
+    details = {
+        'actions': [{
+            'action': 'open_url',
+            'action_text': 'More info',
+            'url': '/notebooks/tensorflow_version.ipynb',
+        },],
+    }
+    return msg, details
 
   @staticmethod
   def disabled_message(error):
