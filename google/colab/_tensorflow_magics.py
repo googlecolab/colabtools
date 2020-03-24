@@ -37,8 +37,8 @@ import requests
 _VersionInfo = collections.namedtuple("_VersionInfo",
                                       ["name", "path", "version"])
 _VERSIONS = {
-    "1": _VersionInfo("1.x", "/tensorflow-1.15.0", "1.15.0"),
-    "2": _VersionInfo("2.x", None, "2.1.0"),
+    "1": _VersionInfo("1.x", "/tensorflow-1.15.2", "1.15.2"),
+    "2": _VersionInfo("2.x", None, "2.2.0-rc1"),
 }
 
 # TODO(b/152041702): Once experimentFlag-based default switching mechanism is
