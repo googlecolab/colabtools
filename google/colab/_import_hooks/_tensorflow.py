@@ -33,6 +33,8 @@ class _TensorflowImportHook(object):
     previously_loaded = fullname in sys.modules
     tf_module = imp.load_module(fullname, *self.module_info)
 
+    # TODO(b/152041702): Delete this hook (and the whole file) after TF2-by-
+    # default has settled.
     if (tf_module.__version__.startswith('1') and
         not _tensorflow_magics._explicitly_set() and not previously_loaded):  # pylint:disable=protected-access
       display.display(
