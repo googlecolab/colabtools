@@ -38,7 +38,7 @@ __all__ = [
     'load_ipython_extension', 'unload_ipython_extension'
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/84ef27dae82052e3/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/a6224c040fa35dcf/data_table.js'
 
 _DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.ipynb'
 
@@ -98,7 +98,8 @@ class DataTable(_IPython.display.DisplayObject):
                include_index=None,
                num_rows_per_page=None,
                max_rows=None,
-               max_columns=None):
+               max_columns=None,
+               min_width=None):
     """Constructor.
 
     Args:
@@ -111,6 +112,9 @@ class DataTable(_IPython.display.DisplayObject):
          the table truncated. Defaults to DataTable.max_rows.
        max_columns: if len(columns) exceeds this value a warning will be printed
          and truncated. Defaults to DataTable.max_columns.
+       min_width: string representing CSS minimum width. If specified, the table
+         shrink down to the minimum of this value and the width needed for the
+         content.
     """
 
     def _default(value, default):
@@ -122,6 +126,7 @@ class DataTable(_IPython.display.DisplayObject):
                                        self.num_rows_per_page)
     self._max_rows = _default(max_rows, self.max_rows)
     self._max_columns = _default(max_columns, self.max_columns)
+    self._min_width = min_width
 
     _register_jsmodule_mimetype()
 
@@ -214,6 +219,7 @@ class DataTable(_IPython.display.DisplayObject):
         rowsPerPage: {num_rows_per_page},
         helpUrl: "{help_url}",
         suppressOutputScrolling: {suppress_output_scrolling},
+        minimumWidth: {min_width},
       }});
     """.format(
         gviz_url=_GVIZ_JS,
@@ -224,7 +230,8 @@ class DataTable(_IPython.display.DisplayObject):
         help_url=_DATA_TABLE_HELP_URL,
         suppress_output_scrolling=_json.dumps(
             _DEFAULT_SUPPRESS_OUTPUT_SCROLLING),
-    )
+        min_width=('"' + self._min_width +
+                   '"') if self._min_width else 'undefined')
 
 
 class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
