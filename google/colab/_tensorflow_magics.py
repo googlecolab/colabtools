@@ -41,10 +41,7 @@ _VERSIONS = {
     "2": _VersionInfo("2.x", None, "2.2.0-rc2"),
 }
 
-# TODO(b/152041702): Once experimentFlag-based default switching mechanism is
-# gone, move _DEFAULT_VERSION to TF2. If TPU is still on 1.15 at that point
-# (b/151765674) restore TPU switching on init below.
-_DEFAULT_VERSION = _VERSIONS["1"]
+_DEFAULT_VERSION = _VERSIONS["2"]
 _INSTALLED_VERSION = _VERSIONS["2"]
 
 
@@ -142,22 +139,21 @@ class _TFVersionManager(object):
     tf_version = _get_tf_version()
     if tf_version is None:
       return
-    if tf_version == _DEFAULT_VERSION.version:
-      return
-    self._set_version(_DEFAULT_VERSION, initial=True)
+    # TODO(b/151765674): Swap TPU version to 2.x and do not switch versions on
+    # init.
+    self._maybe_switch_tpu_version(tf_version)
 
-  def _maybe_switch_tpu_version(self):
+  def _maybe_switch_tpu_version(self, version):
     if "COLAB_TPU_ADDR" not in os.environ:
       return
-    tf_version = _get_tf_version()
     # See b/141173168 for why this path.
     url = "http://{}:8475/requestversion/{}".format(
-        os.environ["COLAB_TPU_ADDR"].split(":")[0], tf_version)
+        os.environ["COLAB_TPU_ADDR"].split(":")[0], version)
     resp = requests.post(url)
     if resp.status_code != 200:
-      print("Failed to switch the TPU to TF {}".format(tf_version))
+      print("Failed to switch the TPU to TF {}".format(version))
 
-  def _set_version(self, version, initial=False):
+  def _set_version(self, version):
     """Perform version change by manipulating PATH/PYTHONPATH."""
     old_python_path = _get_python_path(self._version)
     new_python_path = _get_python_path(version)
@@ -179,12 +175,8 @@ class _TFVersionManager(object):
     _drop_and_prepend_env(
         "PATH", old_os_path, new_os_path, empty_includes_cwd=True)
 
-    # The TPU defaults to _DEFAULT_VERSION. Therefore, initially we do not send
-    # a POST to switch versions as it takes O(s).
-    # TODO(b/151765674): Swap TPU version to 2.x and switch version on init. If
-    # _DEFAULT_VERSION is already 2, restore no-switching on init.
-    if not initial:
-      self._maybe_switch_tpu_version()
+    tf_version = _get_tf_version()
+    self._maybe_switch_tpu_version(tf_version)
     self._version = version
 
   def current_version(self):
@@ -244,15 +236,6 @@ def _tensorflow_version(line):
     version = [v for v in _VERSIONS.values() if v.name == line][0]
     _instance._set_version(version)  # pylint: disable=protected-access
     print("TensorFlow {} selected.".format(line))
-
-
-def _handle_tf_install():
-  if _instance is None:
-    return
-  if (not _instance.explicitly_set and
-      _instance.current_version() != _INSTALLED_VERSION and
-      "tensorflow" not in sys.modules):
-    _instance._set_version(_INSTALLED_VERSION)  # pylint: disable=protected-access
 
 
 def _explicitly_set():

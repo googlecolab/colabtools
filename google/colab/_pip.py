@@ -15,8 +15,6 @@ import site
 import sys
 from IPython.core.display import _display_mimetype
 
-from google.colab import _tensorflow_magics
-
 __all__ = ["is_pip_install_command", "print_previous_import_warning"]
 
 _COLAB_DATA_MIMETYPE = "application/vnd.colab-display-data+json"
@@ -95,11 +93,6 @@ def _extract_toplevel_packages(pip_output):
 def _previously_imported_packages(pip_output):
   """List all previously imported packages from a pip install."""
   installed = set(_extract_toplevel_packages(pip_output))
-  # TODO(b/141887595): Remove this handling once 2.x is the default.
-  if "tensorflow" in installed:
-    _tensorflow_magics._handle_tf_install()  # pylint: disable=protected-access
-  # Always treat TensorFlow as imported, as temporary PYTHONPATH munging prefers
-  # TF 1.x to user-installed versions until restart.
   return sorted(installed.intersection(set(sys.modules)))
 
 
