@@ -136,12 +136,6 @@ class _TFVersionManager(object):
   def __init__(self):
     self._version = _DEFAULT_VERSION
     self.explicitly_set = False
-    tf_version = _get_tf_version()
-    if tf_version is None:
-      return
-    # TODO(b/151765674): Swap TPU version to 2.x and do not switch versions on
-    # init.
-    self._maybe_switch_tpu_version(tf_version)
 
   def _maybe_switch_tpu_version(self, version):
     if "COLAB_TPU_ADDR" not in os.environ:

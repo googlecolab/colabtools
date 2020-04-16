@@ -156,12 +156,7 @@ class TensorflowMagicsTest(unittest.TestCase):
     _tensorflow_magics._tensorflow_version("2.x")
 
     expected = "http://0.0.0.0:8475/requestversion/{}"
-    # TODO(b/151765674): Remove this comment and initial call once TPU defaults
-    # to TF1.
-    # We expect one additional call from initialization as the TPU VM defaults
-    # to TF1 and we default to TF2.
     calls = [
-        mock.call(expected.format(_tensorflow_magics._VERSIONS["2"].version)),
         mock.call(expected.format(_tensorflow_magics._VERSIONS["1"].version)),
         mock.call(expected.format(_tensorflow_magics._VERSIONS["2"].version)),
     ]
