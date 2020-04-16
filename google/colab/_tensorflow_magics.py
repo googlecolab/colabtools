@@ -251,16 +251,6 @@ def _initialize():
   _instance = _TFVersionManager()
 
 
-# Change version, bypassing the magic. This is used for experimentFlag-based
-# tensorflow version default switching.
-# TODO(b/152041702): Delete this along with the experiment flag.
-def _set_version(version):
-  if _instance is None:
-    raise TypeError("Not yet initialized.")
-  if version != _instance.current_version():
-    _instance._set_version(version)  # pylint: disable=protected-access
-
-
 def _register_magics(ip):
   _initialize()
   ip.register_magic_function(
