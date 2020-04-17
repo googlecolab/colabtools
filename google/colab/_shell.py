@@ -34,6 +34,7 @@ from IPython.utils import PyColorize
 from ipython_genutils import py3compat
 
 from google.colab import _event_manager
+from google.colab import _history
 from google.colab import _inspector
 from google.colab import _pip
 from google.colab import _shell_customizations
@@ -68,6 +69,11 @@ class Shell(zmqshell.ZMQInteractiveShell):
                                                PyColorize.ANSICodeColors,
                                                'NoColor',
                                                self.object_info_string_level)
+
+  def init_history(self):
+    """Initialize colab's custom history manager."""
+    self.history_manager = _history.ColabHistoryManager(shell=self, parent=self)
+    self.configurables.append(self.history_manager)
 
   def _should_use_native_system_methods(self):
     return os.getenv('USE_NATIVE_IPYTHON_SYSTEM_COMMANDS', False)
