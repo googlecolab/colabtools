@@ -14,6 +14,7 @@
 """Colab-specific IPython.core.history.HistoryManager."""
 
 import json
+from IPython import display
 from IPython.core import history
 
 
@@ -46,6 +47,9 @@ class ColabHistoryManager(history.HistoryManager):
     """Utility accessor to allow frontends an expression to fetch history.
 
     Returns:
-      A JSON string of the execution history.
+      A Javascript display object with the execution history.
     """
-    return json.dumps(self._input_hist_cells)
+    # To be able to access the raw string as an expression we need to transfer
+    # the plain string rather than the quoted string representation. The
+    # Javascript disiplay wrapper is used for that.
+    return display.Javascript(json.dumps(self._input_hist_cells))
