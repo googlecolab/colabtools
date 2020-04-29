@@ -27,7 +27,7 @@ DEPENDENCIES = (
     'pandas~=0.24.0; python_version < "3.0"',
     'pandas~=1.0.0; python_version >= "3.0"',
     'portpicker~=1.3.1',
-    'requests~=2.21.0',
+    'requests~=2.23.0',
     'tornado>=4.5.0',
 )
 
