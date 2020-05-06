@@ -79,12 +79,16 @@ class DataTable(_IPython.display.DisplayObject):
     max_rows: (int) number of rows beyond which the table will be truncated.
     max_columns: (int) number of columns beyond which the table will be
       truncated.
+    min_width: (string) string representing CSS minimum width by default. If
+      specified, the table shrink down to the minimum of this value and the
+      width needed for the content.
   """
   # Configurable defaults for initialization.
   include_index = True
   num_rows_per_page = 25
   max_rows = 20000
   max_columns = 20
+  min_width = None
 
   @classmethod
   def formatter(cls, dataframe, **kwargs):
@@ -133,7 +137,7 @@ class DataTable(_IPython.display.DisplayObject):
                                        self.num_rows_per_page)
     self._max_rows = _default(max_rows, self.max_rows)
     self._max_columns = _default(max_columns, self.max_columns)
-    self._min_width = min_width
+    self._min_width = _default(min_width, self.min_width)
 
     _register_jsmodule_mimetype()
 
