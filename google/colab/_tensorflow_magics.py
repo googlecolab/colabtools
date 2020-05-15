@@ -223,7 +223,6 @@ def _tensorflow_version(line):
     return
 
   if "tensorflow" in sys.modules:
-    # TODO(b/132902517): add a 'restart runtime' button
     print("TensorFlow is already loaded. Please restart the runtime to "
           "change versions.")
   else:
