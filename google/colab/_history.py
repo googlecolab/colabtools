@@ -14,6 +14,7 @@
 """Colab-specific IPython.core.history.HistoryManager."""
 
 import json
+import time
 from IPython import display
 from IPython.core import history
 
@@ -24,12 +25,12 @@ class ColabHistoryManager(history.HistoryManager):
   This allows us to associate code executions with the cell which was executed
   in Colab's UI.
   """
-  _input_hist_cells = [{'code': '', 'cell_id': ''}]
+  _input_hist_cells = [{'code': '', 'cell_id': '', 'start_time': 0}]
 
   def reset(self, new_session=True):
     super(ColabHistoryManager, self).reset(new_session=new_session)
     if new_session:
-      self._input_hist_cells[:] = [{'code': '', 'cell_id': ''}]
+      self._input_hist_cells[:] = [{'code': '', 'cell_id': '', 'start_time': 0}]
 
   def store_inputs(self, line_num, source, source_raw=None):
     """Variant of HistoryManager.store_inputs which also stores the cell ID."""
@@ -41,7 +42,11 @@ class ColabHistoryManager(history.HistoryManager):
     cell_id = self.shell.parent_header.get('metadata',
                                            {}).get('colab', {}).get('cell_id')
 
-    self._input_hist_cells.append({'code': source_raw, 'cell_id': cell_id})
+    self._input_hist_cells.append({
+        'code': source_raw,
+        'cell_id': cell_id,
+        'start_time': time.time(),
+    })
 
   def _history_with_cells_as_json(self):
     """Utility accessor to allow frontends an expression to fetch history.
