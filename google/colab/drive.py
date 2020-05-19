@@ -189,6 +189,7 @@ def mount(mountpoint,
   d.sendline(
       ('cat {fifo} | head -1 | ( {d}/drive '
        '--features=max_parallel_push_task_instances:10,'
+       'shortcut_support:true,'
        'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms},'
        'virtual_folders:true '
        '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
