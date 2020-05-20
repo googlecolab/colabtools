@@ -22,6 +22,7 @@ import os
 import sys
 import unittest
 
+import six
 from six.moves import reload_module
 
 from google.colab._import_hooks import _altair
@@ -45,6 +46,8 @@ class AltairImportHookTest(unittest.TestCase):
     sys.modules.pop('altair', None)
 
   def testRunsInitCodeOnImportWithFailure(self):
+    if six.PY2:
+      self.skipTest('Altair not available in Python 2')
     _altair._register_hook()
 
     altair = importlib.import_module('altair')
