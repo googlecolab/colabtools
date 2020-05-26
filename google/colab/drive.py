@@ -31,7 +31,6 @@ import pexpect.popen_spawn as _popen_spawn
 
 __all__ = ['flush_and_unmount', 'mount']
 
-
 _Environment = _collections.namedtuple(
     '_Environment',
     ('home', 'root_dir', 'inet_family', 'dev', 'path', 'config_dir'))
@@ -190,8 +189,7 @@ def mount(mountpoint,
       ('cat {fifo} | head -1 | ( {d}/drive '
        '--features=max_parallel_push_task_instances:10,'
        'shortcut_support:true,'
-       'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms},'
-       'virtual_folders:true '
+       'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms} '
        '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
        '--preferences=trusted_root_certs_file_path:'
        '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
