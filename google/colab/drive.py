@@ -185,23 +185,28 @@ def mount(mountpoint,
   fifo = _os.path.join(fifo_dir, 'drive.fifo')
   _os.mkfifo(fifo)
   # cat is needed below since the FIFO isn't opened for writing yet.
-  d.sendline(
-      ('cat {fifo} | head -1 | ( {d}/drive '
-       '--features=max_parallel_push_task_instances:10,'
-       'shortcut_support:true,'
-       'max_operation_batch_size:15,opendir_timeout_ms:{timeout_ms} '
-       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
-       '--preferences=trusted_root_certs_file_path:'
-       '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
-       '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}"; '
-       'echo "{drive_exited}"; ) &').format(
-           d=drive_dir,
-           timeout_ms=timeout_ms,
-           mnt=mountpoint,
-           fifo=fifo,
-           oauth_prompt=oauth_prompt,
-           problem_and_stopped=problem_and_stopped,
-           drive_exited=drive_exited))
+  d.sendline((
+      'cat {fifo} | head -1 | ( {d}/drive '
+      '--features=' + ','.join([
+          'max_parallel_push_task_instances:10',
+          'shortcut_support:true',
+          'max_operation_batch_size:15',
+          'opendir_timeout_ms:{timeout_ms}',
+          # TODO(b/152906928): Remove once the default.
+          'enforce_single_parent:true',
+      ]) + ' '
+      '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
+      '--preferences=trusted_root_certs_file_path:'
+      '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
+      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}"; '
+      'echo "{drive_exited}"; ) &').format(
+          d=drive_dir,
+          timeout_ms=timeout_ms,
+          mnt=mountpoint,
+          fifo=fifo,
+          oauth_prompt=oauth_prompt,
+          problem_and_stopped=problem_and_stopped,
+          drive_exited=drive_exited))
   d.expect(prompt)
 
   # LINT.IfChange(drivetimedout)
