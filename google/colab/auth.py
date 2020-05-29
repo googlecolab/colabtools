@@ -88,7 +88,7 @@ def _gcloud_login():
     # Combine the URL with the verification prompt to work around
     # https://github.com/jupyter/notebook/issues/3159
     prompt = prompt.rstrip()
-    code = _getpass.getpass(prompt + '\n\nEnter verification code: ')
+    code = _getpass.getpass(prompt + ' ')
     gcloud_process.communicate(code.strip())
   finally:
     _os.close(f)
