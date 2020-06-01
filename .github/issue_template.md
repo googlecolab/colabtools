@@ -8,5 +8,5 @@ For questions about colab usage, please use [stackoverflow](https://stackoverflo
 
 - The web browser you are using (Chrome, Firefox, Safari, etc.):
 
-- Link to self-contained notebook that reproduces this issue
-  (click the *Share* button, then *Get Shareable Link*):
+- Link (not screenshot!) to a *minimal, public, self-contained* notebook that
+  reproduces this issue (click the *Share* button, then *Get Shareable Link*):
