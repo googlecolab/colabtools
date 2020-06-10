@@ -19,6 +19,7 @@ from __future__ import print_function as _
 
 import base64 as _base64
 import collections as _collections
+import json as _json
 import os as _os
 import socket as _socket
 import threading as _threading
@@ -34,6 +35,9 @@ from six.moves import urllib as _urllib
 from google.colab import output as _output
 
 __all__ = ['upload', 'download']
+
+# TODO(b/140888810): Remove when experiment is done.
+_use_chunked_download = False
 
 
 def upload():
@@ -143,6 +147,10 @@ def download(filename):
     else:
       raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
 
+  if _use_chunked_download:
+    _download_with_comms(filename)
+    return
+
   started = _threading.Event()
   port = _portpicker.pick_unused_port()
 
@@ -177,3 +185,73 @@ def download(filename):
       'path': _os.path.abspath(filename),
       'name': _os.path.basename(filename),
   })
+
+
+def _download_with_comms(filename):
+  """Experimental download API."""
+  comm_manager = _IPython.get_ipython().kernel.comm_manager
+  comm_id = 'download_' + str(_uuid.uuid4())
+
+  def download_file(comm, _):
+    f = open(filename, mode='rb')
+
+    def on_message(_):
+      chunk = f.read(1024 * 1024)
+      if chunk:
+        comm.send({}, None, [chunk.encode()])
+      else:
+        comm.close()
+        f.close()
+        comm_manager.unregister_target(comm_id, download_file)
+
+    comm.on_msg(on_message)
+
+  comm_manager.register_target(comm_id, download_file)
+
+  _IPython.display.display(
+      _IPython.display.Javascript("""
+    async function download(id, filename, size) {
+      if (!google.colab.kernel.accessAllowed) {
+        return;
+      }
+      const div = document.createElement('div');
+      const label = document.createElement('label');
+      label.textContent = `Downloading "${filename}": `;
+      div.appendChild(label);
+      const progress = document.createElement('progress');
+      progress.max = size;
+      div.appendChild(progress);
+      document.body.appendChild(div);
+
+      const buffers = [];
+      let downloaded = 0;
+
+      const channel = await google.colab.kernel.comms.open(id);
+      // Send a message to notify the kernel that we're ready.
+      channel.send({})
+
+      for await (const message of channel.messages) {
+        // Send a message to notify the kernel that we're ready.
+        channel.send({})
+        if (message.buffers) {
+          for (const buffer of message.buffers) {
+            buffers.push(buffer);
+            downloaded += buffer.byteLength;
+            progress.value = downloaded;
+          }
+        }
+      }
+      const blob = new Blob(buffers, {type: 'application/binary'});
+      const a = document.createElement('a');
+      a.href = window.URL.createObjectURL(blob);
+      a.download = filename;
+      div.appendChild(a);
+      a.click();
+      div.remove();
+    }
+  """))
+  size = _os.path.getsize(filename)
+  name = _os.path.basename(filename)
+  _IPython.display.display(
+      _IPython.display.Javascript('download({id}, {name}, {size})'.format(
+          id=_json.dumps(comm_id), name=_json.dumps(name), size=size)))
