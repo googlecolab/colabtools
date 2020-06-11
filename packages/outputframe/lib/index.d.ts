@@ -83,3 +83,70 @@ declare namespace google.colab.output {
    */
   export function resizeIframeToContent(): void;
 }
+
+/**
+ * APIs for leveraging Jupyter Comm channels within Colaboratory.
+ * For more information about comm channels see:
+ * https://jupyter-notebook.readthedocs.io/en/stable/comms.html
+ */
+declare namespace google.colab.kernel.comms {
+  /** Placeholder for any JSON serializable type. */
+  // tslint:disable-next-line:no-any
+  type JsonType = any;
+
+  export interface Message {
+    /** The JSON structured data of the message. */
+    readonly data: JsonType;
+    /** Optional binary buffers transferred with the message. */
+    readonly buffers?: ArrayBuffer[];
+  }
+
+  export interface Comm {
+    /**
+     * Send a comm message to the kernel.
+     * @param data The message data to be sent.
+     * @param buffers Any binary buffers to be included in the message.
+     * @return Promise which will be resolved when the kernel successfully
+     *     receives the comm message.
+     */
+    send(data: JsonType, buffers?: ArrayBuffer[]): Promise<void>;
+    /**
+     * Closes the comm channel and notifies the kernel that the channel
+     * is closed.
+     */
+    close(): void;
+    /**
+     * An async iterator of the incoming messages from the kernel.
+     * The iterator will end when the comm channel is closed.
+     */
+    readonly messages: AsyncIterable<Message>;
+  }
+
+  /**
+   * Open a new comm channel to the kernel.
+   *
+   * The kernel should have registered a handler following the documentation
+   * at
+   * https://jupyter-notebook.readthedocs.io/en/stable/comms.html#opening-a-comm-from-the-frontend.
+   *
+   * @param targetName The name of the channel registered on the kernel.
+   * @param data Any data to be sent with the open message.
+   * @param buffers Any binary data to be sent with the open message.
+   * @return The established comm channel.
+   */
+  export function open(
+      targetName: string, data?: JsonType,
+      buffers?: ArrayBuffer[]): Promise<Comm>;
+
+  /**
+   * Listen comm channels opened by the kernel.
+   *
+   * See
+   * https://jupyter-notebook.readthedocs.io/en/stable/comms.html#opening-a-comm-from-the-kernel.
+   *
+   * @param targetName The name used by the kernel to open a new comm channel.
+   * @param callback Function invoked with any new comm channels.
+   */
+  export function registerTarget(
+      targetName: string, callback: (comm: Comm) => void): void;
+}
