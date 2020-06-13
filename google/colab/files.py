@@ -54,7 +54,8 @@ def upload():
 
   _IPython.display.display(
       _IPython.core.display.HTML("""
-     <input type="file" id="{input_id}" name="files[]" multiple disabled />
+     <input type="file" id="{input_id}" name="files[]" multiple disabled
+        style="border:none" />
      <output id="{output_id}">
       Upload widget is only available when the cell has been executed in the
       current browser session. Please rerun this cell to enable.

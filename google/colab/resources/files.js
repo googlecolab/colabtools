@@ -27,8 +27,6 @@ function span(text, styleAttributes = {}) {
 
 // Max number of bytes which will be uploaded at a time.
 const MAX_PAYLOAD_SIZE = 100 * 1024;
-// Max amount of time to block waiting for the user.
-const FILE_CHANGE_TIMEOUT_MS = 30 * 1000;
 
 function _uploadFiles(inputId, outputId) {
   const steps = uploadFilesStep(inputId, outputId);
@@ -87,20 +85,18 @@ function* uploadFilesStep(inputId, outputId) {
     };
   });
 
-  // Cancel upload if user hasn't picked anything in timeout.
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(null);
-    }, FILE_CHANGE_TIMEOUT_MS);
-  });
-
   // Wait for the user to pick the files.
   const files = yield {
-    promise: Promise.race([pickedPromise, timeoutPromise, cancelPromise]),
+    promise: Promise.race([pickedPromise, cancelPromise]),
     response: {
       action: 'starting',
     }
   };
+
+  cancel.remove();
+
+  // Disable the input element since further picks are not allowed.
+  inputElement.disabled = true;
 
   if (!files) {
     return {
@@ -109,11 +105,6 @@ function* uploadFilesStep(inputId, outputId) {
       }
     };
   }
-
-  cancel.remove();
-
-  // Disable the input element since further picks are not allowed.
-  inputElement.disabled = true;
 
   for (const file of files) {
     const li = document.createElement('li');
