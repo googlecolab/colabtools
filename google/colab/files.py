@@ -199,7 +199,7 @@ def _download_with_comms(filename):
     def on_message(_):
       chunk = f.read(1024 * 1024)
       if chunk:
-        comm.send({}, None, [chunk.encode()])
+        comm.send({}, None, [chunk])
       else:
         comm.close()
         f.close()
