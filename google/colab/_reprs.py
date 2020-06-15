@@ -27,6 +27,7 @@ _INTRINSIC_MIME_TYPE = 'application/vnd.google.colaboratory.intrinsic'
 
 class _IntrinsicTypeFormatter(IPython.core.formatters.BaseFormatter):
   format_type = traitlets.Unicode(_INTRINSIC_MIME_TYPE)
+  print_method = traitlets.ObjectName('_repr_intrinsic_type_')
   _return_type = dict
 
 
