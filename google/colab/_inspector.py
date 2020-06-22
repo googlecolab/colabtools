@@ -185,7 +185,7 @@ def _safe_repr(obj, depth=0, visited=None):
   Colab's UI is aggressive about inspecting objects, and we've discovered that
   in practice, too many objects can have a repr which is expensive to compute.
 
-  To make this work, we whitelist a set of types for which we compute a repr:
+  To make this work, we specify a set of types for which we compute a repr:
    * builtin types which aren't Iterable are safe
    * Sized objects with a `.shape` tuple attribute (eg ndarrays and dataframes)
      get a summary with type name and shape
@@ -273,7 +273,7 @@ def _safe_repr(obj, depth=0, visited=None):
         'tensorflow.' in shape.__module__):
       return '{} with shape {}'.format(type_name, shape)
 
-  # We recur on the types whitelisted above; the logic is slightly different for
+  # We recur on the types allowed above; the logic is slightly different for
   # dicts, as they have compound entries.
   if isinstance(obj, dict):
     s = []
