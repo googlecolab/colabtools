@@ -117,8 +117,7 @@ class _FileHandler(_SimpleHTTPServer.SimpleHTTPRequestHandler):
 
   def translate_path(self, path):
     # Client specifies absolute paths.
-    # TODO(b/79760241): Remove this spurious lint warning.
-    return _urllib.parse.unquote(path)  # pylint:disable=too-many-function-args
+    return _urllib.parse.unquote(path)
 
   def log_message(self, fmt, *args):
     # Suppress logging since it's on the background. Any errors will be reported
