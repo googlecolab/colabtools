@@ -56,5 +56,20 @@ class ColabHistoryManager(history.HistoryManager):
     """
     # To be able to access the raw string as an expression we need to transfer
     # the plain string rather than the quoted string representation. The
-    # Javascript disiplay wrapper is used for that.
+    # Javascript display wrapper is used for that.
     return display.Javascript(json.dumps(self._input_hist_cells))
+
+  def _executed_cells_as_json(self):
+    """Utility accessor to allow frontends an expression to fetch executed cels.
+
+    Returns:
+      A Javascript display object of a dict of the executed cell IDs to their
+      execution index.
+    """
+    cells = dict()
+    for i, cell in enumerate(self._input_hist_cells):
+      cells[cell['cell_id']] = i
+    # To be able to access the raw string as an expression we need to transfer
+    # the plain string rather than the quoted string representation. The
+    # Javascript display wrapper is used for that.
+    return display.Javascript(json.dumps(cells))
