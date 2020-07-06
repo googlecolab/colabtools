@@ -158,6 +158,8 @@ def authenticate_user(clear_output=True):
                 sess, credentials=_json.load(auth_info))
       else:
         # pytype: skip-file
+        tf.config.experimental_connect_to_cluster(
+            tf.distribute.cluster_resolver.TPUClusterResolver())
         import tensorflow_gcs_config as _tgc  # pylint: disable=g-import-not-at-top
         _tgc.configure_gcs_from_colab_auth()
   if _check_adc():
