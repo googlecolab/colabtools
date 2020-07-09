@@ -34,7 +34,7 @@ from six.moves import urllib as _urllib
 
 from google.colab import output as _output
 
-__all__ = ['upload', 'download']
+__all__ = ['upload', 'download', 'view']
 
 # TODO(b/140888810): Remove when experiment is done.
 _use_chunked_download = False
@@ -255,3 +255,40 @@ def _download_with_comms(filename):
   _IPython.display.display(
       _IPython.display.Javascript('download({id}, {name}, {size})'.format(
           id=_json.dumps(comm_id), name=_json.dumps(name), size=size)))
+
+
+def view(filepath):
+  """Views a file in Colab's file viewer.
+
+  If the path is to a directory then the directory will be opened in the file
+  browser.
+
+  Args:
+    filepath: Path to the file on disk to be viewed.
+
+  Raises:
+    FileNotFoundError: if the file cannot be found.
+  """
+
+  if not _os.path.exists(filepath):
+    msg = 'Cannot find file: {}'.format(filepath)
+    if _six.PY2:
+      raise OSError(msg)  # pylint: disable=g-doc-exception
+    else:
+      raise FileNotFoundError(msg)
+
+  filepath = _os.path.abspath(filepath)
+  # Remove the filesystem prefix if it's present since the kernel manager
+  # paths will be rooted at DATALAB_ROOT.
+  if 'DATALAB_ROOT' in _os.environ:
+    if filepath.startswith(_os.environ['DATALAB_ROOT']):
+      filepath = filepath[len(_os.environ['DATALAB_ROOT']):]
+
+  _IPython.display.display(
+      _IPython.display.Javascript("""
+      ((filepath) => {{
+        if (!google.colab.kernel.accessAllowed) {{
+          return;
+        }}
+        google.colab.files.view(filepath);
+      }})(""" + _json.dumps(filepath) + ')'))
