@@ -50,7 +50,11 @@ def enable_string_repr():
   if key not in _original_string_formatters:
     _register_intrinsic_mimetype()
 
-    formatters = IPython.get_ipython().display_formatter.formatters
+    shell = IPython.get_ipython()
+    if not shell:
+      return
+
+    formatters = shell.display_formatter.formatters
     _original_string_formatters[key] = formatters[key].for_type(
         str, _string_intrinsic_repr)
 

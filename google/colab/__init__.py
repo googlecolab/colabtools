@@ -19,6 +19,7 @@ from __future__ import print_function as _
 
 from google.colab import _import_hooks
 from google.colab import _installation_commands
+from google.colab import _reprs
 from google.colab import _shell_customizations
 from google.colab import _system_commands
 from google.colab import _tensorflow_magics
@@ -54,3 +55,4 @@ def load_ipython_extension(ipython):
   _installation_commands._register_magics(ipython)  # pylint:disable=protected-access
   _import_hooks._register_hooks()  # pylint:disable=protected-access
   _tensorflow_magics._register_magics(ipython)  # pylint:disable=protected-access
+  _reprs.enable_string_repr()
