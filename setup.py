@@ -23,7 +23,7 @@ DEPENDENCIES = (
     'ipykernel~=4.10',
     'ipython~=5.5.0',
     'notebook~=5.2.0',
-    'six~=1.12.0',
+    'six~=1.15.0',
     'pandas~=0.24.0; python_version < "3.0"',
     'pandas~=1.0.0; python_version >= "3.0"',
     'portpicker~=1.3.1',
