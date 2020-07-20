@@ -22,7 +22,7 @@ def _string_intrinsic_repr(_):
   return {'type': 'string'}
 
 
-_INTRINSIC_MIME_TYPE = 'application/vnd.google.colaboratory.intrinsic'
+_INTRINSIC_MIME_TYPE = 'application/vnd.google.colaboratory.intrinsic+json'
 
 
 class _IntrinsicTypeFormatter(IPython.core.formatters.BaseFormatter):
