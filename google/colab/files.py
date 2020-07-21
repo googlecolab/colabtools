@@ -22,11 +22,9 @@ import collections as _collections
 import json as _json
 import os as _os
 import socket as _socket
-import threading as _threading
 import uuid as _uuid
 
 import IPython as _IPython
-import portpicker as _portpicker
 import six as _six
 from six.moves import SimpleHTTPServer as _SimpleHTTPServer
 from six.moves import socketserver as _socketserver
@@ -35,9 +33,6 @@ from six.moves import urllib as _urllib
 from google.colab import output as _output
 
 __all__ = ['upload', 'download', 'view']
-
-# TODO(b/140888810): Remove when experiment is done.
-_use_chunked_download = False
 
 
 def upload():
@@ -147,48 +142,6 @@ def download(filename):
     else:
       raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
 
-  if _use_chunked_download:
-    _download_with_comms(filename)
-    return
-
-  started = _threading.Event()
-  port = _portpicker.pick_unused_port()
-
-  def server_entry():
-    httpd = _V6Server(('::', port), _FileHandler)
-    started.set()
-    # Handle a single request then exit the thread.
-    httpd.handle_request()
-
-  thread = _threading.Thread(target=server_entry)
-  thread.start()
-  started.wait()
-
-  _output.eval_js(
-      """
-      (async function() {
-        const response = await fetch('https://localhost:%(port)d%(path)s');
-        if (!response.ok) {
-          throw new Error('Failed to download: ' + response.statusText);
-        }
-        const blob = await response.blob();
-
-        const a = document.createElement('a');
-        a.href = window.URL.createObjectURL(blob);
-        a.download = '%(name)s';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })();
-  """ % {
-      'port': port,
-      'path': _os.path.abspath(filename),
-      'name': _os.path.basename(filename),
-  })
-
-
-def _download_with_comms(filename):
-  """Experimental download API."""
   comm_manager = _IPython.get_ipython().kernel.comm_manager
   comm_id = 'download_' + str(_uuid.uuid4())
 
