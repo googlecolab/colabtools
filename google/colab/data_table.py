@@ -28,17 +28,17 @@ import json as _json
 import traceback as _traceback
 import warnings as _warnings
 import IPython as _IPython
+import six as _six
 # pylint: disable=g-import-not-at-top
 with _warnings.catch_warnings():
   # Importing via IPython raises a spurious warning, but avoids a version
   # mismatch internally.
   _warnings.simplefilter('ignore')
   from IPython.utils import traitlets as _traitlets
-import pandas as _pd
-# pylint: enable=g-import-not-at-top
-import six as _six
 
 from google.colab import _interactive_table_helper
+# pylint: enable=g-import-not-at-top
+
 
 __all__ = [
     'DataTable', 'enable_dataframe_formatter', 'disable_dataframe_formatter',
@@ -57,6 +57,7 @@ if _six.PY2:
   from cgi import escape as _escape
 else:
   from html import escape as _escape
+  import pandas as _pd
 #  pylint:enable=g-importing-member
 #  pylint:enable=g-import-not-at-top
 

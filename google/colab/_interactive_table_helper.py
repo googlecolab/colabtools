@@ -20,7 +20,6 @@ from __future__ import print_function as _
 import json as _json
 import numbers as _numbers
 
-import pandas as _pd
 import six as _six
 
 #  pylint:disable=g-import-not-at-top
@@ -29,6 +28,7 @@ if _six.PY2:
   from cgi import escape as _escape
 else:
   import html as _html
+  import pandas as _pd
 
   # html.escape has replaced deprecated cgi.escape, but has different default
   # arguments.
