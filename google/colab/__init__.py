@@ -18,6 +18,7 @@ from __future__ import division as _
 from __future__ import print_function as _
 
 from google.colab import _import_hooks
+from google.colab import _import_magics
 from google.colab import _installation_commands
 from google.colab import _reprs
 from google.colab import _shell_customizations
@@ -50,6 +51,7 @@ def _jupyter_nbextension_paths():
 
 def load_ipython_extension(ipython):
   """Called by IPython when this module is loaded as an IPython extension."""
+  _import_magics._declare_colabx_magics()  # pylint:disable=protected-access
   _shell_customizations.initialize()
   _system_commands._register_magics(ipython)  # pylint:disable=protected-access
   _installation_commands._register_magics(ipython)  # pylint:disable=protected-access

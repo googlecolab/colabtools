@@ -25,8 +25,6 @@ import sys
 import textwrap
 
 import pkg_resources
-import requests
-
 
 # A map of tensorflow version to installed location. If the installed
 # location is `None`, TensorflowMagics assumes that the package is
@@ -118,6 +116,7 @@ def _drop_and_prepend_env(key, to_drop, to_prepend, empty_includes_cwd):
 
 
 def _get_tf_version():
+  """Get the current tensorflow version via pkg_resources."""
   # pkg_resources.get_distribution uses sys.path at the time pkg_resources was
   # imported, so we constsruct our own WorkingSet here.
   tf_dist = pkg_resources.WorkingSet(sys.path).find(
@@ -138,6 +137,10 @@ class _TFVersionManager(object):
     self.explicitly_set = False
 
   def _maybe_switch_tpu_version(self, version):
+    """Switch the TPU TF version (if needed)."""
+    # Avoid forcing a kernel restart on users updating requests if they haven't
+    # yet used our TF magics.
+    import requests  # pylint: disable=g-import-not-at-top
     if "COLAB_TPU_ADDR" not in os.environ:
       return
     # See b/141173168 for why this path.

@@ -28,8 +28,6 @@ import subprocess as _subprocess
 import tempfile as _tempfile
 import time as _time
 
-import google.auth as _google_auth
-import google.auth.transport.requests as _auth_requests
 from google.colab import errors as _errors
 from google.colab import output as _output
 
@@ -38,6 +36,10 @@ __all__ = ['authenticate_user']
 
 def _check_adc():
   """Return whether the application default credential exists and is valid."""
+  # Avoid forcing a kernel restart on users updating google.auth if they haven't
+  # yet used google.auth.
+  import google.auth as _google_auth  # pylint: disable=g-import-not-at-top
+  import google.auth.transport.requests as _auth_requests  # pylint: disable=g-import-not-at-top
   # google-auth wants to warn the user if no project is set, which makes sense
   # for cloud-only users, but not in our case. We temporarily chnage the logging
   # level here to silence.
