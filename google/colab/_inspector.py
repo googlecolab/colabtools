@@ -49,6 +49,19 @@ _STRING_ABBREV_LIMIT = 20
 _BASE_CALL_DOC = types.FunctionType.__call__.__doc__
 _BASE_INIT_DOC = object.__init__.__doc__
 
+# Fully qualified names of types which are OK to call the default repr.
+_APPROVED_REPRS = (
+    'numpy.datetime64',
+    'numpy.float128',
+    'numpy.float16',
+    'numpy.float32',
+    'numpy.float64',
+    'numpy.int16',
+    'numpy.int32',
+    'numpy.int64',
+    'numpy.int8',
+)
+
 
 def _getdoc(obj):
   """Custom wrapper for inspect.getdoc.
@@ -327,6 +340,12 @@ def _safe_repr(obj, depth=0, visited=None):
     try:
       obj_len = len(obj)
       return '{} with {} items'.format(type_name, obj_len)
+    except Exception:  # pylint: disable=broad-except
+      pass
+
+  if fully_qualified_type_name in _APPROVED_REPRS:
+    try:
+      return repr(obj)
     except Exception:  # pylint: disable=broad-except
       pass
 
