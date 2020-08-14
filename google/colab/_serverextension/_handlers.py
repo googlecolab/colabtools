@@ -21,6 +21,7 @@ from notebook.base import handlers
 
 import tornado
 
+from google.colab import _serverextension
 from google.colab import drive
 from google.colab._serverextension import _resource_monitor
 
@@ -62,7 +63,7 @@ class DriveHandler(handlers.APIHandler):
         # Only return the most recent match since we only care to warn the user
         # about changes to this status.
         return [
-            subprocess.check_output(
+            _serverextension._subprocess_check_output(  # pylint: disable=protected-access
                 'tail -1 "{}"'.format(filtered_logfile),
                 shell=True).decode('utf-8').strip()
         ]

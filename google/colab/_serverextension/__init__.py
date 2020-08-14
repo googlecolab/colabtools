@@ -18,6 +18,33 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
+import os
+import shlex
+import subprocess
+
+
+def _subprocess_check_output(args, *posargs, **kwargs):
+  """subprocess.check_output wrapper for colab.
+
+  This provides a hook for colab to prefix the command to be executed, to allow
+  us to run all subcommands under another program (eg timeout) or in another
+  docker container.
+
+  Args:
+    args: the command to execute, as a string or list of strings.
+    *posargs: additional positional arguments to subprocess.check_output.
+    **kwargs: additional keywords arguments to subprocess.check_output.
+
+  Returns:
+    The output from running the command.
+  """
+  args_prefix = os.environ.get('COLAB_SERVEREXTENSION_SUBPROCESS_PREFIX', '')
+  if args_prefix:
+    if isinstance(args, str):
+      args = args_prefix + ' ' + args
+    else:
+      args = shlex.split(args_prefix) + args
+  return subprocess.check_output(args, *posargs, **kwargs)
 
 
 class _ColabLoggingFilter(logging.Filter):

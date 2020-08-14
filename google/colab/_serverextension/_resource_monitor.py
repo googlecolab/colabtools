@@ -7,6 +7,8 @@ import csv
 import os
 import subprocess
 
+from google.colab import _serverextension
+
 try:
   # pylint: disable=g-import-not-at-top
   import psutil
@@ -40,7 +42,7 @@ def get_gpu_usage():
       for row in reader:
         kernels[row['kernel_id']] = int(row['gpu_mem(MiB)']) * 1024 * 1024
   try:
-    ns = subprocess.check_output([
+    ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
         '/usr/bin/timeout', '-sKILL', '1s', 'nvidia-smi',
         '--query-gpu=memory.used,memory.total', '--format=csv,nounits,noheader'
     ]).decode('utf-8')
@@ -98,7 +100,7 @@ def get_ram_usage(kernel_manager):
   ])
   kernels = {}
   if pids_to_kernel_ids:
-    ps = subprocess.check_output([
+    ps = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
         'ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo', 'pid rss',
         '--no-header'
     ]).decode('utf-8')
