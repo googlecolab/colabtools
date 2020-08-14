@@ -1,7 +1,5 @@
 # Google Colaboratory
 
-[![Build Status](https://travis-ci.org/googlecolab/colabtools.svg?branch=master)](https://travis-ci.org/googlecolab/colabtools)
-
 [Colaboratory](https://colab.research.google.com) is a research project created
 to help disseminate machine learning education and research. It’s a Jupyter
 notebook environment that requires no setup to use. For more information, see

@@ -1,6 +1,6 @@
 """Methods for tracking resource consumption of Colab kernels.
 
-Note that this file is run under both py2 and py3 in tox tests.
+Note that this file is run under both py2 and py3 in tests.
 """
 
 import csv
