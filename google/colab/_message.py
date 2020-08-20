@@ -113,18 +113,21 @@ def read_reply_from_input(message_id, timeout_sec=None):
 _msg_id = 0
 
 
-def send_request(request_type, request_body, parent=None):
+def send_request(request_type, request_body, parent=None, expect_reply=True):
   """Sends the given message to the frontend without waiting for a reply."""
 
   instance = ipython.get_kernelapp()
-  global _msg_id
-  _msg_id += 1
-  request_id = _msg_id
+
+  request_id = None
 
   metadata = {
-      'colab_msg_id': request_id,
       'colab_request_type': request_type,
   }
+  if expect_reply:
+    global _msg_id
+    _msg_id += 1
+    request_id = _msg_id
+    metadata['colab_msg_id'] = request_id
 
   content = {
       'request': request_body,
@@ -167,5 +170,6 @@ def blocking_request(request_type, request='', timeout_sec=5, parent=None):
   # If we want this thread safe we can make read_reply_from_input to
   # not discard messages with unknown msg ids as well as making msg_ids globally
   # unique.
-  request_id = send_request(request_type, request, parent=parent)
+  request_id = send_request(
+      request_type, request, parent=parent, expect_reply=True)
   return read_reply_from_input(request_id, timeout_sec)
