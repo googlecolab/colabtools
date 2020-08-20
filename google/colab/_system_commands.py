@@ -338,8 +338,7 @@ def _display_stdin_widget(delay_millis=0):
   """
   shell = _ipython.get_ipython()
   display_args = ['cell_display_stdin', {'delayMillis': delay_millis}]
-  _message.send_request(
-      *display_args, parent=shell.parent_header, expect_reply=False)
+  _message.blocking_request(*display_args, parent=shell.parent_header)
 
   def echo_updater(new_echo_status):
     # Note: Updating the echo status uses colab_request / colab_reply on the
@@ -348,13 +347,12 @@ def _display_stdin_widget(delay_millis=0):
     # waiting for a colab_reply, the input will be dropped per
     # https://github.com/googlecolab/colabtools/blob/56e4dbec7c4fa09fad51b60feb5c786c69d688c6/google/colab/_message.py#L100.
     update_args = ['cell_update_stdin', {'echo': new_echo_status}]
-    _message.send_request(
-        *update_args, parent=shell.parent_header, expect_reply=False)
+    _message.blocking_request(*update_args, parent=shell.parent_header)
 
   yield echo_updater
 
-  _message.send_request(
-      'cell_remove_stdin', {}, parent=shell.parent_header, expect_reply=False)
+  hide_args = ['cell_remove_stdin', {}]
+  _message.blocking_request(*hide_args, parent=shell.parent_header)
 
 
 @contextlib.contextmanager
