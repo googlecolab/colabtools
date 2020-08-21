@@ -472,17 +472,20 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 class DisplayStdinWidgetTest(unittest.TestCase):
 
   @mock.patch.object(_ipython, 'get_ipython', autospec=True)
-  @mock.patch.object(_message, 'blocking_request', autospec=True)
-  def testMessagesSent(self, mock_blocking_request, mock_get_ipython):
+  @mock.patch.object(_message, 'send_request', autospec=True)
+  def testMessagesSent(self, mock_send_request, mock_get_ipython):
     mock_shell = mock.MagicMock(parent_header='12345')
     mock_get_ipython.return_value = mock_shell
 
     with _system_commands._display_stdin_widget(delay_millis=1000):
       pass
 
-    mock_blocking_request.assert_has_calls([
-        mock.call('cell_display_stdin', {'delayMillis': 1000}, parent='12345'),
-        mock.call('cell_remove_stdin', {}, parent='12345'),
+    mock_send_request.assert_has_calls([
+        mock.call(
+            'cell_display_stdin', {'delayMillis': 1000},
+            expect_reply=False,
+            parent='12345'),
+        mock.call('cell_remove_stdin', {}, expect_reply=False, parent='12345'),
     ])
 
 
