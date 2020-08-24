@@ -192,6 +192,7 @@ def mount(mountpoint,
           'shortcut_support:true',
           'max_operation_batch_size:15',
           'opendir_timeout_ms:{timeout_ms}',
+          'use_unique_user_id:true',
           # TODO(b/152906928): Remove once the default.
           'enforce_single_parent:true',
       ]) + ' '
