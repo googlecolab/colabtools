@@ -246,7 +246,7 @@ def mount(mountpoint,
     with open(fifo, 'w') as fifo_file:
       fifo_file.write('ignored\n')
   filtered_logfile = _timeouts_path()
-  d.sendline('rm -rf "{}"'.format(filtered_logfile))
+  d.sendline('fuser -kw "{f}" ; rm -rf "{f}"'.format(f=filtered_logfile))
   d.expect(prompt)
   d.sendline(
       ("""nohup bash -c 'tail -n +0 -F "{}" | """
