@@ -213,7 +213,7 @@ def mount(mountpoint,
   # LINT.IfChange(drivetimedout)
   timeout_pattern = 'QueryManager timed out'
   # LINT.ThenChange()
-  dfs_log = _os.path.join(config_dir, 'DriveFS/Logs/drive_fs.txt')
+  dfs_log = _os.path.join(_logs_dir(), 'drive_fs.txt')
 
   wrote_to_fifo = False
   while True:
@@ -248,10 +248,12 @@ def mount(mountpoint,
   filtered_logfile = _timeouts_path()
   d.sendline('fuser -kw "{f}" ; rm -rf "{f}"'.format(f=filtered_logfile))
   d.expect(prompt)
-  d.sendline(
-      ("""nohup bash -c 'tail -n +0 -F "{}" | """
-       """grep --line-buffered "{}" > "{}" ' < /dev/null > /dev/null 2>&1 &"""
-      ).format(dfs_log, timeout_pattern, filtered_logfile))
+  filter_script = _os.path.join(drive_dir, 'drive-filter.py')
+  filter_cmd = (
+      """nohup bash -c 'tail -n +0 -F "{}" | """
+      """python3 {} > "{}" ' < /dev/null > /dev/null 2>&1 &""").format(
+          dfs_log, filter_script, filtered_logfile)
+  d.sendline(filter_cmd)
   d.expect(prompt)
   d.sendline('disown -a')
   d.expect(prompt)
