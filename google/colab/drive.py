@@ -171,6 +171,7 @@ def mount(mountpoint,
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
 
   oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
+  oauth_failed = 'Authorization failed'
   problem_and_stopped = (
       u'Drive File Stream encountered a problem and has stopped')
   drive_exited = u'drive EXITED'
@@ -199,12 +200,13 @@ def mount(mountpoint,
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
       '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
-      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}"; '
+      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}"; '
       'echo "{drive_exited}"; ) &').format(
           d=drive_dir,
           timeout_ms=timeout_ms,
           mnt=mountpoint,
           fifo=fifo,
+          oauth_failed=oauth_failed,
           oauth_prompt=oauth_prompt,
           problem_and_stopped=problem_and_stopped,
           drive_exited=drive_exited))
@@ -223,6 +225,7 @@ def mount(mountpoint,
         oauth_prompt,
         problem_and_stopped,
         drive_exited,
+        oauth_failed,
     ])
     if case == 0:
       break
@@ -242,6 +245,8 @@ def mount(mountpoint,
       with open(fifo, 'w') as fifo_file:
         fifo_file.write(_getpass.getpass(auth_prompt) + '\n')
       wrote_to_fifo = True
+    elif case == 5:
+      raise ValueError('mount failed: invalid oauth code')
   if not wrote_to_fifo:
     with open(fifo, 'w') as fifo_file:
       fifo_file.write('ignored\n')
