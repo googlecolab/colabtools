@@ -18,7 +18,6 @@ from __future__ import division as _
 from __future__ import print_function as _
 
 import collections as _collections
-import getpass as _getpass
 import os as _os
 import signal as _signal
 import socket as _socket
@@ -243,7 +242,7 @@ def mount(mountpoint,
       # Not already authorized, so do the authorization dance.
       auth_prompt = d.match.group(1) + '\nEnter your authorization code:\n'
       with open(fifo, 'w') as fifo_file:
-        fifo_file.write(_getpass.getpass(auth_prompt) + '\n')
+        fifo_file.write(input(auth_prompt) + '\n')
       wrote_to_fifo = True
     elif case == 5:
       raise ValueError('mount failed: invalid oauth code')

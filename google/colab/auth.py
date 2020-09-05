@@ -19,7 +19,6 @@ from __future__ import division as _
 from __future__ import print_function as _
 
 import contextlib as _contextlib
-import getpass as _getpass
 import json as _json
 import logging as _logging
 import os as _os
@@ -90,7 +89,7 @@ def _gcloud_login():
     # Combine the URL with the verification prompt to work around
     # https://github.com/jupyter/notebook/issues/3159
     prompt = prompt.rstrip()
-    code = _getpass.getpass(prompt + ' ')
+    code = input(prompt + ' ')
     gcloud_process.communicate(code.strip())
   finally:
     _os.close(f)
