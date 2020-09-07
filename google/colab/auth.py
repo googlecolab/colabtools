@@ -24,6 +24,7 @@ import logging as _logging
 import os as _os
 import sqlite3 as _sqlite3  # pylint: disable=g-bad-import-order
 import subprocess as _subprocess
+import sys as _sys
 import tempfile as _tempfile
 import time as _time
 
@@ -86,10 +87,12 @@ def _gcloud_login():
       if 'https' in prompt:
         break
 
+    # TODO(b/147296819): Delete this line.
+    get_code = input if _sys.version_info[0] == 3 else raw_input  # pylint: disable=undefined-variable
     # Combine the URL with the verification prompt to work around
     # https://github.com/jupyter/notebook/issues/3159
     prompt = prompt.rstrip()
-    code = input(prompt + ' ')
+    code = get_code(prompt + ' ')
     gcloud_process.communicate(code.strip())
   finally:
     _os.close(f)

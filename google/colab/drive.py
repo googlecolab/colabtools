@@ -170,7 +170,7 @@ def mount(mountpoint,
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
 
   oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
-  oauth_failed = 'Authorization failed'
+  oauth_failed = u'Authorization failed'
   problem_and_stopped = (
       u'Drive File Stream encountered a problem and has stopped')
   drive_exited = u'drive EXITED'
@@ -216,6 +216,9 @@ def mount(mountpoint,
   # LINT.ThenChange()
   dfs_log = _os.path.join(_logs_dir(), 'drive_fs.txt')
 
+  # TODO(b/147296819): Delete this line.
+  get_code = input if _sys.version_info[0] == 3 else raw_input  # pylint: disable=undefined-variable
+
   wrote_to_fifo = False
   while True:
     case = d.expect([
@@ -242,7 +245,7 @@ def mount(mountpoint,
       # Not already authorized, so do the authorization dance.
       auth_prompt = d.match.group(1) + '\nEnter your authorization code:\n'
       with open(fifo, 'w') as fifo_file:
-        fifo_file.write(input(auth_prompt) + '\n')
+        fifo_file.write(get_code(auth_prompt) + '\n')
       wrote_to_fifo = True
     elif case == 5:
       raise ValueError('mount failed: invalid oauth code')
