@@ -28,6 +28,8 @@ import uuid as _uuid
 
 import pexpect.popen_spawn as _popen_spawn
 
+from google.colab import output as _output
+
 __all__ = ['flush_and_unmount', 'mount']
 
 _Environment = _collections.namedtuple(
@@ -244,8 +246,9 @@ def mount(mountpoint,
     elif case == 2:
       # Not already authorized, so do the authorization dance.
       auth_prompt = d.match.group(1) + '\nEnter your authorization code:\n'
-      with open(fifo, 'w') as fifo_file:
-        fifo_file.write(get_code(auth_prompt) + '\n')
+      with _output.use_tags('dfs-auth-dance'):
+        with open(fifo, 'w') as fifo_file:
+          fifo_file.write(get_code(auth_prompt) + '\n')
       wrote_to_fifo = True
     elif case == 5:
       raise ValueError('mount failed: invalid oauth code')
@@ -266,6 +269,7 @@ def mount(mountpoint,
   d.expect(prompt)
   d.sendline('exit')
   assert d.wait() == 0
+  _output.clear(wait=True, output_tags='dfs-auth-dance')
   print('Mounted at {}'.format(mountpoint))
 
 
