@@ -159,6 +159,9 @@ def clear(wait=False, output_tags=()):
     output_tags: string or iterable over strings. If provided, only
     outputs that are marked with superset of output_tags will be cleared.
   """
+  if not isinstance(wait, bool):
+    raise ValueError('wait must be a boolean value')
+
   output_tags = _convert_string_to_list(output_tags)
   content = dict(wait=wait, output_tags=tuple(output_tags))
 
