@@ -102,9 +102,9 @@ def mount(mountpoint,
   # If we've already mounted drive at the specified mountpoint, exit now.
   already_mounted = _os.path.isdir(_os.path.join(mountpoint, 'My Drive'))
   if not force_remount and already_mounted:
-    print('Drive already mounted at {}; to attempt to forcibly remount, '
-          'call drive.mount("{}", force_remount=True).'.format(
-              mountpoint, mountpoint))
+    print(
+        'Drive already mounted at {mnt}; to attempt to forcibly remount, '
+        'call drive.mount("{mnt}", force_remount=True).'.format(mnt=mountpoint))
     return
 
   env = _env()
@@ -139,12 +139,15 @@ def mount(mountpoint,
       })
   d.sendline('export PS1="{}"'.format(prompt))
   d.expect(prompt)  # The new prompt.
+  drive_dir = _os.path.join(root_dir, 'opt/google/drive')
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
   # because that leaves enough cruft behind in the mount table that future
   # operations fail with "Transport endpoint is not connected".
   d.sendline('umount -f {mnt} || umount {mnt}; pkill -9 -x drive'.format(
       mnt=mountpoint))
   # Wait for above to be received, using the next prompt.
+  d.expect(prompt)
+  d.sendline('pkill -9 -f {d}/directoryprefetcher_binary'.format(d=drive_dir))
   d.expect(prompt)
   # Only check the mountpoint after potentially unmounting/pkill'ing above.
   try:
@@ -169,7 +172,6 @@ def mount(mountpoint,
           m=mountpoint, s=success)
   d.sendline(success_watcher)
   d.expect(prompt)
-  drive_dir = _os.path.join(root_dir, 'opt/google/drive')
 
   oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
   oauth_failed = u'Authorization failed'
@@ -265,6 +267,14 @@ def mount(mountpoint,
           dfs_log, filter_script, filtered_logfile)
   d.sendline(filter_cmd)
   d.expect(prompt)
+  if 'ENABLE_DIRECTORYPREFETCHER' in _os.environ:
+    d.sendline(
+        """nohup bash -c '{d}/directoryprefetcher_binary -mountpoint={mnt}' """
+        """>> {log} 2>&1 &""".format(
+            d=drive_dir,
+            mnt=mountpoint,
+            log=_os.path.join(_logs_dir(), 'dpb.txt')))
+    d.expect(prompt)
   d.sendline('disown -a')
   d.expect(prompt)
   d.sendline('exit')
