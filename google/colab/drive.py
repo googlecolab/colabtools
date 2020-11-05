@@ -192,13 +192,10 @@ def mount(mountpoint,
   d.sendline((
       'cat {fifo} | head -1 | ( {d}/drive '
       '--features=' + ','.join([
-          'max_parallel_push_task_instances:10',
-          'shortcut_support:true',
           'max_operation_batch_size:15',
+          'max_parallel_push_task_instances:10',
           'opendir_timeout_ms:{timeout_ms}',
-          'use_unique_user_id:true',
-          # TODO(b/152906928): Remove once the default.
-          'enforce_single_parent:true',
+          'shortcut_support:true',
       ]) + ' '
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
