@@ -513,10 +513,10 @@ class ColabInspector(oinspect.Inspector):
           out['init_docstring'] = init_docstring
         init_def = self._getdef(init, oname)
         if init_def:
-          out['init_definition'] = self.format(init_def)
+          out['init_definition'] = init_def
         src_def = _get_source_definition(init)
         if src_def:
-          out['source_definition'] = self.format(src_def)
+          out['source_definition'] = src_def
       # For classes, the __init__ method is the method invoked on call, but
       # old-style classes may not have an __init__ method.
       if init:
@@ -526,10 +526,10 @@ class ColabInspector(oinspect.Inspector):
     elif callable(obj):
       definition = self._getdef(obj, oname)
       if definition:
-        out['definition'] = self.format(definition)
+        out['definition'] = definition
       src_def = _get_source_definition(obj)
       if src_def:
-        out['source_definition'] = self.format(src_def)
+        out['source_definition'] = src_def
 
       if not oinspect.is_simple_callable(obj):
         call_docstring = _getdoc(obj.__call__)
