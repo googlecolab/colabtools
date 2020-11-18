@@ -17,12 +17,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import ast
 import inspect
 import logging
 import math
+import re
 import types
 
+import astor
 from IPython.core import oinspect
+from IPython.utils import dir2
 import six
 from six.moves import builtins
 
@@ -418,6 +422,7 @@ class ColabInspector(oinspect.Inspector):
     # * init_docstring
     # * source_end_line
     # * source_start_line
+    # * source_definition
     #
     # For detail_level 1, we include:
     # * file
@@ -509,6 +514,9 @@ class ColabInspector(oinspect.Inspector):
         init_def = self._getdef(init, oname)
         if init_def:
           out['init_definition'] = self.format(init_def)
+        src_def = _get_source_definition(init)
+        if src_def:
+          out['source_definition'] = self.format(src_def)
       # For classes, the __init__ method is the method invoked on call, but
       # old-style classes may not have an __init__ method.
       if init:
@@ -519,6 +527,9 @@ class ColabInspector(oinspect.Inspector):
       definition = self._getdef(obj, oname)
       if definition:
         out['definition'] = self.format(definition)
+      src_def = _get_source_definition(obj)
+      if src_def:
+        out['source_definition'] = self.format(src_def)
 
       if not oinspect.is_simple_callable(obj):
         call_docstring = _getdoc(obj.__call__)
@@ -534,3 +545,44 @@ def _iscallable(obj):
   """Check if an object is a callable object safe for inspect.find_file."""
   return inspect.ismodule(obj) or inspect.isclass(obj) or inspect.ismethod(
       obj) or inspect.isfunction(obj) or inspect.iscode(obj)
+
+
+def _get_source_definition(obj):
+  """Get a source representation of the function definition."""
+  try:
+    obj = _unwrap(obj)
+
+    if dir2.safe_hasattr(obj,
+                         '__call__') and not oinspect.is_simple_callable(obj):
+      obj = obj.__call__
+
+    lines, lnum = inspect.findsource(obj)
+    block = inspect.getblock(lines[lnum:])
+
+    # Trim leading whitespace for all lines.
+    prefix = re.match('^([ \t]*)', block[0]).group()
+    trimmed = []
+    for line in block:
+      if line.startswith(prefix):
+        line = line[len(prefix):]
+      trimmed.append(line)
+
+    # Override the default join to avoid wrapping.
+    def join_lines(source):
+      return ''.join(source)
+
+    module = ast.parse('\n'.join(trimmed), mode='exec')
+    function = module.body[0]
+    # Remove 'self' if it's the first arg.
+    if function.args.args and function.args.args[0].arg == 'self':
+      function.args.args.pop(0)
+
+    function.body = []
+    decl = astor.to_source(
+        function, indent_with='', pretty_source=join_lines).strip()
+    # Strip the trailing `:`
+    if decl.endswith(':'):
+      decl = decl[:-1]
+    return decl
+  except Exception:  # pylint: disable=broad-except
+    return None
