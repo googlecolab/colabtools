@@ -1,7 +1,5 @@
 """Tools to enable debugpy attachment to a process."""
 
-import threading
-
 import debugpy
 import portpicker
 
@@ -19,17 +17,12 @@ def enable_attach_async():
   if _dap_port:
     return _dap_port
 
+  # TODO(b/64941125): Consider moving this earlier to avoid impact on kernel
+  # connect time.
   _dap_port = portpicker.pick_unused_port()
+  debugpy.listen(_dap_port)
 
-  def attachment_entry():
-    # The client will retry the connection a few times to avoid the inherent
-    # raciness of this.
-    debugpy.listen(_dap_port)
-
-  # debugpy.listen will spin up another process then start listening for
-  # connections from that process. This can take a second or so, but most of it
-  # is not by this process. Doing this on a separate thread reduces the impact
-  # on kernel initialization.
-  threading.Thread(target=attachment_entry).start()
+  # TODO(b/175143091): Investigate what is causing the slowdowns here.
+  debugpy.trace_this_thread(False)
 
   return _dap_port
