@@ -49,6 +49,9 @@ def _env():
     home = _os.path.join(root_dir, home)
     inet_family = 'IPV6_ONLY'
     fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
+    if 'BORG_ALLOC_DIR' in _os.environ:
+      # For support in guitar cluster invocations.
+      fum = _os.environ['BORG_ALLOC_DIR'] + '/alloc/fusermount'
     dev = fum + '/dev/fuse'
     path = path + ':' + fum + '/bin'
   config_dir = _os.path.join(home, '.config', 'Google')
