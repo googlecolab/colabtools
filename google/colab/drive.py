@@ -175,6 +175,7 @@ def mount(mountpoint,
 
   oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
   oauth_failed = u'Authorization failed'
+  domain_disabled_drivefs = u'The domain policy has disabled Drive File Stream'
   problem_and_stopped = (
       u'Drive File Stream encountered a problem and has stopped')
   drive_exited = u'drive EXITED'
@@ -205,13 +206,14 @@ def mount(mountpoint,
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
       '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
-      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}"; '
+      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}|{domain_disabled_drivefs}"; '
       'echo "{drive_exited}"; ) &').format(
           d=drive_dir,
           timeout_ms=timeout_ms,
           mnt=mountpoint,
           fifo=fifo,
           oauth_failed=oauth_failed,
+          domain_disabled_drivefs=domain_disabled_drivefs,
           oauth_prompt=oauth_prompt,
           problem_and_stopped=problem_and_stopped,
           drive_exited=drive_exited))
@@ -234,6 +236,7 @@ def mount(mountpoint,
         problem_and_stopped,
         drive_exited,
         oauth_failed,
+        domain_disabled_drivefs,
     ])
     if case == 0:
       break
@@ -256,6 +259,10 @@ def mount(mountpoint,
       wrote_to_fifo = True
     elif case == 5:
       raise ValueError('mount failed: invalid oauth code')
+    elif case == 6:
+      raise ValueError(
+          str(domain_disabled_drivefs) +
+          ': https://support.google.com/a/answer/7496409')
   if not wrote_to_fifo:
     with open(fifo, 'w') as fifo_file:
       fifo_file.write('ignored\n')
