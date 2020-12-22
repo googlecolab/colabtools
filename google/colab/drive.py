@@ -197,7 +197,8 @@ def mount(mountpoint,
       'cat {fifo} | head -1 | ( {d}/drive '
       '--features=' + ','.join([
           'fuse_max_background:1000',
-          'max_bytes_per_fetch_content_request:134217728',
+          # TODO(b/176106731): Uncomment when debugged.
+          # 'max_bytes_per_fetch_content_request:134217728',
           'max_read_qps:1000',
           'max_write_qps:1000',
           'max_operation_batch_size:15',
