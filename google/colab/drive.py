@@ -140,7 +140,7 @@ def mount(mountpoint,
           'FUSE_DEV_NAME': dev,
           'PATH': path
       })
-  d.sendline('export PS1="{}"'.format(prompt))
+  d.sendline('unset HISTFILE; export PS1="{}"'.format(prompt))
   d.expect(prompt)  # The new prompt.
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
