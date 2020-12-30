@@ -94,7 +94,7 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
 
 def mount(mountpoint,
           force_remount=False,
-          timeout_ms=60000,
+          timeout_ms=120000,
           use_metadata_server=False):
   """Mount your Google Drive at the specified mountpoint path."""
 
