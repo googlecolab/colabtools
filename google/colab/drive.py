@@ -223,7 +223,7 @@ def mount(mountpoint,
           drive_exited=drive_exited))
   d.expect(prompt)
 
-  # LINT.IfChange(drivetimedout)
+  # LINT.IfChange(drivetimeout)
   timeout_pattern = 'QueryManager timed out'
   # LINT.ThenChange()
   dfs_log = _os.path.join(_logs_dir(), 'drive_fs.txt')
