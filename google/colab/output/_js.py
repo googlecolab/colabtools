@@ -20,13 +20,14 @@ from google.colab import _message
 _json_decoder = json.JSONDecoder()
 
 
-def eval_js(script, ignore_result=False):
+def eval_js(script, ignore_result=False, timeout_sec=None):
   """Evaluates the Javascript within the context of the current cell.
 
   Args:
     script: The javascript string to be evaluated
     ignore_result: If true, will return immediately
      and result from javascript side will be ignored.
+    timeout_sec: blocks for that many seconds.
 
   Returns:
     Result of the Javascript evaluation or None if ignore_result.
@@ -36,7 +37,7 @@ def eval_js(script, ignore_result=False):
   request_id = _message.send_request(*args, parent=kernel.shell.parent_header)
   if ignore_result:
     return
-  return _message.read_reply_from_input(request_id)
+  return _message.read_reply_from_input(request_id, timeout_sec)
 
 
 _functions = {}
