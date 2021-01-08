@@ -213,7 +213,10 @@ def _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget):
   # could return a partial byte sequence for a UTF-8 character. Using an
   # incremental decoder is incrementally fed input bytes and emits UTF-8
   # characters.
-  decoder = codecs.getincrementaldecoder(_ENCODING)()
+  # In order to be consistent with IPython's treatment of non-UTF-8 output, make
+  # use of the "replace" error handler within the decoder.
+  # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py.
+  decoder = codecs.getincrementaldecoder(_ENCODING)(errors='replace')
 
   num_interrupts = 0
   echo_status = None

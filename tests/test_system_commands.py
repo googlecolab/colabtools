@@ -230,6 +230,17 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     self.assertEqual(0, result.returncode)
     self.assertEqual(u'Dogs is 小狗', result.output)
 
+  def testNonUtf8Cmd(self):
+    # Regression test for b/177070077
+    run_cell_result = self.run_cell(u'r = %shell printf "\\200" ; echo -n Yay')
+    captured_output = run_cell_result.output
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(u'�Yay', captured_output.stdout)
+    result = self.ip.user_ns['r']
+    self.assertEqual(0, result.returncode)
+    self.assertEqual(u'�Yay', result.output)
+
   def testUnicodeInputAndOutput(self):
     # "猫" is "cats" in simplified Chinese and its representation requires
     # three bytes. Force reading only one byte at a time and ensure that the
