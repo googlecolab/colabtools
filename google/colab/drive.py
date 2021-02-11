@@ -204,7 +204,6 @@ def mount(mountpoint,
           'max_operation_batch_size:15',
           'max_parallel_push_task_instances:10',
           'opendir_timeout_ms:{timeout_ms}',
-          'shortcut_support:true',
           'virtual_folders_omit_spaces:true',
       ]) + ' '
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
