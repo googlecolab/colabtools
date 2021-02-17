@@ -51,6 +51,8 @@ _DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.i
 
 _JAVASCRIPT_MODULE_MIME_TYPE = 'application/vnd.google.colaboratory.module+javascript'
 
+_FAKE_DATAFRAME_COLUMN = '__fake_dataframe_column__'
+
 #  pylint:disable=g-import-not-at-top
 #  pylint:disable=g-importing-member
 if _six.PY2:
@@ -190,10 +192,18 @@ class DataTable(_IPython.display.DisplayObject):
       # need to catch and print exception since it is user visible
       _traceback.print_exc()
 
+  def _get_dataframe_values(self, df):
+    df.insert(df.shape[1], _FAKE_DATAFRAME_COLUMN, [None] * df.shape[0])
+    try:
+      values = df.to_numpy(dtype=object)[:, :-1]
+    finally:
+      del df[_FAKE_DATAFRAME_COLUMN]
+    return values
+
   def _gen_js(self, dataframe):
     """Returns javascript for this table."""
     columns = dataframe.columns
-    data = dataframe.values
+    data = self._get_dataframe_values(dataframe)
 
     data_formatters = {}
     header_formatters = {}
