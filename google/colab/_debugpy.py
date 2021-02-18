@@ -18,6 +18,12 @@ def enable_attach_async():
   if _dap_port:
     return _dap_port
 
+  debugpy.configure({
+      # b/180567283: Disable monkey patching subprocess calls which isn't
+      # needed for Colab and can cause issues.
+      'subProcess': False,
+  })
+
   # TODO(b/64941125): Consider moving this earlier to avoid impact on kernel
   # connect time.
   _dap_port = portpicker.pick_unused_port()
