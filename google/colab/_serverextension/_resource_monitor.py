@@ -91,8 +91,8 @@ def get_ram_usage(kernel_manager):
     if pids_to_kernel_ids:
       kernels = {}
       ps = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
-          'ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo', 'pid rss',
-          '--no-header'
+          '/bin/ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo',
+          'pid rss', '--no-header'
       ]).decode('utf-8')
       for proc in ps.split('\n')[:-1]:
         proc = proc.strip().split(' ', 1)

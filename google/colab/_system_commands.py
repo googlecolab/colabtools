@@ -39,6 +39,7 @@ from google.colab.output import _tags
 # Linux read(2) limits to 0x7ffff000 so stay under that for clarity.
 _PTY_READ_MAX_BYTES_FOR_TEST = 2**20  # 1MB
 
+_BIN_BASH = os.environ.get('BIN_BASH_OVERRIDE_FOR_TEST', '/bin/bash')
 _ENCODING = 'UTF-8'
 
 
@@ -184,7 +185,7 @@ def _run_command(cmd, clear_streamed_output):
       p = subprocess.Popen(
           cmd,
           shell=True,
-          executable='/bin/bash',
+          executable=_BIN_BASH,
           stdout=child_pty,
           stdin=child_pty,
           stderr=child_pty,
