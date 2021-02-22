@@ -175,7 +175,9 @@ def _run_command(cmd, clear_streamed_output):
       parent_pty,
       (select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR))
 
-  disable_stdin = os.getenv('COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS', None)
+  stdin = child_pty
+  if os.getenv('COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS', None):
+    stdin = os.open(os.devnull, os.O_RDWR)
   try:
     temporary_clearer = _tags.temporary if clear_streamed_output else _no_op
 
@@ -188,7 +190,7 @@ def _run_command(cmd, clear_streamed_output):
           shell=True,
           executable=_BIN_BASH,
           stdout=child_pty,
-          stdin=subprocess.DEVNULL if disable_stdin else child_pty,
+          stdin=stdin,
           stderr=child_pty,
           close_fds=True)
       # The child PTY is only needed by the spawned process.
