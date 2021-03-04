@@ -26,9 +26,10 @@ import sys as _sys
 import tempfile as _tempfile
 import uuid as _uuid
 
-import pexpect.popen_spawn as _popen_spawn
-
 from google.colab import output as _output
+
+import pexpect.popen_spawn as _popen_spawn
+import psutil as _psutil
 
 __all__ = ['flush_and_unmount', 'mount']
 
@@ -263,6 +264,12 @@ def mount(mountpoint,
     elif case == 5:
       raise ValueError('mount failed: invalid oauth code')
     elif case == 6:
+      # Terminate the DriveFS binary before killing bash.
+      for p in _psutil.process_iter():
+        if p.name() == 'drive':
+          p.kill()
+      # Now kill bash.
+      d.kill(_signal.SIGKILL)
       raise ValueError(
           str(domain_disabled_drivefs) +
           ': https://support.google.com/a/answer/7496409')
