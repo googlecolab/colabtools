@@ -18,7 +18,10 @@ def enable_attach_async():
   if _dap_port:
     return _dap_port
 
+  # Changes here should be reflected in our internal debugpy config.
   debugpy.configure({
+      # We don't use qt, so we disable support to avoid spurious imports.
+      'qt': 'none',
       # b/180567283: Disable monkey patching subprocess calls which isn't
       # needed for Colab and can cause issues.
       'subProcess': False,
