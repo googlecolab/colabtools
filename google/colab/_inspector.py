@@ -511,12 +511,12 @@ class ColabInspector(oinspect.Inspector):
         init_docstring = _getdoc(init)
         if init_docstring and init_docstring != _BASE_INIT_DOC:
           out['init_docstring'] = init_docstring
-        init_def = self._getdef(init, oname)
+        init_def = _get_source_definition(init)
+        if not init_def:
+          init_def = self._getdef(init, oname)
         if init_def:
           out['init_definition'] = init_def
-        src_def = _get_source_definition(init)
-        if src_def:
-          out['source_definition'] = src_def
+
       # For classes, the __init__ method is the method invoked on call, but
       # old-style classes may not have an __init__ method.
       if init:
@@ -524,12 +524,11 @@ class ColabInspector(oinspect.Inspector):
         if argspec:
           out['argspec'] = argspec
     elif callable(obj):
-      definition = self._getdef(obj, oname)
+      definition = _get_source_definition(obj)
+      if not definition:
+        definition = self._getdef(obj, oname)
       if definition:
         out['definition'] = definition
-      src_def = _get_source_definition(obj)
-      if src_def:
-        out['source_definition'] = src_def
 
       if not oinspect.is_simple_callable(obj):
         call_docstring = _getdoc(obj.__call__)
@@ -578,6 +577,7 @@ def _get_source_definition(obj):
       function.args.args.pop(0)
 
     function.body = []
+    function.decorator_list = []
     decl = astor.to_source(
         function, indent_with='', pretty_source=join_lines).strip()
     # Strip the trailing `:`
