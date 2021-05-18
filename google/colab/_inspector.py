@@ -294,15 +294,17 @@ def _safe_repr(obj, depth=0, visited=None):
   # dicts, as they have compound entries.
   if isinstance(obj, dict):
     s = []
-    suffix = ''
     # If this is a subclass of dict, include that in the print repr.
-    prefix = ''
+    type_prefix = ''
+    length_prefix = ''
+    if depth == 0:
+      length_prefix = '({} items) '.format(
+          len(obj)) if len(obj) != 1 else '(1 item) '
     if dict is not type(obj):
-      prefix = fully_qualified_type_name
+      type_prefix = fully_qualified_type_name
     for i, (k, v) in enumerate(six.iteritems(obj)):
       if i >= _ITERABLE_SIZE_THRESHOLD:
         s.append('...')
-        suffix = ' ({} items total)'.format(len(obj))
         break
       # This is cosmetic: without it, we'd end up with {...: ...}, which is
       # uglier than {...}.
@@ -313,7 +315,7 @@ def _safe_repr(obj, depth=0, visited=None):
           _safe_repr(k, depth=depth + 1, visited=visited),
           _safe_repr(v, depth=depth + 1, visited=visited),
       )))
-    return ''.join((prefix, '{', ', '.join(s), '}', suffix))
+    return ''.join((length_prefix, type_prefix, '{', ', '.join(s), '}'))
 
   if isinstance(obj, tuple(_APPROVED_ITERABLES)):
     # Empty sets and frozensets get special treatment.
@@ -326,18 +328,20 @@ def _safe_repr(obj, depth=0, visited=None):
       if isinstance(obj, collection_type):
         # If this is a subclass of one of the basic types, include that in the
         # print repr.
-        prefix = ''
+        type_prefix = ''
+        length_prefix = ''
+        if depth == 0:
+          length_prefix = '({} items) '.format(
+              len(obj)) if len(obj) != 1 else '(1 item) '
         if collection_type is not type(obj):
-          prefix = fully_qualified_type_name
+          type_prefix = fully_qualified_type_name
         s = []
-        suffix = ''
         for i, v in enumerate(obj):
           if i >= _ITERABLE_SIZE_THRESHOLD:
             s.append('...')
-            suffix = ' ({} items total)'.format(len(obj))
             break
           s.append(_safe_repr(v, depth=depth + 1, visited=visited))
-        return ''.join((prefix, start, ', '.join(s), end, suffix))
+        return ''.join((length_prefix, type_prefix, start, ', '.join(s), end))
 
   # Other sized objects get a simple summary.
   if isinstance(obj, collections_abc.Sized):
