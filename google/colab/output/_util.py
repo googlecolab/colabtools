@@ -70,7 +70,7 @@ def serve_kernel_port_as_iframe(port,
     element.appendChild(document.createTextNode(''));
     const url = await google.colab.kernel.proxyPort(port, {cache});
     const iframe = document.createElement('iframe');
-    iframe.src = url + path;
+    iframe.src = new URL(path, url).toString();
     iframe.height = height;
     iframe.width = width;
     iframe.style.border = 0;
@@ -107,7 +107,7 @@ def serve_kernel_port_as_window(port, path='/', anchor_text=None):
     element.appendChild(document.createTextNode(''));
     const url = await google.colab.kernel.proxyPort(port);
     const anchor = document.createElement('a');
-    anchor.href = url + path;
+    anchor.href = new URL(path, url).toString();
     anchor.target = '_blank';
     anchor.setAttribute('data-href', url + path);
     anchor.textContent = text;
