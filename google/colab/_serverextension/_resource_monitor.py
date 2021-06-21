@@ -26,7 +26,6 @@ def get_gpu_usage():
     A dict of the form {
       usage: int,
       limit: int,
-      kernels: A dict mapping kernel UUIDs to ints (memory usage in bytes),
       ever_used : bool,
     }
   """
