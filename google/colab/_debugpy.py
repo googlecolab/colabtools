@@ -27,8 +27,6 @@ def enable_attach_async():
       'subProcess': False,
   })
 
-  # TODO(b/64941125): Consider moving this earlier to avoid impact on kernel
-  # connect time.
   _dap_port = portpicker.pick_unused_port()
 
   main_thread = threading.current_thread()
