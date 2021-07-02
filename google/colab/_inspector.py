@@ -66,6 +66,8 @@ _APPROVED_REPRS = (
     'numpy.int8',
 )
 
+_UNAVAILABLE_MODULE_NAME = '<unknown>'
+
 
 def _getdoc(obj):
   """Custom wrapper for inspect.getdoc.
@@ -239,6 +241,8 @@ def _safe_repr(obj, depth=0, visited=None):
 
   type_name = type(obj).__name__
   module_name = type(obj).__module__
+  if not isinstance(module_name, six.text_type):
+    module_name = _UNAVAILABLE_MODULE_NAME
   fully_qualified_type_name = '.'.join((
       module_name,
       getattr(type(obj), '__qualname__', type_name),
