@@ -100,15 +100,20 @@ class Kernel(ipkernel.IPythonKernel):
     self.session.send(stream, 'complete_reply', matches, parent, ident)
 
   def inspect_request(self, stream, ident, parent):
+    # TODO(b/147296819): Consider reverting to a `super()` call here once we
+    # support async.
     try:
-      super(Kernel, self).inspect_request(stream, ident, parent)
+      content = parent['content']
+      reply_content = self.do_inspect(content['code'], content['cursor_pos'],
+                                      content.get('detail_level', 0))
+      reply_content = json_clean(reply_content)
     except BaseException as e:  # pylint: disable=broad-except
       # TODO(b/124400682): Consider returning an error here.
       self.log.info('Error caught during object inspection: %s', e)
       reply_content = '{"status":"ok","found":false}'
-      msg = self.session.send(stream, 'inspect_reply', reply_content, parent,
-                              ident)
-      self.log.debug('%s', msg)
+    msg = self.session.send(stream, 'inspect_reply', reply_content, parent,
+                            ident)
+    self.log.debug('%s', msg)
 
 
 def _to_primitive(o):
