@@ -23,6 +23,7 @@ import logging
 import math
 import re
 import types
+import warnings
 
 import astor
 from IPython.core import oinspect
@@ -386,12 +387,16 @@ class ColabInspector(oinspect.Inspector):
     def formatvalue(value):
       return '=' + _safe_repr(value)
 
+    # TODO(b/147296819): Update this code to use inspect.Signature objects, and
+    # drop the warnings chicanery below.
     try:
       argspec = _getargspec(obj)
       if argspec is None:
         return None
-      return six.ensure_text(
-          oname + inspect.formatargspec(*argspec, formatvalue=formatvalue))
+      with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        return six.ensure_text(
+            oname + inspect.formatargspec(*argspec, formatvalue=formatvalue))
     except:  # pylint: disable=bare-except
       logging.exception('Exception raised in ColabInspector._getdef')
 
