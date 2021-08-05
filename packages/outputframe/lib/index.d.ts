@@ -197,6 +197,10 @@ export declare interface WidgetManager {
 
 /** Per-model state. */
 export declare interface ModelState {
+  modelName: string;
+  modelModule: string;
+  modelModuleVersion?: string;
+
   state: {[key: string]: unknown};
   /**
    * If connected to a kernel then this is the comm channel to the kernel.
