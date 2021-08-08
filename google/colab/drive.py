@@ -75,6 +75,8 @@ def _timeouts_path():
 
 def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
   """Unmount Google Drive and flush any outstanding writes to it."""
+  if _os.path.exists('/var/colab/mp'):
+    raise NotImplementedError(__name__ + ' is unsupported in this environment.')
   env = _env()
   if b'type fuse.drive' not in _subprocess.check_output(['/bin/mount']):
     print('Drive not mounted, so nothing to flush and unmount.')
@@ -98,6 +100,8 @@ def mount(mountpoint,
           timeout_ms=120000,
           use_metadata_server=False):
   """Mount your Google Drive at the specified mountpoint path."""
+  if _os.path.exists('/var/colab/mp'):
+    raise NotImplementedError(__name__ + ' is unsupported in this environment.')
 
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
