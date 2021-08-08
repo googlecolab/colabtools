@@ -142,8 +142,6 @@ def authenticate_user(clear_output=True):
   Raises:
     errors.AuthorizationError: If authorization fails.
   """
-  if _os.path.exists('/var/colab/mp'):
-    raise NotImplementedError(f'{__name__} is unsupported in this environment.')
   if _check_adc():
     return
   _os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
