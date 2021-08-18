@@ -176,7 +176,7 @@ def _getargspec_dict(obj):
   # the type returned by inspect.getargspec, we can't add another key
   # willy-nilly.
   #
-  # TODO(b/136556288): Remove this tweak.
+  # TODO(b/147296819): Remove this tweak.
   if 'varkw' not in d:
     d['varkw'] = d.pop('keywords')
   return d
