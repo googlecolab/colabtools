@@ -13,12 +13,28 @@
 # limitations under the License.
 """Colab-specific kernel customizations."""
 
+from google.colab import _shell
+from google.colab import _shell_customizations
 from ipykernel import ipkernel
 from ipykernel.jsonutil import json_clean
 from IPython.utils.tokenutil import token_at_cursor
 import six
-from google.colab import _shell
-from google.colab import _shell_customizations
+import zmq
+
+
+def set_unlimited_hwm():
+  ctx = zmq.Context.instance()
+  ctx.sockopts = {zmq.RCVHWM: 0, zmq.SNDHWM: 0}
+
+
+# ZMQ sockets should never silently drop messages. HWM means
+# 'high water mark' and is the number of messages after which
+# ZMQ will silently drop messages on PUB/SUB sockets.
+#
+# To adjust the default HWM of all IPython sockets, we set the sockopts field
+# of the zmq.sugar.context.Context object during IPython kernel startup.
+# (Socket options must be set prior to connection.)
+set_unlimited_hwm()
 
 
 class Kernel(ipkernel.IPythonKernel):
