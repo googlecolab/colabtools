@@ -26,6 +26,7 @@ import sys as _sys
 import tempfile as _tempfile
 import uuid as _uuid
 
+from google.colab import _message
 from google.colab import output as _output
 
 import pexpect.popen_spawn as _popen_spawn
@@ -100,11 +101,34 @@ def mount(mountpoint,
           timeout_ms=120000,
           use_metadata_server=False):
   """Mount your Google Drive at the specified mountpoint path."""
+  return _mount(
+      mountpoint,
+      force_remount=force_remount,
+      timeout_ms=timeout_ms,
+      use_metadata_server=use_metadata_server)
+
+
+def _mount(mountpoint,
+           force_remount,
+           timeout_ms,
+           use_metadata_server,
+           ephemeral=False):
+  """Internal helper to mount Google Drive."""
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
 
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
+
+  if ephemeral and not use_metadata_server:
+    raise ValueError(
+        'ephemeral is only supported when use_metadata_server is enabled.')
+
+  metadata_server_addr = _os.environ[
+      'TBE_EPHEM_CREDS_ADDR'] if ephemeral else _os.environ['TBE_CREDS_ADDR']
+  if ephemeral:
+    _message.blocking_request(
+        'request_auth', request={'authType': 'dfs_ephemeral'}, timeout_sec=None)
 
   mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
@@ -189,8 +213,7 @@ def mount(mountpoint,
   drive_exited = u'drive EXITED'
   metadata_auth_arg = (
       '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
-          metadata_server=_os.environ['TBE_CREDS_ADDR'])
-      if use_metadata_server else '')
+          metadata_server=metadata_server_addr) if use_metadata_server else '')
 
   # Create a pipe for sending the oauth code to a backgrounded drive binary.
   # (popen -> no pty -> no bash job control -> can't background post-launch).
