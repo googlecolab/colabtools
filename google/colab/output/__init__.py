@@ -17,3 +17,4 @@ from google.colab.output._area import redirect_to_element, to_default_area, to_f
 from google.colab.output._js import eval_js, register_callback
 from google.colab.output._tags import clear, temporary, use_tags
 from google.colab.output._util import serve_kernel_port_as_iframe, serve_kernel_port_as_window
+from google.colab.output._widgets import enable_custom_widget_manager, disable_custom_widget_manager
