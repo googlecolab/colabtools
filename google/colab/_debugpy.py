@@ -52,7 +52,7 @@ def enable_attach_async():
       pydev_monkey.undo_patch_thread_modules()
     except ModuleNotFoundError:
       # _pydev_bundle may be vendored into either location.
-      from pydevd._pydev_bundle import pydev_monkey  # pylint: disable=g-import-not-at-top
+      from debugpy.third_party.pydevd._pydev_bundle import pydev_monkey  # pylint: disable=g-import-not-at-top
       pydev_monkey.undo_patch_thread_modules()
 
     # Clear the trace flag to allow fetching stack traces.
