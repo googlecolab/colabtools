@@ -99,13 +99,19 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
 def mount(mountpoint,
           force_remount=False,
           timeout_ms=120000,
-          use_metadata_server=False):
+          use_metadata_server=None):
   """Mount your Google Drive at the specified mountpoint path."""
+  if use_metadata_server is not None:
+    raise ValueError('use_metadata_server is deprecated.')
+
+  use_metadata_server = ephemeral = 'USE_EPHEM' in _os.environ
+
   return _mount(
       mountpoint,
       force_remount=force_remount,
       timeout_ms=timeout_ms,
-      use_metadata_server=use_metadata_server)
+      use_metadata_server=use_metadata_server,
+      ephemeral=ephemeral)
 
 
 def _mount(mountpoint,
