@@ -101,10 +101,9 @@ def mount(mountpoint,
           timeout_ms=120000,
           use_metadata_server=None):
   """Mount your Google Drive at the specified mountpoint path."""
-  if use_metadata_server is not None:
-    raise ValueError('use_metadata_server is deprecated.')
-
-  use_metadata_server = ephemeral = 'USE_EPHEM' in _os.environ
+  ephemeral = False
+  if use_metadata_server is None:
+    use_metadata_server = ephemeral = 'USE_EPHEM' in _os.environ
 
   return _mount(
       mountpoint,
