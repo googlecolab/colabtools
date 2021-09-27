@@ -252,7 +252,8 @@ def _safe_repr(obj, depth=0, visited=None):
   # Next, we want to allow printing for ~all builtin types other than iterables.
   if isinstance(obj, (six.binary_type, six.text_type)):
     if len(obj) > _STRING_ABBREV_LIMIT:
-      return repr(obj[:_STRING_ABBREV_LIMIT] + '...')
+      ellipsis = b'...' if isinstance(obj, six.binary_type) else '...'
+      return repr(obj[:_STRING_ABBREV_LIMIT] + ellipsis)
     return repr(obj)
   # Bound methods will include the full repr of the object they're bound to,
   # which we need to avoid.
