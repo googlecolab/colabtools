@@ -1,14 +1,22 @@
 """Tools to enable debugpy attachment to a process."""
 
 import threading
+import time
+
 import debugpy
+from google.colab import _debugpy_repr
+from google.colab import _variable_inspector
+import IPython
 import portpicker
 
 _dap_port = None
 
 
-def enable_attach_async():
+def enable_attach_async(enable_inspector=False):
   """Enable a debugger to attach to this process.
+
+  Args:
+    enable_inspector: Enable variable inspector.
 
   Returns:
     The debug adapter port which can be connected to using the Debug Adapter
@@ -37,6 +45,25 @@ def enable_attach_async():
     # The client will retry the connection a few times to avoid the inherent
     # raciness of this.
     debugpy.listen(_dap_port)
+
+    if enable_inspector:
+      _debugpy_repr.patch_debugpy_repr()
+
+      inspector_thread_started = threading.Event()
+
+      def inspector_thread():
+        inspector_thread_started.set()
+        shell = IPython.get_ipython()
+        if not shell:
+          return
+        _variable_inspector.run(shell, time)
+
+      # Need to start this thread after the debugpy.listen() call but before
+      # the undo_patch_thread_modules().
+      threading.Thread(
+          target=inspector_thread, name='_colab_inspector_thread',
+          daemon=True).start()
+      inspector_thread_started.wait()
 
     # Debugger tracing isn't needed for just tracebacks, but if full debugging
     # is needed then it needs to be re-enabled while debugging.
