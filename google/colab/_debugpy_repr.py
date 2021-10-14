@@ -75,12 +75,19 @@ def patch_debugpy_repr():
   if not _original_get_var_data:
     try:
       # pytype: disable=import-error
-      from debugpy._vendored.pydevd._pydevd_bundle.pydevd_suspended_frames import _AbstractVariable  # pylint: disable=g-import-not-at-top
+      from _pydevd_bundle.pydevd_suspended_frames import _AbstractVariable  # pylint: disable=g-import-not-at-top
       # pytype: enable=import-error
       _original_get_var_data = _AbstractVariable.get_var_data
       _AbstractVariable.get_var_data = _get_var_data
     except ModuleNotFoundError:
       # _pydev_bundle may be vendored into a different location.
+      pass
+    try:
+      # pytype: disable=import-error
       from pydevd._pydevd_bundle.pydevd_suspended_frames import _AbstractVariable  # pylint: disable=g-import-not-at-top
+      # pytype: enable=import-error
       _original_get_var_data = _AbstractVariable.get_var_data
       _AbstractVariable.get_var_data = _get_var_data
+    except ModuleNotFoundError:
+      # _pydev_bundle may be vendored into a different location.
+      pass
