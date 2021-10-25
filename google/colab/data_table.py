@@ -102,8 +102,14 @@ class DataTable(_IPython.display.DisplayObject):
       return None
     # For large dataframes, fall back to pandas rather than truncating.
     if dataframe.shape[0] > cls.max_rows:
+      print(
+          ('Warning: total number of rows (%d) exceeds max_rows (%d). '
+           'Falling back to pandas display.') % (len(dataframe), cls.max_rows))
       return None
     if dataframe.shape[1] > cls.max_columns:
+      print(('Warning: Total number of columns (%d) exceeds max_columns (%d). '
+             'Falling back to pandas display.') %
+            (len(dataframe.columns), cls.max_columns))
       return None
     return cls(dataframe, **kwargs)._repr_javascript_module_()  # pylint: disable=protected-access
 
@@ -146,14 +152,14 @@ class DataTable(_IPython.display.DisplayObject):
 
   def _preprocess_dataframe(self):
     if len(self._dataframe.columns) > self._max_columns:
-      print(('Warning: Total number of columns (%d) exceeds max_columns (%d)'
-             ' limiting to first max_columns ') %
-            (len(self._dataframe.columns), self._max_columns))
+      print(
+          ('Warning: Total number of columns (%d) exceeds max_columns (%d)'
+           ' limiting to first (%d) columns.') %
+          (len(self._dataframe.columns), self._max_columns, self._max_columns))
     if len(self._dataframe) > self._max_rows:
       print(('Warning: total number of rows (%d) exceeds max_rows (%d). '
-             'Limiting to first max_rows.') %
-            (len(self._dataframe), self._max_rows))
-
+             'Limiting to first (%d) rows.') %
+            (len(self._dataframe), self._max_rows, self._max_rows))
     dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
 
     if self._include_index or dataframe.shape[1] == 0:
