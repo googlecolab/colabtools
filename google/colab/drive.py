@@ -239,7 +239,7 @@ def _mount(mountpoint,
       ]) + ' '
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
-      '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
+      '{d}/roots.pem,mount_point_path:{mnt} --noconsole_auth 2>&1 '
       '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}|{domain_disabled_drivefs}"; '
       'echo "{drive_exited}"; ) &').format(
           d=drive_dir,
@@ -291,7 +291,7 @@ def _mount(mountpoint,
         with open(fifo, 'w') as fifo_file:
           fifo_file.write(get_code(auth_prompt) + '\n')
       wrote_to_fifo = True
-    elif case == 5:
+    elif case == 5 and not use_metadata_server:
       raise ValueError('mount failed: invalid oauth code')
     elif case == 6:
       # Terminate the DriveFS binary before killing bash.
