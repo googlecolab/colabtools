@@ -1,9 +1,15 @@
 """Smoke tests for autocomplete customizations."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
 import subprocess
 import sys
 import unittest
+
+import six
 
 
 def _run_under_jupyter(code_lines):
@@ -49,6 +55,7 @@ class JupyterAutocompleteTest(unittest.TestCase):
     ])
     self.assertIn("'key'", output)
 
+  @unittest.skipIf(six.PY2, 'Type annotations only supported in Python 3.')
   def testTypeAnnotations(self):
     output = _run_under_jupyter([
         'from ipykernel.jsonutil import json_clean',

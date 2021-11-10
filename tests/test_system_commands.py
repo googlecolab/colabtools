@@ -14,6 +14,10 @@
 # limitations under the License.
 """Tests for the google.colab._system_commands package."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import contextlib
 import os
@@ -22,15 +26,24 @@ import textwrap
 import threading
 import time
 import unittest
-from unittest import mock
 
 from google.colab import _ipython
 from google.colab import _message
 from google.colab import _system_commands
+
 import IPython
 from IPython.core import interactiveshell
 from IPython.lib import pretty
 from IPython.utils import io
+
+import six
+
+# pylint:disable=g-import-not-at-top
+try:
+  import unittest.mock as mock
+except ImportError:
+  import mock
+# pylint:enable=g-import-not-at-top
 
 
 class FakeShell(interactiveshell.InteractiveShell):
@@ -386,8 +399,12 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     self.assertNotIn('_exit_code', self.ip.user_ns.keys())
     result = self.ip.user_ns['_']
     self.assertEqual(2, len(result))
-    self.assertEqual(u'猫', result[0])
-    self.assertEqual(u'You typed: 猫', result[1])
+    if six.PY2:
+      self.assertEqual(u'猫'.encode('UTF-8'), result[0])
+      self.assertEqual(u'You typed: 猫'.encode('UTF-8'), result[1])
+    else:
+      self.assertEqual(u'猫', result[0])
+      self.assertEqual(u'You typed: 猫', result[1])
 
   def testGetOutputCompatWithInterrupt(self):
     run_cell_result = self.run_cell('!!read res', provided_inputs=['interrupt'])

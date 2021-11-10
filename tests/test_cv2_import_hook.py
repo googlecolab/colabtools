@@ -13,6 +13,10 @@
 # limitations under the License.
 """Tests for _OpenCVImportHook."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import functools
 import imp
 import importlib

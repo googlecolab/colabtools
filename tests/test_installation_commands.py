@@ -14,12 +14,17 @@
 # limitations under the License.
 """Tests for the google.colab._installation_commands package."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
 import unittest
 
-from google.colab import load_ipython_extension
 import IPython
 from IPython.utils import io
+
+from google.colab import load_ipython_extension
 
 MOCKED_COMMANDS = {
     'pip install pandas':

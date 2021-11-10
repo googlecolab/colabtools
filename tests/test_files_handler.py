@@ -13,15 +13,21 @@
 # limitations under the License.
 """Tests for the google.colab._files_handler package."""
 
-import http
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import logging
 import os
 import shutil
 import tempfile
 
-from google.colab import _files_handler
+from six.moves import http_client
+
 from tornado import testing
 from tornado import web
+
+from google.colab import _files_handler
 
 
 class FakeNotebookServer(object):
@@ -58,12 +64,12 @@ class ColabAuthenticatedFileHandler(testing.AsyncHTTPTestCase):
 
   def testNonExistentFile(self):
     response = self.fetch('/files/in/some/dir/foo.py')
-    self.assertEqual(http.HTTPStatus.NOT_FOUND, response.code)
+    self.assertEqual(http_client.NOT_FOUND, response.code)
 
   def testExistingDirectory(self):
     os.makedirs(os.path.join(self.temp_dir, 'some/existing/dir'))
     response = self.fetch('/files/some/existing/dir')
-    self.assertEqual(http.HTTPStatus.FORBIDDEN, response.code)
+    self.assertEqual(http_client.FORBIDDEN, response.code)
 
   def testExistingFile(self):
     file_dir = os.path.join(self.temp_dir, 'some/existing/dir')
@@ -72,7 +78,7 @@ class ColabAuthenticatedFileHandler(testing.AsyncHTTPTestCase):
       f.write(b'Some content')
 
     response = self.fetch('/files/some/existing/dir/foo.txt')
-    self.assertEqual(http.HTTPStatus.OK, response.code)
+    self.assertEqual(http_client.OK, response.code)
     # Body is the raw file contents.
     self.assertEqual(b'Some content', response.body)
     self.assertEqual(len(b'Some content'), int(response.headers['X-File-Size']))
@@ -87,8 +93,8 @@ class ColabAuthenticatedFileHandler(testing.AsyncHTTPTestCase):
       f.write('bar')
 
     response = self.fetch('/files/../foo')
-    self.assertEqual(http.HTTPStatus.FORBIDDEN, response.code)
+    self.assertEqual(http_client.FORBIDDEN, response.code)
     response = self.fetch('/files/foo/../../../bar')
-    self.assertEqual(http.HTTPStatus.FORBIDDEN, response.code)
+    self.assertEqual(http_client.FORBIDDEN, response.code)
     response = self.fetch('/files/foo/../../bar')
-    self.assertEqual(http.HTTPStatus.FORBIDDEN, response.code)
+    self.assertEqual(http_client.FORBIDDEN, response.code)

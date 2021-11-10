@@ -13,14 +13,25 @@
 # limitations under the License.
 """Tests for the `%tensorflow_version` magic."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import os
 import sys
 import unittest
-from unittest import mock
+
+import requests
 
 from google.colab import _tensorflow_magics
-import requests
+
+# pylint:disable=g-import-not-at-top
+try:
+  import unittest.mock as mock
+except ImportError:
+  import mock
+# pylint:enable=g-import-not-at-top
 
 
 class TensorflowMagicsTest(unittest.TestCase):
