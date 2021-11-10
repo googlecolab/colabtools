@@ -13,17 +13,10 @@
 # limitations under the License.
 """Tests for _AltairImportHook."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import importlib
 import os
 import sys
 import unittest
-
-import six
-from six.moves import reload_module
 
 from google.colab._import_hooks import _altair
 
@@ -46,8 +39,6 @@ class AltairImportHookTest(unittest.TestCase):
     sys.modules.pop('altair', None)
 
   def testRunsInitCodeOnImportWithFailure(self):
-    if six.PY2:
-      self.skipTest('Altair not available in Python 2')
     _altair._register_hook()
 
     altair = importlib.import_module('altair')
@@ -62,7 +53,7 @@ class AltairImportHookTest(unittest.TestCase):
     altair.renderers.enable('default')
     self.assertEqual('default', altair.renderers.active)
 
-    altair = reload_module(altair)
+    altair = importlib.reload(altair)
     self.assertNotIn('COLAB_ALTAIR_IMPORT_HOOK_EXCEPTION', os.environ)
     self.assertIn('altair', sys.modules)
     self.assertEqual('default', altair.renderers.active)

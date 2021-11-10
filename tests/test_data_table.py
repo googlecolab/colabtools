@@ -13,23 +13,12 @@
 # limitations under the License.
 """Tests for google.colab.data_table."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import unittest
-import IPython
-
-import pandas as pd
+from unittest import mock
 
 from google.colab import data_table
-
-#  pylint:disable=g-import-not-at-top
-try:
-  from unittest import mock  #  pylint:disable=g-importing-member
-except ImportError:
-  import mock
-#  pylint:enable=g-import-not-at-top
+import IPython
+import pandas as pd
 
 
 class DataTableTest(unittest.TestCase):

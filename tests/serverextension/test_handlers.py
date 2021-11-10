@@ -1,4 +1,3 @@
-# Lint as: python2, python3
 # Copyright 2018 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,31 +13,19 @@
 # limitations under the License.
 """Tests for the google.colab._handlers package."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 from distutils import spawn
 import logging
 import subprocess
 import sys
-
-import psutil
-
-from tornado import escape
-from tornado import testing
-from tornado import web
+from unittest import mock
 
 from google.colab import _serverextension
 from google.colab._serverextension import _handlers
-
-# pylint:disable=g-import-not-at-top
-try:
-  import unittest.mock as mock
-except ImportError:
-  import mock
-# pylint:enable=g-import-not-at-top
+import psutil
+from tornado import escape
+from tornado import testing
+from tornado import web
 
 
 class FakeNotebookServer(object):
