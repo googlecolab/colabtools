@@ -26,9 +26,15 @@ from __future__ import print_function as _
 
 import json as _json
 import traceback as _traceback
+import uuid as _uuid
 import warnings as _warnings
+import weakref as _weakref
+
+from google.colab import _interactive_table_helper
+from google.colab import output as _output
 import IPython as _IPython
 import six as _six
+
 # pylint: disable=g-import-not-at-top
 with _warnings.catch_warnings():
   # Importing via IPython raises a spurious warning, but avoids a version
@@ -36,7 +42,6 @@ with _warnings.catch_warnings():
   _warnings.simplefilter('ignore')
   from IPython.utils import traitlets as _traitlets
 
-from google.colab import _interactive_table_helper
 # pylint: enable=g-import-not-at-top
 
 
@@ -304,3 +309,86 @@ def load_ipython_extension(ipython):  # pylint: disable=unused-argument
 def unload_ipython_extension(ipython):  # pylint: disable=unused-argument
   """Disable DataTable output for all Pandas dataframes."""
   disable_dataframe_formatter()
+
+
+# Cache of non-interactive dfs that still have live references and could be
+# printed as interactive dfs.
+_noninteractive_df_refs = _weakref.WeakValueDictionary()
+
+# Single entry cache that stores a shallow copy of the last printed df.
+_last_noninteractive_df = {}
+
+
+def _convert_to_interactive(key):
+  """Converts a stored df into a data table if we still hold a ref to it."""
+  if key in _last_noninteractive_df:
+    return DataTable(_last_noninteractive_df.pop(key))
+  elif key in _noninteractive_df_refs:
+    return DataTable(_noninteractive_df_refs.pop(key))
+  print(
+      'Error: Runtime no longer has a reference to this dataframe, please re-run this cell and try again.'
+  )
+
+
+_output_callbacks = {}
+
+
+def _df_formatter_with_interactive_hint(dataframe):
+  """Alternate df formatter that includes a button to convert to interactive."""
+  key = 'df-' + str(_uuid.uuid4())
+  _noninteractive_df_refs[key] = dataframe
+
+  # Ensure our last value cache only contains one item.
+  _last_noninteractive_df.clear()
+  _last_noninteractive_df[key] = dataframe.copy(deep=False)
+
+  convert_func = 'convertToInteractive'
+  if convert_func not in _output_callbacks:
+    _output_callbacks[convert_func] = _output.register_callback(
+        convert_func, _convert_to_interactive)
+
+  # pylint: disable=protected-access
+  return """
+  <div id="{key}">""".format(key=key) + dataframe._repr_html_() + """
+  <script>
+    const buttonEl = document.querySelector('#{key} > button.colab');
+    buttonEl.style.display = google.colab.kernel.accessAllowed ? 'block' : 'none';
+
+    async function convertToInteractive(key) {{
+      const element = document.querySelector('#{key}');
+      const dataTable = await google.colab.kernel.invokeFunction('convertToInteractive', [key], {{}});
+      if (dataTable) {{
+        const docLink = 'Like what you see? Visit the ' +
+          '<a target="_blank" href={data_table_url}>data table notebook</a>' +
+          'to learn more about interactive tables.';
+        element.innerHTML = docLink;
+        dataTable['output_type'] = 'display_data';
+        google.colab.output.renderOutput(dataTable, element);
+      }}
+    }}
+  </script>
+  <button class='colab' onclick="convertToInteractive('{key}')" style="display:none;">
+    Convert to Interactive Table
+  </button>
+  </div>
+  """.format(
+      key=key, data_table_url=_DATA_TABLE_HELP_URL)
+
+
+def _enable_df_interactive_hint_formatter():
+  """Formatter that surfaces the existence of interactive tables to user."""
+  key = 'text/html'
+  if key not in _original_formatters:
+    formatters = _IPython.get_ipython().display_formatter.formatters
+    _original_formatters[key] = formatters[key].for_type_by_name(
+        'pandas.core.frame', 'DataFrame', _df_formatter_with_interactive_hint)
+
+
+def _disable_df_interactive_hint_formatter():
+  """Restores the original html formatter for Pandas DataFrames."""
+  key = 'text/html'
+  if key in _original_formatters:
+    formatters = _IPython.get_ipython().display_formatter.formatters
+    formatters[key].pop('pandas.core.frame.DataFrame', None)
+    formatters[key].for_type_by_name('pandas.core.frame', 'DataFrame',
+                                     _original_formatters.pop(key))
