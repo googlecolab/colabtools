@@ -29,20 +29,20 @@ _ICON_SVG = """
 _HINT_BUTTON_CSS = """
   <style>
     .colab-df-convert {
-      background-color: #f7f7f7;
+      background-color: #E3F2FD;
       border: none;
       border-radius: 50%;
       cursor: pointer;
       display: none;
-      fill: #212121;
+      fill: #1976D2;
       height: 32px;
-      margin: 0 0 0 6px;
+      margin: 0 0 0 12px;
       padding: 0 0 0 0;
       width: 32px;
     }
 
     .colab-df-convert:hover {
-      background-color: #e0e0e0;
+      background-color: #BBDEFB;
     }
   </style>
 """
@@ -112,7 +112,7 @@ def _get_html(dataframe, key):
 
           const docLink = '<div>Like what you see? Visit the ' +
             '<a target="_blank" href={data_table_url}>data table notebook</a>'
-            + 'to learn more about interactive tables.</div>';
+            + ' to learn more about interactive tables.</div>';
           element.innerHTML = '';
           dataTable['output_type'] = 'display_data';
           await google.colab.output.renderOutput(dataTable, element);
