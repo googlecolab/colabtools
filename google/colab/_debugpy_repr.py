@@ -1,6 +1,7 @@
 """Customization of debugpy representation of variables."""
 
 import collections.abc as collections_abc
+import logging
 
 # Notes on debugpy's reprs-
 # Variables are serialized starting in
@@ -51,11 +52,15 @@ def get_shape(obj):
     A string representing the shape or none.
   """
   if isinstance(obj, collections_abc.Sized):
-    shape = getattr(obj, 'shape', None)
-    if (isinstance(shape, tuple) or
-        hasattr(shape, '__module__') and isinstance(shape.__module__, str) and
-        'tensorflow.' in shape.__module__):
-      return str(shape)
+    try:
+      shape = getattr(obj, 'shape', None)
+      if (isinstance(shape, tuple) or
+          hasattr(shape, '__module__') and isinstance(shape.__module__, str) and
+          'tensorflow.' in shape.__module__):
+        return str(shape)
+    except Exception:  # pylint: disable=broad-except
+      logging.exception('Unexpected exception finding object shape')
+      return None
 
   if isinstance(obj, _CONTAINER_TYPES):
     return '{} items'.format(len(obj)) if len(obj) != 1 else '1 item'
