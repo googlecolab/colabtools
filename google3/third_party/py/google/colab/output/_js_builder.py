@@ -239,7 +239,7 @@ class Js(object):
        # the result of my_function computation.
        x = output.js_global.my_class.my_function(1, 2, 3)
        # This gets the value to python
-       print x.eval()
+       x.eval()
 
     This works with any javascript mode.
     Returns:

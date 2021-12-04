@@ -71,7 +71,7 @@ class FakeUsage(object):
   @staticmethod
   def fake_check_output(cmdline):
     output = ''
-    if cmdline[0] == 'ps':
+    if cmdline[0] == '/bin/ps':
       output = FakeUsage._ps_output
     elif 'nvidia-smi' in cmdline:
       output = FakeUsage._nvidia_smi_output

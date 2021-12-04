@@ -27,16 +27,16 @@ import threading
 import time
 import unittest
 
+from google.colab import _ipython
+from google.colab import _message
+from google.colab import _system_commands
+
 import IPython
 from IPython.core import interactiveshell
 from IPython.lib import pretty
 from IPython.utils import io
 
 import six
-
-from google.colab import _ipython
-from google.colab import _message
-from google.colab import _system_commands
 
 # pylint:disable=g-import-not-at-top
 try:
@@ -77,16 +77,11 @@ class SystemCommandsTest(unittest.TestCase):
     cls.ip = IPython.get_ipython()
 
     cls.orig_pty_max_read_bytes = _system_commands._PTY_READ_MAX_BYTES_FOR_TEST
-    cls.orig_lc_all = os.environ.get('LC_ALL')
 
   def setUp(self):
     super(SystemCommandsTest, self).setUp()
     self.ip.reset()
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = self.orig_pty_max_read_bytes
-    if self.orig_lc_all is None:
-      os.environ.pop('LC_ALL', '')
-    else:
-      os.environ['LC_ALL'] = self.orig_lc_all
 
   def testSubprocessOutputCaptured(self):
     run_cell_result = self.run_cell("""
@@ -120,6 +115,34 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     # 2) Read call with "-s" option
     # 3) Call to bash echo command.
     self.assertEqual([True, False, True], run_cell_result.update_calls)
+
+  def testStdinDisabledNoInputRequested(self):
+    with temp_env(COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS='1'):
+      run_cell_result = self.run_cell('r = %shell echo "hello world"')
+      captured_output = run_cell_result.output
+
+      self.assertEqual('', captured_output.stderr)
+      self.assertEqual('hello world\n', captured_output.stdout)
+      result = self.ip.user_ns['r']
+      self.assertEqual(result.returncode, 0)
+
+  def testStdinDisabled(self):
+    with temp_env(COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS='1'):
+      run_cell_result = self.run_cell(
+          textwrap.dedent("""
+        import subprocess
+        try:
+          %shell read result
+        except subprocess.CalledProcessError as e:
+          caught_exception = e
+        """))
+      captured_output = run_cell_result.output
+
+      self.assertEqual('', captured_output.stderr)
+      self.assertEqual('', captured_output.stdout)
+      result = self.ip.user_ns['caught_exception']
+      self.assertEqual(1, result.returncode)
+      self.assertEqual('', result.output)
 
   def testStdinRequired(self):
     run_cell_result = self.run_cell(
@@ -230,6 +253,17 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     self.assertEqual(0, result.returncode)
     self.assertEqual(u'Dogs is 小狗', result.output)
 
+  def testNonUtf8Cmd(self):
+    # Regression test for b/177070077
+    run_cell_result = self.run_cell(u'r = %shell printf "\\200" ; echo -n Yay')
+    captured_output = run_cell_result.output
+
+    self.assertEqual('', captured_output.stderr)
+    self.assertEqual(u'�Yay', captured_output.stdout)
+    result = self.ip.user_ns['r']
+    self.assertEqual(0, result.returncode)
+    self.assertEqual(u'�Yay', result.output)
+
   def testUnicodeInputAndOutput(self):
     # "猫" is "cats" in simplified Chinese and its representation requires
     # three bytes. Force reading only one byte at a time and ensure that the
@@ -304,21 +338,20 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 
   def testNonUtf8Locale(self):
     # The "C" locale uses the US-ASCII 7-bit character set.
-    os.environ['LC_ALL'] = 'C'
+    with temp_env(LC_ALL='C'):
+      run_cell_result = self.run_cell(
+          textwrap.dedent("""
+        import subprocess
+        try:
+          %shell echo "should fail"
+        except NotImplementedError as e:
+          caught_exception = e
+        """))
+      captured_output = run_cell_result.output
 
-    run_cell_result = self.run_cell(
-        textwrap.dedent("""
-      import subprocess
-      try:
-        %shell echo "should fail"
-      except NotImplementedError as e:
-        caught_exception = e
-      """))
-    captured_output = run_cell_result.output
-
-    self.assertEqual('', captured_output.stderr)
-    self.assertEqual('', captured_output.stdout)
-    self.assertIsNotNone(self.ip.user_ns['caught_exception'])
+      self.assertEqual('', captured_output.stderr)
+      self.assertEqual('', captured_output.stdout)
+      self.assertIsNotNone(self.ip.user_ns['caught_exception'])
 
   def testSystemCompat(self):
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
@@ -487,6 +520,17 @@ class DisplayStdinWidgetTest(unittest.TestCase):
             parent='12345'),
         mock.call('cell_remove_stdin', {}, expect_reply=False, parent='12345'),
     ])
+
+
+@contextlib.contextmanager
+def temp_env(**env_variables):
+  old_env = dict(os.environ)
+  os.environ.update(env_variables)
+  try:
+    yield
+  finally:
+    os.environ.clear()
+    os.environ.update(old_env)
 
 
 def create_mock_stdin_widget():

@@ -43,10 +43,9 @@ import mimetypes
 import uuid
 import weakref
 
+from google.colab.html import _background_server
 import six
 import tornado.web
-
-from google.colab.html import _background_server
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -177,7 +176,7 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
       extension: Optional extension to add to the url.
       route: Optional route to serve on.
     Returns:
-      The the `_Resource` object which will be served and will provide its url.
+      The `_Resource` object which will be served and will provide its url.
     Raises:
       ValueError: If you don't provide one of content, filepath, or handler.
     """

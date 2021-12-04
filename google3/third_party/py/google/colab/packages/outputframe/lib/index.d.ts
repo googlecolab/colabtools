@@ -105,11 +105,11 @@ declare namespace google.colab.kernel.comms {
     /**
      * Send a comm message to the kernel.
      * @param data The message data to be sent.
-     * @param buffers Any binary buffers to be included in the message.
+     * @param opts Any binary buffers to be included in the message.
      * @return Promise which will be resolved when the kernel successfully
      *     receives the comm message.
      */
-    send(data: JsonType, buffers?: ArrayBuffer[]): Promise<void>;
+    send(data: JsonType, opts?: {buffers?: ArrayBuffer[]}): Promise<void>;
     /**
      * Closes the comm channel and notifies the kernel that the channel
      * is closed.
@@ -149,4 +149,62 @@ declare namespace google.colab.kernel.comms {
    */
   export function registerTarget(
       targetName: string, callback: (comm: Comm) => void): void;
+}
+
+declare namespace google.colab.widgets {
+  /**
+   * @param url URL to an ES6 module exporting a WidgetManagerModule API.
+   * @param args custom arguments to `createWidgetManager`.
+   */
+  // tslint:disable-next-line:no-any
+  function installCustomManager(url: string, args: any): void;
+}
+
+/**
+ * The interface a custom widget manager ES6 module is expected to
+ * implement.
+ *
+ * In plain code this means that the module would export a method such as:
+ *
+ * ```
+ *    export function createWidgetManager(environment: WidgetEnvironment) {
+ *       ...
+ *    }
+ * ```
+ */
+ export declare interface WidgetManagerModule {
+  createWidgetManager(state: WidgetEnvironment, arguments?: unknown):
+      WidgetManager;
+}
+
+/**
+ * The host API of the widget manager.
+ */
+ export declare interface WidgetEnvironment {
+  /**
+   * @param modelId The ID of the model for which the model state is desired.
+   */
+  getModelState(modelId: string): Promise<ModelState|undefined>;
+}
+
+/** Custom widget manager. */
+export declare interface WidgetManager {
+  /**
+   * Render the model specified by modelId into the container element.
+   */
+  render(modelId: string, container: Element): Promise<void>;
+}
+
+/** Per-model state. */
+export declare interface ModelState {
+  modelName: string;
+  modelModule: string;
+  modelModuleVersion?: string;
+
+  state: {[key: string]: unknown};
+  /**
+   * If connected to a kernel then this is the comm channel to the kernel.
+   * This will only be set if currently connected to a kernel.
+   */
+  comm?: google.colab.kernel.comms.Comm;
 }

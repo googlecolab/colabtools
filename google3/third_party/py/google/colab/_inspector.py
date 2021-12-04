@@ -23,6 +23,7 @@ import logging
 import math
 import re
 import types
+import warnings
 
 import astor
 from IPython.core import oinspect
@@ -65,6 +66,8 @@ _APPROVED_REPRS = (
     'numpy.int64',
     'numpy.int8',
 )
+
+_UNAVAILABLE_MODULE_NAME = '<unknown>'
 
 
 def _getdoc(obj):
@@ -173,7 +176,7 @@ def _getargspec_dict(obj):
   # the type returned by inspect.getargspec, we can't add another key
   # willy-nilly.
   #
-  # TODO(b/136556288): Remove this tweak.
+  # TODO(b/147296819): Remove this tweak.
   if 'varkw' not in d:
     d['varkw'] = d.pop('keywords')
   return d
@@ -239,6 +242,8 @@ def _safe_repr(obj, depth=0, visited=None):
 
   type_name = type(obj).__name__
   module_name = type(obj).__module__
+  if not isinstance(module_name, six.text_type):
+    module_name = _UNAVAILABLE_MODULE_NAME
   fully_qualified_type_name = '.'.join((
       module_name,
       getattr(type(obj), '__qualname__', type_name),
@@ -247,7 +252,8 @@ def _safe_repr(obj, depth=0, visited=None):
   # Next, we want to allow printing for ~all builtin types other than iterables.
   if isinstance(obj, (six.binary_type, six.text_type)):
     if len(obj) > _STRING_ABBREV_LIMIT:
-      return repr(obj[:_STRING_ABBREV_LIMIT] + '...')
+      ellipsis = b'...' if isinstance(obj, six.binary_type) else '...'
+      return repr(obj[:_STRING_ABBREV_LIMIT] + ellipsis)
     return repr(obj)
   # Bound methods will include the full repr of the object they're bound to,
   # which we need to avoid.
@@ -294,15 +300,17 @@ def _safe_repr(obj, depth=0, visited=None):
   # dicts, as they have compound entries.
   if isinstance(obj, dict):
     s = []
-    suffix = ''
     # If this is a subclass of dict, include that in the print repr.
-    prefix = ''
+    type_prefix = ''
+    length_prefix = ''
+    if depth == 0:
+      length_prefix = '({} items) '.format(
+          len(obj)) if len(obj) != 1 else '(1 item) '
     if dict is not type(obj):
-      prefix = fully_qualified_type_name
+      type_prefix = fully_qualified_type_name
     for i, (k, v) in enumerate(six.iteritems(obj)):
       if i >= _ITERABLE_SIZE_THRESHOLD:
         s.append('...')
-        suffix = ' ({} items total)'.format(len(obj))
         break
       # This is cosmetic: without it, we'd end up with {...: ...}, which is
       # uglier than {...}.
@@ -313,7 +321,7 @@ def _safe_repr(obj, depth=0, visited=None):
           _safe_repr(k, depth=depth + 1, visited=visited),
           _safe_repr(v, depth=depth + 1, visited=visited),
       )))
-    return ''.join((prefix, '{', ', '.join(s), '}', suffix))
+    return ''.join((length_prefix, type_prefix, '{', ', '.join(s), '}'))
 
   if isinstance(obj, tuple(_APPROVED_ITERABLES)):
     # Empty sets and frozensets get special treatment.
@@ -326,18 +334,20 @@ def _safe_repr(obj, depth=0, visited=None):
       if isinstance(obj, collection_type):
         # If this is a subclass of one of the basic types, include that in the
         # print repr.
-        prefix = ''
+        type_prefix = ''
+        length_prefix = ''
+        if depth == 0:
+          length_prefix = '({} items) '.format(
+              len(obj)) if len(obj) != 1 else '(1 item) '
         if collection_type is not type(obj):
-          prefix = fully_qualified_type_name
+          type_prefix = fully_qualified_type_name
         s = []
-        suffix = ''
         for i, v in enumerate(obj):
           if i >= _ITERABLE_SIZE_THRESHOLD:
             s.append('...')
-            suffix = ' ({} items total)'.format(len(obj))
             break
           s.append(_safe_repr(v, depth=depth + 1, visited=visited))
-        return ''.join((prefix, start, ', '.join(s), end, suffix))
+        return ''.join((length_prefix, type_prefix, start, ', '.join(s), end))
 
   # Other sized objects get a simple summary.
   if isinstance(obj, collections_abc.Sized):
@@ -378,12 +388,16 @@ class ColabInspector(oinspect.Inspector):
     def formatvalue(value):
       return '=' + _safe_repr(value)
 
+    # TODO(b/147296819): Update this code to use inspect.Signature objects, and
+    # drop the warnings chicanery below.
     try:
       argspec = _getargspec(obj)
       if argspec is None:
         return None
-      return six.ensure_text(
-          oname + inspect.formatargspec(*argspec, formatvalue=formatvalue))
+      with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        return six.ensure_text(
+            oname + inspect.formatargspec(*argspec, formatvalue=formatvalue))
     except:  # pylint: disable=bare-except
       logging.exception('Exception raised in ColabInspector._getdef')
 
@@ -511,12 +525,12 @@ class ColabInspector(oinspect.Inspector):
         init_docstring = _getdoc(init)
         if init_docstring and init_docstring != _BASE_INIT_DOC:
           out['init_docstring'] = init_docstring
-        init_def = self._getdef(init, oname)
+        init_def = _get_source_definition(init)
+        if not init_def:
+          init_def = self._getdef(init, oname)
         if init_def:
           out['init_definition'] = init_def
-        src_def = _get_source_definition(init)
-        if src_def:
-          out['source_definition'] = src_def
+
       # For classes, the __init__ method is the method invoked on call, but
       # old-style classes may not have an __init__ method.
       if init:
@@ -524,12 +538,11 @@ class ColabInspector(oinspect.Inspector):
         if argspec:
           out['argspec'] = argspec
     elif callable(obj):
-      definition = self._getdef(obj, oname)
+      definition = _get_source_definition(obj)
+      if not definition:
+        definition = self._getdef(obj, oname)
       if definition:
         out['definition'] = definition
-      src_def = _get_source_definition(obj)
-      if src_def:
-        out['source_definition'] = src_def
 
       if not oinspect.is_simple_callable(obj):
         call_docstring = _getdoc(obj.__call__)
@@ -578,6 +591,7 @@ def _get_source_definition(obj):
       function.args.args.pop(0)
 
     function.body = []
+    function.decorator_list = []
     decl = astor.to_source(
         function, indent_with='', pretty_source=join_lines).strip()
     # Strip the trailing `:`

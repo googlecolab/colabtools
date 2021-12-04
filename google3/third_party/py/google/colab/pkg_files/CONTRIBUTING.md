@@ -1,3 +1,3 @@
 # How to Contribute
 
-See the README.
+See the [README](README.md).
