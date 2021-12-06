@@ -15,6 +15,8 @@ with warnings.catch_warnings():
 
 _original_string_formatters = {}
 
+_original_df_formatters = {}
+
 
 def _string_intrinsic_repr(_):
   # Add additional data which will let the frontend know this is
@@ -68,3 +70,33 @@ def disable_string_repr():
     # pop() handles the case of original_formatter = None.
     formatters[key].pop(str)
     formatters[key].for_type(str, _original_string_formatters.pop(key))
+
+
+def enable_df_style_formatter():
+  """Enable colab's custom styling for pandas Styler objects."""
+  key = 'text/html'
+  if key in _original_df_formatters:
+    return
+
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+
+  formatters = shell.display_formatter.formatters
+
+  def new_formatter(dataframe):
+    return dataframe.set_table_attributes('class="dataframe"')._repr_html_()  # pylint: disable=protected-access
+
+  _original_df_formatters[key] = formatters[key].for_type_by_name(
+      'pandas.io.formats.style', 'Styler', new_formatter)
+
+
+def disable_df_style_formatter():
+  """Disable colab's custom styling for pandas Styler objects."""
+  key = 'text/html'
+  if key not in _original_df_formatters:
+    return
+  formatters = IPython.get_ipython().display_formatter.formatters
+  formatters[key].pop('pandas.io.formats.style.Styler')
+  formatters[key].for_type_by_name('pandas.io.formats.style', 'Styler',
+                                   _original_df_formatters.pop(key))

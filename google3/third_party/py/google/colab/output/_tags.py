@@ -16,16 +16,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import contextlib
 
+import contextlib
 import sys
 import threading
 import uuid
 
+from google.colab import _ipython as ipython
 import IPython
 from IPython import display
 import six
-from google.colab import _ipython as ipython
 
 
 def _add_or_remove_tags(tags_to_add=(), tags_to_remove=()):
@@ -135,8 +135,8 @@ def clear(wait=False, output_tags=()):
     from google.colab import output
     with output.use_tag('conversation'):
       with output.use_tag('introduction'):
-         print 'Hello'
-      print 'Bye'
+         print('Hello')
+      print('Bye')
 
     # This will remove 'hello' from the output
     output.clear(output_tags='introduction')
@@ -146,10 +146,10 @@ def clear(wait=False, output_tags=()):
   If wait is true, the operation will be deferred
   until next output statement. For example:
 
-    print "hello"
+    print("hello")
     output.clear(wait=True)
     time.sleep(10)
-    print "bye"
+    print("bye")
 
   will have "Hello" printed for 10 seconds, then replace it with "bye".
 

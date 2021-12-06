@@ -26,9 +26,11 @@ import sys as _sys
 import tempfile as _tempfile
 import uuid as _uuid
 
-import pexpect.popen_spawn as _popen_spawn
-
+from google.colab import _message
 from google.colab import output as _output
+
+import pexpect.popen_spawn as _popen_spawn
+import psutil as _psutil
 
 __all__ = ['flush_and_unmount', 'mount']
 
@@ -49,6 +51,9 @@ def _env():
     home = _os.path.join(root_dir, home)
     inet_family = 'IPV6_ONLY'
     fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
+    if 'BORG_ALLOC_DIR' in _os.environ:
+      # For support in guitar cluster invocations.
+      fum = _os.environ['BORG_ALLOC_DIR'] + '/alloc/fusermount'
     dev = fum + '/dev/fuse'
     path = path + ':' + fum + '/bin'
   config_dir = _os.path.join(home, '.config', 'Google')
@@ -71,6 +76,8 @@ def _timeouts_path():
 
 def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
   """Unmount Google Drive and flush any outstanding writes to it."""
+  if _os.path.exists('/var/colab/mp'):
+    raise NotImplementedError(__name__ + ' is unsupported in this environment.')
   env = _env()
   if b'type fuse.drive' not in _subprocess.check_output(['/bin/mount']):
     print('Drive not mounted, so nothing to flush and unmount.')
@@ -91,12 +98,42 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
 
 def mount(mountpoint,
           force_remount=False,
-          timeout_ms=60000,
-          use_metadata_server=False):
+          timeout_ms=120000,
+          use_metadata_server=None):
   """Mount your Google Drive at the specified mountpoint path."""
+  ephemeral = False
+  if use_metadata_server is None:
+    use_metadata_server = ephemeral = _os.environ.get('USE_EPHEM', '0') == '1'
+
+  return _mount(
+      mountpoint,
+      force_remount=force_remount,
+      timeout_ms=timeout_ms,
+      use_metadata_server=use_metadata_server,
+      ephemeral=ephemeral)
+
+
+def _mount(mountpoint,
+           force_remount=False,
+           timeout_ms=120000,
+           use_metadata_server=False,
+           ephemeral=False):
+  """Internal helper to mount Google Drive."""
+  if _os.path.exists('/var/colab/mp'):
+    raise NotImplementedError(__name__ + ' is unsupported in this environment.')
 
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
+
+  if ephemeral and not use_metadata_server:
+    raise ValueError(
+        'ephemeral is only supported when use_metadata_server is enabled.')
+
+  metadata_server_addr = _os.environ[
+      'TBE_EPHEM_CREDS_ADDR'] if ephemeral else _os.environ['TBE_CREDS_ADDR']
+  if ephemeral:
+    _message.blocking_request(
+        'request_auth', request={'authType': 'dfs_ephemeral'}, timeout_sec=None)
 
   mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
@@ -137,7 +174,7 @@ def mount(mountpoint,
           'FUSE_DEV_NAME': dev,
           'PATH': path
       })
-  d.sendline('export PS1="{}"'.format(prompt))
+  d.sendline('unset HISTFILE; export PS1="{}"'.format(prompt))
   d.expect(prompt)  # The new prompt.
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
@@ -175,13 +212,13 @@ def mount(mountpoint,
 
   oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
   oauth_failed = u'Authorization failed'
+  domain_disabled_drivefs = u'The domain policy has disabled Drive File Stream'
   problem_and_stopped = (
       u'Drive File Stream encountered a problem and has stopped')
   drive_exited = u'drive EXITED'
   metadata_auth_arg = (
       '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
-          metadata_server=_os.environ['TBE_CREDS_ADDR'])
-      if use_metadata_server else '')
+          metadata_server=metadata_server_addr) if use_metadata_server else '')
 
   # Create a pipe for sending the oauth code to a backgrounded drive binary.
   # (popen -> no pty -> no bash job control -> can't background post-launch).
@@ -193,31 +230,30 @@ def mount(mountpoint,
       'cat {fifo} | head -1 | ( {d}/drive '
       '--features=' + ','.join([
           'fuse_max_background:1000',
-          'max_bytes_per_fetch_content_request:134217728',
           'max_read_qps:1000',
           'max_write_qps:1000',
           'max_operation_batch_size:15',
           'max_parallel_push_task_instances:10',
           'opendir_timeout_ms:{timeout_ms}',
-          'shortcut_support:true',
           'virtual_folders_omit_spaces:true',
       ]) + ' '
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
       '{d}/roots.pem,mount_point_path:{mnt} --console_auth 2>&1 '
-      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}"; '
+      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}|{domain_disabled_drivefs}"; '
       'echo "{drive_exited}"; ) &').format(
           d=drive_dir,
           timeout_ms=timeout_ms,
           mnt=mountpoint,
           fifo=fifo,
           oauth_failed=oauth_failed,
+          domain_disabled_drivefs=domain_disabled_drivefs,
           oauth_prompt=oauth_prompt,
           problem_and_stopped=problem_and_stopped,
           drive_exited=drive_exited))
   d.expect(prompt)
 
-  # LINT.IfChange(drivetimedout)
+  # LINT.IfChange(drivetimeout)
   timeout_pattern = 'QueryManager timed out'
   # LINT.ThenChange()
   dfs_log = _os.path.join(_logs_dir(), 'drive_fs.txt')
@@ -234,6 +270,7 @@ def mount(mountpoint,
         problem_and_stopped,
         drive_exited,
         oauth_failed,
+        domain_disabled_drivefs,
     ])
     if case == 0:
       break
@@ -256,6 +293,16 @@ def mount(mountpoint,
       wrote_to_fifo = True
     elif case == 5:
       raise ValueError('mount failed: invalid oauth code')
+    elif case == 6:
+      # Terminate the DriveFS binary before killing bash.
+      for p in _psutil.process_iter():
+        if p.name() == 'drive':
+          p.kill()
+      # Now kill bash.
+      d.kill(_signal.SIGKILL)
+      raise ValueError(
+          str(domain_disabled_drivefs) +
+          ': https://support.google.com/a/answer/7496409')
   if not wrote_to_fifo:
     with open(fifo, 'w') as fifo_file:
       fifo_file.write('ignored\n')

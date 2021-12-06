@@ -18,6 +18,7 @@ import os
 import notebook.transutils as _  # must import before below to prevent NameError
 # pylint: disable=g-bad-import-order
 from notebook.services.contents import largefilemanager
+import traitlets
 
 
 class ColabFileContentsManager(largefilemanager.LargeFileManager):
@@ -26,6 +27,10 @@ class ColabFileContentsManager(largefilemanager.LargeFileManager):
   # TODO(b/124535699): can be removed after updating jupyter/notebook to >=5.5.0
   # pylint: disable=g-line-too-long
   # From https://github.com/jupyter/notebook/commit/174e72417493a7eb5ab5db0a9d99df0a4b0acb09
+
+  @traitlets.default('delete_to_trash')
+  def _default_delete_to_trash(self):
+    return False
 
   # pylint: disable=redefined-builtin
   def get(self, path, content=True, type=None, format=None):

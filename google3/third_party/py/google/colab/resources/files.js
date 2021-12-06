@@ -136,7 +136,7 @@ function* uploadFilesStep(inputId, outputId) {
 
     // Use a chunked sending to avoid message size limits. See b/62115660.
     let position = 0;
-    while (position < fileData.byteLength) {
+    do {
       const length = Math.min(fileData.byteLength - position, MAX_PAYLOAD_SIZE);
       const chunk = new Uint8Array(fileData, position, length);
       position += length;
@@ -149,9 +149,13 @@ function* uploadFilesStep(inputId, outputId) {
           data: base64,
         },
       };
-      percent.textContent =
-          `${Math.round((position / fileData.byteLength) * 100)}% done`;
-    }
+
+      let percentDone = fileData.byteLength === 0 ?
+          100 :
+          Math.round((position / fileData.byteLength) * 100);
+      percent.textContent = `${percentDone}% done`;
+
+    } while (position < fileData.byteLength);
   }
 
   // All done.

@@ -39,6 +39,7 @@ from google.colab.output import _tags
 # Linux read(2) limits to 0x7ffff000 so stay under that for clarity.
 _PTY_READ_MAX_BYTES_FOR_TEST = 2**20  # 1MB
 
+_BIN_BASH = os.environ.get('BIN_BASH_OVERRIDE_FOR_TEST', '/bin/bash')
 _ENCODING = 'UTF-8'
 
 
@@ -174,6 +175,9 @@ def _run_command(cmd, clear_streamed_output):
       parent_pty,
       (select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR))
 
+  stdin = child_pty
+  if os.getenv('COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS', None):
+    stdin = os.open(os.devnull, os.O_RDWR)
   try:
     temporary_clearer = _tags.temporary if clear_streamed_output else _no_op
 
@@ -184,9 +188,9 @@ def _run_command(cmd, clear_streamed_output):
       p = subprocess.Popen(
           cmd,
           shell=True,
-          executable='/bin/bash',
+          executable=_BIN_BASH,
           stdout=child_pty,
-          stdin=child_pty,
+          stdin=stdin,
           stderr=child_pty,
           close_fds=True)
       # The child PTY is only needed by the spawned process.
@@ -213,7 +217,10 @@ def _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget):
   # could return a partial byte sequence for a UTF-8 character. Using an
   # incremental decoder is incrementally fed input bytes and emits UTF-8
   # characters.
-  decoder = codecs.getincrementaldecoder(_ENCODING)()
+  # In order to be consistent with IPython's treatment of non-UTF-8 output, make
+  # use of the "replace" error handler within the decoder.
+  # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py.
+  decoder = codecs.getincrementaldecoder(_ENCODING)(errors='replace')
 
   num_interrupts = 0
   echo_status = None

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Colab-specific IPython.core.history.HistoryManager."""
 
+import hashlib
 import json
 import time
 from IPython import display
@@ -26,6 +27,9 @@ class ColabHistoryManager(history.HistoryManager):
   in Colab's UI.
   """
   _input_hist_cells = [{'code': '', 'cell_id': '', 'start_time': 0}]
+  # TODO(b/193678454): Remove this in early 2022 when we no longer need
+  # backwards compatibility.
+  _supports_cell_ran = True
 
   def reset(self, new_session=True):
     super(ColabHistoryManager, self).reset(new_session=new_session)
@@ -59,16 +63,30 @@ class ColabHistoryManager(history.HistoryManager):
     # Javascript display wrapper is used for that.
     return display.Javascript(json.dumps(self._input_hist_cells))
 
-  def _executed_cells_as_json(self):
-    """Utility accessor to allow frontends an expression to fetch executed cels.
+  def _executed_cells_as_json(self, include_source_hash=False):
+    """Provides frontends an expression to fetch previously executed cells.
+
+    Args:
+      include_source_hash: If true, include a hash of the code that ran.
 
     Returns:
       A Javascript display object of a dict of the executed cell IDs to their
-      execution index.
+      execution index. If include_source was specified, the items in the dict
+      are dicts with 'executionCount' and 'sourceHash' fields.
     """
     cells = dict()
     for i, cell in enumerate(self._input_hist_cells):
-      cells[cell['cell_id']] = i
+      if include_source_hash:
+        # LINT.IfChange(execution_count)
+        cells[cell['cell_id']] = {
+            'executionCount':
+                i,
+            'sourceHash':
+                hashlib.md5(cell['code'].encode('utf8')).hexdigest()[:10]
+        }
+        # LINT.ThenChange()
+      else:
+        cells[cell['cell_id']] = i
     # To be able to access the raw string as an expression we need to transfer
     # the plain string rather than the quoted string representation. The
     # Javascript display wrapper is used for that.

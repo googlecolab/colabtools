@@ -13,11 +13,11 @@
 # limitations under the License.
 """Provides a tabbar widget that redirects output into separate tabs."""
 import contextlib
-import six
 
 from google.colab.output import _js_builder as js
 from google.colab.output import _publish
 from google.colab.widgets import _widget
+import six
 
 
 class TabBar(_widget.OutputAreaWidget):
@@ -26,10 +26,10 @@ class TabBar(_widget.OutputAreaWidget):
   Sample usage:
      tab = TabBar(['evening', 'morning'])
      with tab.output_to('evening'):
-       print 'hi'
+       print('hi')
 
      with tab.output_to('morning'):
-       print 'bye'
+       print('bye')
   """
   TABBAR_JS = '/nbextensions/google.colab/tabbar_main.min.js'
   TAB_CSS = '/nbextensions/google.colab/tabbar.css'
