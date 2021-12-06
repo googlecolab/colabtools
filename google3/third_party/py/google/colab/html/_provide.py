@@ -43,10 +43,9 @@ import mimetypes
 import uuid
 import weakref
 
+from google.colab.html import _background_server
 import six
 import tornado.web
-
-from google.colab.html import _background_server
 
 
 @six.add_metaclass(abc.ABCMeta)
