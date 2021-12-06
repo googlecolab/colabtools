@@ -64,7 +64,7 @@ class DriveHandler(handlers.APIHandler):
         # about changes to this status.
         return [
             _serverextension._subprocess_check_output(  # pylint: disable=protected-access
-                'tail -1 "{}"'.format(filtered_logfile),
+                '/usr/bin/tail -1 "{}"'.format(filtered_logfile),
                 shell=True).decode('utf-8').strip()
         ]
     except subprocess.CalledProcessError:  # Missing log file isn't fatal.

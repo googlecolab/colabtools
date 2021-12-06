@@ -9,7 +9,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language govestylerning permissions and
+# See the License for the specific language governing permissions and
 # limitations under the License.
 """Private utility functions."""
 
@@ -70,7 +70,7 @@ def serve_kernel_port_as_iframe(port,
     element.appendChild(document.createTextNode(''));
     const url = await google.colab.kernel.proxyPort(port, {cache});
     const iframe = document.createElement('iframe');
-    iframe.src = url + path;
+    iframe.src = new URL(path, url).toString();
     iframe.height = height;
     iframe.width = width;
     iframe.style.border = 0;
@@ -107,7 +107,7 @@ def serve_kernel_port_as_window(port, path='/', anchor_text=None):
     element.appendChild(document.createTextNode(''));
     const url = await google.colab.kernel.proxyPort(port);
     const anchor = document.createElement('a');
-    anchor.href = url + path;
+    anchor.href = new URL(path, url).toString();
     anchor.target = '_blank';
     anchor.setAttribute('data-href', url + path);
     anchor.textContent = text;
