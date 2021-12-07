@@ -36,7 +36,7 @@ __all__ = ['upload', 'download', 'view']
 
 
 def upload():
-  """Render a widget to upload local (to the browser) files to the kernel.
+  """Renders widget to upload local (to the browser) files to the kernel.
 
   Blocks until the files are available.
 
