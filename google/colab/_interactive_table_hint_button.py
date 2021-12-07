@@ -28,12 +28,6 @@ _ICON_SVG = """
 
 _HINT_BUTTON_CSS = """
   <style>
-    .colab-df-container {
-      display:flex;
-      flex-wrap:wrap;
-      gap: 12px;
-    }
-
     .colab-df-convert {
       background-color: #E8F0FE;
       border: none;
@@ -42,6 +36,7 @@ _HINT_BUTTON_CSS = """
       display: none;
       fill: #1967D2;
       height: 32px;
+      margin: 0 0 0 12px;
       padding: 0 0 0 0;
       width: 32px;
     }
@@ -108,7 +103,7 @@ def _get_html(dataframe, key):
   # pylint: disable=protected-access
   return """
   <div id="{key}">
-    <div class="colab-df-container">
+    <div style="display:flex">
       {df_html}
       <button class="colab-df-convert" onclick="convertToInteractive('{key}')"
               title="Convert this dataframe to an interactive table."
