@@ -1,11 +1,10 @@
 """Grid widget - allows to create a table, where each cell be printed into."""
 import contextlib
 
-from IPython import display
 from google.colab.output import _publish
-
 from google.colab.output import _util
 from google.colab.widgets import _widget
+from IPython import display
 
 
 class Grid(_widget.OutputAreaWidget):
