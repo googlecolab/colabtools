@@ -24,13 +24,12 @@ import os as _os
 import socket as _socket
 import uuid as _uuid
 
+from google.colab import output as _output
 import IPython as _IPython
 import six as _six
 from six.moves import SimpleHTTPServer as _SimpleHTTPServer
 from six.moves import socketserver as _socketserver
 from six.moves import urllib as _urllib
-
-from google.colab import output as _output
 
 __all__ = ['upload', 'download', 'view']
 
