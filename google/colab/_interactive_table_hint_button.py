@@ -129,13 +129,15 @@ def _get_html(dataframe, key):
                                                      [key], {{}});
           if (!dataTable) return;
 
-          const docLink = '<div>Like what you see? Visit the ' +
+          const docLinkHtml = 'Like what you see? Visit the ' +
             '<a target="_blank" href={data_table_url}>data table notebook</a>'
-            + ' to learn more about interactive tables.</div>';
+            + ' to learn more about interactive tables.';
           element.innerHTML = '';
           dataTable['output_type'] = 'display_data';
           await google.colab.output.renderOutput(dataTable, element);
-          element.innerHTML += docLink;
+          const docLink = document.createElement('div');
+          docLink.innerHTML = docLinkHtml;
+          element.appendChild(docLink);
         }}
       </script>
     </div>
