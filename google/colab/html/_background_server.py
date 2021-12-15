@@ -96,13 +96,8 @@ class _BackgroundServer(object):
 
     self._port = port or portpicker.pick_unused_port()
 
-    # Support both internal & external colab (tornado v3 vs. v4)
-    # TODO(b/35548011): remove tornado v3 handling
-    if tornado.version[0] >= '4':
-      kwds = {'idle_connection_timeout': timeout, 'body_timeout': timeout}
-    else:
-      kwds = {}
-    self._server = tornado.httpserver.HTTPServer(self._app, **kwds)
+    self._server = tornado.httpserver.HTTPServer(
+        self._app, idle_connection_timeout=timeout, body_timeout=timeout)
     self._ioloop = tornado.ioloop.IOLoop()
 
     def start_server(httpd, ioloop, port):
