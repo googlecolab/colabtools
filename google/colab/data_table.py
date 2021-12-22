@@ -85,7 +85,7 @@ class DataTable(_IPython.display.DisplayObject):
     max_columns: (int) number of columns beyond which the table will be
       truncated.
     min_width: (string) string representing CSS minimum width by default. If
-      specified, the table shrink down to the minimum of this value and the
+      specified, the table shrink down to the maximum of this value and the
       width needed for the content.
   """
   # Configurable defaults for initialization.
