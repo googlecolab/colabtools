@@ -165,7 +165,8 @@ def _mount(mountpoint,
     logfile = _sys.stdout
   d = _popen_spawn.PopenSpawn(
       '/usr/bin/setsid /bin/bash --noediting -i',  # Need -i to get prompt echo.
-      timeout=120,
+      # Pad in order to more reliably detect the `timeout_pattern` case below.
+      timeout=int(timeout_ms / 1000 + 10),
       maxread=int(1e6),
       encoding='utf-8',
       logfile=logfile,
