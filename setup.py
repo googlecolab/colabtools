@@ -27,7 +27,7 @@ DEPENDENCIES = (
     'notebook~=5.3.0; python_version >= "3.0"',
     'six~=1.15.0',
     'pandas~=0.24.0; python_version < "3.0"',
-    'pandas~=1.1.0; python_version >= "3.0"',
+    'pandas>=1.1.0; python_version >= "3.0"',
     'portpicker~=1.3.1',
     'requests~=2.23.0',
     'tornado~=4.5.0; python_version < "3.0"',
