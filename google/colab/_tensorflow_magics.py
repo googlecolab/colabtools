@@ -36,7 +36,7 @@ _VersionInfo = collections.namedtuple("_VersionInfo",
                                       ["name", "path", "version"])
 _VERSIONS = {
     "1": _VersionInfo("1.x", "/tensorflow-1.15.2", "1.15.2"),
-    "2": _VersionInfo("2.x", None, "2.7.0"),
+    "2": _VersionInfo("2.x", None, "2.8.0"),
 }
 
 _DEFAULT_VERSION = _VERSIONS["2"]
