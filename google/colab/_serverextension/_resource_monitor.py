@@ -45,8 +45,12 @@ def get_gpu_usage():
   else:
     r = csv.reader(ns.splitlines() or [''])
     row = next(r)
-    usage = int(row[0]) * 1024 * 1024
-    limit = int(row[1]) * 1024 * 1024
+    try:
+      usage = int(row[0]) * 1024 * 1024
+      limit = int(row[1]) * 1024 * 1024
+    except:  # pylint: disable=bare-except
+      # Certain versions of nvidia-smi may not return the expected values.
+      pass
 
   if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
     usage, limit = 123, 456
