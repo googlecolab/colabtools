@@ -23,7 +23,6 @@ import signal as _signal
 import socket as _socket
 import subprocess as _subprocess
 import sys as _sys
-import tempfile as _tempfile
 import uuid as _uuid
 
 from google.colab import _message
@@ -106,33 +105,28 @@ def mount(mountpoint,
           timeout_ms=120000,
           use_metadata_server=None):
   """Mount your Google Drive at the specified mountpoint path."""
-  ephemeral = False
-  if use_metadata_server is None:
-    use_metadata_server = ephemeral = _os.environ.get('USE_EPHEM', '0') == '1'
+  if use_metadata_server is not None:
+    raise NotImplementedError('not implemented')
 
   return _mount(
       mountpoint,
       force_remount=force_remount,
       timeout_ms=timeout_ms,
-      use_metadata_server=use_metadata_server,
-      ephemeral=ephemeral)
+      ephemeral=True)
 
 
-def _mount(mountpoint,
-           force_remount=False,
-           timeout_ms=120000,
-           use_metadata_server=False,
-           ephemeral=False):
+def _mount(
+    mountpoint,
+    force_remount=False,
+    timeout_ms=120000,
+    use_metadata_server=None,  # pylint:disable=unused-argument
+    ephemeral=False):
   """Internal helper to mount Google Drive."""
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
 
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
-
-  if ephemeral and not use_metadata_server:
-    raise ValueError(
-        'ephemeral is only supported when use_metadata_server is enabled.')
 
   metadata_server_addr = _os.environ[
       'TBE_EPHEM_CREDS_ADDR'] if ephemeral else _os.environ['TBE_CREDS_ADDR']
@@ -216,24 +210,16 @@ def _mount(mountpoint,
   d.sendline(success_watcher)
   d.expect(prompt)
 
-  oauth_prompt = u'(Go to this URL in a browser: https://.*)$'
-  oauth_failed = u'Authorization failed'
   domain_disabled_drivefs = u'The domain policy has disabled Drive File Stream'
   problem_and_stopped = (
       u'Drive File Stream encountered a problem and has stopped')
   drive_exited = u'drive EXITED'
   metadata_auth_arg = (
       '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
-          metadata_server=metadata_server_addr) if use_metadata_server else '')
+          metadata_server=metadata_server_addr))
 
-  # Create a pipe for sending the oauth code to a backgrounded drive binary.
-  # (popen -> no pty -> no bash job control -> can't background post-launch).
-  fifo_dir = _tempfile.mkdtemp()
-  fifo = _os.path.join(fifo_dir, 'drive.fifo')
-  _os.mkfifo(fifo)
-  # cat is needed below since the FIFO isn't opened for writing yet.
   d.sendline((
-      'cat {fifo} | head -1 | ( {d}/drive '
+      '( {d}/drive '
       '--features=' + ','.join([
           'fuse_max_background:1000',
           'max_read_qps:1000',
@@ -246,15 +232,12 @@ def _mount(mountpoint,
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
       '{d}/roots.pem,mount_point_path:{mnt} 2>&1 '
-      '| grep --line-buffered -E "{oauth_prompt}|{problem_and_stopped}|{oauth_failed}|{domain_disabled_drivefs}"; '
+      '| grep --line-buffered -E "{problem_and_stopped}|{domain_disabled_drivefs}"; '
       'echo "{drive_exited}"; ) &').format(
           d=drive_dir,
           timeout_ms=timeout_ms,
           mnt=mountpoint,
-          fifo=fifo,
-          oauth_failed=oauth_failed,
           domain_disabled_drivefs=domain_disabled_drivefs,
-          oauth_prompt=oauth_prompt,
           problem_and_stopped=problem_and_stopped,
           drive_exited=drive_exited))
   d.expect(prompt)
@@ -264,23 +247,17 @@ def _mount(mountpoint,
   # LINT.ThenChange()
   dfs_log = _os.path.join(_logs_dir(), 'drive_fs.txt')
 
-  # TODO(b/147296819): Delete this line.
-  get_code = input if _sys.version_info[0] == 3 else raw_input  # pylint: disable=undefined-variable
-
-  wrote_to_fifo = False
   while True:
     case = d.expect([
         success,
         prompt,
-        oauth_prompt,
         problem_and_stopped,
         drive_exited,
-        oauth_failed,
         domain_disabled_drivefs,
     ])
     if case == 0:
       break
-    elif (case == 1 or case == 3 or case == 4):
+    elif (case == 1 or case == 2 or case == 3):
       # Prompt appearing here means something went wrong with the drive binary.
       d.kill(_signal.SIGKILL)
       extra_reason = ''
@@ -290,16 +267,7 @@ def _mount(mountpoint,
             ': timeout during initial read of root folder; for more info: '
             'https://research.google.com/colaboratory/faq.html#drive-timeout')
       raise ValueError('mount failed' + extra_reason)
-    elif case == 2:
-      # Not already authorized, so do the authorization dance.
-      auth_prompt = d.match.group(1) + '\nEnter your authorization code:\n'
-      with _output.use_tags('dfs-auth-dance'):
-        with open(fifo, 'w') as fifo_file:
-          fifo_file.write(get_code(auth_prompt) + '\n')
-      wrote_to_fifo = True
-    elif case == 5 and not use_metadata_server:
-      raise ValueError('mount failed: invalid oauth code')
-    elif case == 6:
+    elif case == 4:
       # Terminate the DriveFS binary before killing bash.
       for p in _psutil.process_iter():
         if p.name() == 'drive':
@@ -309,9 +277,6 @@ def _mount(mountpoint,
       raise ValueError(
           str(domain_disabled_drivefs) +
           ': https://support.google.com/a/answer/7496409')
-  if not wrote_to_fifo:
-    with open(fifo, 'w') as fifo_file:
-      fifo_file.write('ignored\n')
   filtered_logfile = _timeouts_path()
   d.sendline('fuser -kw "{f}" ; rm -rf "{f}"'.format(f=filtered_logfile))
   d.expect(prompt)
