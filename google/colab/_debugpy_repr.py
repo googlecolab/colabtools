@@ -40,8 +40,6 @@ def _get_var_data(self, fmt=None):
 _CONTAINER_TYPES = (set, frozenset, list, tuple)
 
 
-# TODO(b/141957613): Share this with _inspector.py when migrating to
-# third_party/py/google/colab.
 def get_shape(obj):
   """Gets the shape descriptor for an arbitrary object.
 

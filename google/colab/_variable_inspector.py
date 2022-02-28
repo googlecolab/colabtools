@@ -24,6 +24,5 @@ def run(shell, time):
 
     if shell:
       # Clear on each step to remove any deleted globals.
-      # TODO(b/141957613): Validate that deleted variables disappear.
       globals().clear()
       globals().update(shell.user_ns)
