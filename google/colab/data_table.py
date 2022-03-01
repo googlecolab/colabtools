@@ -61,7 +61,6 @@ if _six.PY2:
   from cgi import escape as _escape
 else:
   from html import escape as _escape
-  import pandas as _pd
 #  pylint:enable=g-importing-member
 #  pylint:enable=g-import-not-at-top
 
@@ -97,6 +96,8 @@ class DataTable(_IPython.display.DisplayObject):
 
   @classmethod
   def formatter(cls, dataframe, **kwargs):
+    # We want to avoid proactively importing pandas at kernel startup.
+    import pandas as _pd  # pylint: disable=g-import-not-at-top
     # Don't use data table for hierarchical index or columns.
     if isinstance(dataframe.columns, _pd.MultiIndex):
       return None

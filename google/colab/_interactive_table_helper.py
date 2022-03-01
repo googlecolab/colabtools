@@ -28,7 +28,6 @@ if _six.PY2:
   from cgi import escape as _escape
 else:
   import html as _html
-  import pandas as _pd
 
   # html.escape has replaced deprecated cgi.escape, but has different default
   # arguments.
@@ -155,6 +154,8 @@ def _to_js(x,
   # converters in interactive_table.DEFAULT_FORMATTERS
   if _is_numpy_type(x) and hasattr(x, 'dtype'):
     if x.dtype.kind == 'M':
+      # We want to avoid proactively importing pandas at kernel startup.
+      import pandas as _pd  # pylint: disable=g-import-not-at-top
       x = str(_pd.to_datetime(x))
     elif x.shape:
       # Convert lists into their string representations
