@@ -92,6 +92,10 @@ def _gcloud_login():
     # Combine the URL with the verification prompt to work around
     # https://github.com/jupyter/notebook/issues/3159
     prompt = prompt.rstrip()
+    # Suppress the --launch-browser deprecation warning.
+    # TODO(b/206655837): Remove this.
+    prompt = '\n'.join(
+        [line for line in prompt.splitlines() if 'launch-browser' not in line])
     code = get_code(prompt + ' ')
     gcloud_process.communicate(code.strip())
   finally:
