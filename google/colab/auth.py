@@ -33,6 +33,8 @@ from google.colab import output as _output
 
 __all__ = ['authenticate_user']
 
+_LOGGER = _logging.getLogger(__name__)
+
 
 def _check_adc():
   """Return whether the application default credential exists and is valid."""
@@ -56,7 +58,7 @@ def _check_adc():
   try:
     creds.refresh(transport)
   except Exception as e:  # pylint:disable=broad-except
-    _logging.info('Failure refreshing credentials: %s', e)
+    _LOGGER.info('Failure refreshing credentials: %s', e)
   return creds.valid
 
 
