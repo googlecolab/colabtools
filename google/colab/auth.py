@@ -28,6 +28,7 @@ import sys as _sys
 import tempfile as _tempfile
 import time as _time
 
+from google.colab import _message
 from google.colab import errors as _errors
 from google.colab import output as _output
 
@@ -148,18 +149,29 @@ def authenticate_user(clear_output=True):
   Raises:
     errors.AuthorizationError: If authorization fails.
   """
+  use_auth_ephem = _os.environ['USE_AUTH_EPHEM'] == '1'
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
   if _check_adc():
     return
-  _os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
+  if not use_auth_ephem:
+    _os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
   if not _check_adc():
-    context_manager = _output.temporary if clear_output else _noop
-    with context_manager():
-      _gcloud_login()
-    _install_adc()
+    if use_auth_ephem:
+      _message.blocking_request(
+          'request_auth',
+          request={'authType': 'auth_user_ephemeral'},
+          timeout_sec=None)
+    else:
+      context_manager = _output.temporary if clear_output else _noop
+      with context_manager():
+        _gcloud_login()
+      _install_adc()
     colab_tpu_addr = _os.environ.get('COLAB_TPU_ADDR', '')
     if 'COLAB_SKIP_AUTOMATIC_TPU_AUTH' not in _os.environ and colab_tpu_addr:
+      if use_auth_ephem:
+        raise ValueError('TPUs not currently supported')
+
       # If we've got a TPU attached, we want to run a TF operation to provide
       # our new credentials to the TPU for GCS operations.
       import tensorflow as tf  # pylint: disable=g-import-not-at-top
