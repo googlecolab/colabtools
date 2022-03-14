@@ -124,6 +124,19 @@ def _install_adc():
     f.write(ls[0][1])
 
 
+# TODO(b/218377323): Remove.
+def _enable_metadata_server_for_gcloud():
+  with _output.temporary():
+    _subprocess.run(
+        'gcloud config unset compute/gce_metadata_read_timeout_sec',
+        shell=True,
+        check=True)
+    gce_cache_path = _os.path.join(
+        _os.environ.get('CLOUDSDK_CONFIG', ''), 'gce')
+    if _os.path.exists(gce_cache_path):
+      _os.remove(gce_cache_path)
+
+
 @_contextlib.contextmanager
 def _noop():
   """Null context manager, like contextlib.nullcontext in python 3.7+."""
@@ -165,6 +178,7 @@ def authenticate_user(clear_output=True):
           'request_auth',
           request={'authType': 'auth_user_ephemeral'},
           timeout_sec=None)
+      _enable_metadata_server_for_gcloud()
     else:
       context_manager = _output.temporary if clear_output else _noop
       with context_manager():
