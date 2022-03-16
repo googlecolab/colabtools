@@ -38,7 +38,7 @@ def enable_attach_async(enable_inspector=False):
 
   # debugpy overrides python's `breakpoint()` hook; we restore the original
   # hook, as it works fine with our stdin handling, and debugpy's hook hangs.
-  sys.breakpoint = sys.__breakpointhook__
+  sys.breakpointhook = sys.__breakpointhook__
 
   _dap_port = portpicker.pick_unused_port()
 
