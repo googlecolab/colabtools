@@ -119,7 +119,6 @@ def _mount(
     mountpoint,
     force_remount=False,
     timeout_ms=120000,
-    use_metadata_server=None,  # pylint:disable=unused-argument
     ephemeral=False):
   """Internal helper to mount Google Drive."""
   if _os.path.exists('/var/colab/mp'):
