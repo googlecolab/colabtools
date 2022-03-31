@@ -276,7 +276,7 @@ def authenticate_service_account():
       print(
           'Upload the private key for your service account.\n\nSee the guide at https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-console for help.\n\n'
       )
-      # TODO(b/223277695): Offer programmatic option, https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-gcloud
+      # TODO(b/226659795): Offer programmatic option, https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-gcloud
       for _ in range(3):
         uploaded_file = _files._upload_file(_get_adc_path())  # pylint: disable=protected-access
         if not uploaded_file:
