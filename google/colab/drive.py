@@ -100,14 +100,8 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
     raise ValueError('flush_and_unmount failed')
 
 
-def mount(mountpoint,
-          force_remount=False,
-          timeout_ms=120000,
-          use_metadata_server=None):
+def mount(mountpoint, force_remount=False, timeout_ms=120000):
   """Mount your Google Drive at the specified mountpoint path."""
-  if use_metadata_server is not None:
-    raise NotImplementedError('not implemented')
-
   return _mount(
       mountpoint,
       force_remount=force_remount,
