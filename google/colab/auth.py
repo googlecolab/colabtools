@@ -38,6 +38,11 @@ __all__ = ['authenticate_service_account', 'authenticate_user']
 
 _LOGGER = _logging.getLogger(__name__)
 
+# If true, authenticate_service_account() will fail if gcloud returns errors.
+# This should only be set to false for testing, when gcloud is not expected to
+# succeed due to lack of real keys.
+_CHECK_GCLOUD_AUTH_ERRORS = True
+
 
 def _is_service_account_key(key_json_text):
   """Return true if the provided text is a JSON service credentials file."""
@@ -148,7 +153,10 @@ def _gcloud_login():
 
 
 def _get_adc_path():
-  return _os.path.join(_os.environ.get('DATALAB_ROOT', '/'), 'content/adc.json')
+  dir_path = _os.path.join(
+      _os.environ.get('DATALAB_ROOT', '/'), 'content/.adc/')
+  _os.makedirs(dir_path, exist_ok=True)
+  return _os.path.join(dir_path, 'adc.json')
 
 
 def _install_adc():
@@ -158,8 +166,7 @@ def _install_adc():
   db = _sqlite3.connect(gcloud_db_path)
   c = db.cursor()
   ls = list(c.execute('SELECT * FROM credentials;'))
-  adc_path = _get_adc_path()
-  with open(adc_path, 'w') as f:
+  with open(_get_adc_path(), 'w') as f:
     f.write(ls[0][1])
 
 
@@ -250,12 +257,56 @@ def authenticate_user(clear_output=True):
   raise _errors.AuthorizationError('Failed to fetch user credentials')
 
 
-def authenticate_service_account():
+def _activate_service_account_key(key_content, clear_output):
+  """Activates service account credentials with gcloud to make them available to all libraries."""
+  # We don't expect this to happen, since the service account key will have
+  # already been validated by this point.
+  key_obj = _json.loads(key_content)
+  if not isinstance(key_obj, dict):
+    raise _errors.AuthorizationError('Invalid service account key provided')
+  context_manager = _output.temporary if clear_output else _noop
+  with context_manager():
+    gcloud_auth_command = [
+        'gcloud',
+        'auth',
+        'activate-service-account',
+        '--key-file=' + _get_adc_path(),
+    ]
+    _subprocess.run(
+        gcloud_auth_command,
+        universal_newlines=True,
+        stderr=_subprocess.STDOUT,
+        check=_CHECK_GCLOUD_AUTH_ERRORS)
+  project_id = key_obj.get('project_id', '')
+  if not project_id:
+    raise _errors.AuthorizationError(
+        'Could not get cloud project id from credentials')
+  with context_manager():
+    gcloud_project_command = [
+        'gcloud',
+        'config',
+        'set',
+        'project',
+        project_id,
+    ]
+    _subprocess.run(
+        gcloud_project_command,
+        universal_newlines=True,
+        stderr=_subprocess.STDOUT,
+        check=_CHECK_GCLOUD_AUTH_ERRORS)
+
+
+def authenticate_service_account(clear_output=True):
   """Ensures that a service account key is present and valid.
 
   This will override any pre-existing user credentials.
 
   If no key is present, the user is prompted to upload one.
+
+  Args:
+    clear_output: (optional, default: True) If True, clear any output related to
+      the authorization process if it completes successfully. Any errors will
+      remain (for debugging purposes).
 
   Returns:
     None.
@@ -276,9 +327,10 @@ def authenticate_service_account():
       print(
           'Upload the private key for your service account.\n\nSee the guide at https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-console for help.\n\n'
       )
+      adc_path = _get_adc_path()
       # TODO(b/226659795): Offer programmatic option, https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-gcloud
       for _ in range(3):
-        uploaded_file = _files._upload_file(_get_adc_path())  # pylint: disable=protected-access
+        uploaded_file = _files._upload_file(adc_path)  # pylint: disable=protected-access
         if not uploaded_file:
           # Upload was cancelled.
           return
@@ -286,6 +338,7 @@ def authenticate_service_account():
         if _is_service_account_key(content):
           if configure_tpu_auth:
             _setup_tpu_auth()
+          _activate_service_account_key(content, clear_output=clear_output)
           break
         print('Invalid credentials: please try again.\n\n')
       else:
