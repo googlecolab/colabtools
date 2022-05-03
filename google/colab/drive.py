@@ -109,11 +109,7 @@ def mount(mountpoint, force_remount=False, timeout_ms=120000):
       ephemeral=True)
 
 
-def _mount(
-    mountpoint,
-    force_remount=False,
-    timeout_ms=120000,
-    ephemeral=False):
+def _mount(mountpoint, force_remount=False, timeout_ms=120000, ephemeral=False):
   """Internal helper to mount Google Drive."""
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
@@ -158,7 +154,7 @@ def _mount(
   d = _popen_spawn.PopenSpawn(
       '/usr/bin/setsid /bin/bash --noediting -i',  # Need -i to get prompt echo.
       # Pad in order to more reliably detect the `timeout_pattern` case below.
-      timeout=int(timeout_ms / 1000 + 10),
+      timeout=int(timeout_ms / 1000 + 30),
       maxread=int(1e6),
       encoding='utf-8',
       logfile=logfile,
