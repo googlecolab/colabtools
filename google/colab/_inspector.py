@@ -241,7 +241,7 @@ def _safe_repr(obj, depth=0, visited=None):
     return '...'
 
   type_name = type(obj).__name__
-  module_name = type(obj).__module__
+  module_name = getattr(type(obj), '__module__', _UNAVAILABLE_MODULE_NAME)
   if not isinstance(module_name, six.text_type):
     module_name = _UNAVAILABLE_MODULE_NAME
   fully_qualified_type_name = '.'.join((
