@@ -225,6 +225,15 @@ def _tensorflow_version(line):
     print("Available versions:\n * {}".format("\n * ".join(version_names)))
     return
 
+  if line.startswith("1"):
+    print(
+        textwrap.dedent("""\
+             WARNING: Tensorflow 1 is deprecated, and support will be removed on August 1, 2022.
+             After that, `%tensorflow_version 1.x` will throw an error.
+    
+             Your notebook should be updated to use Tensorflow 2.
+             See the guide at https://www.tensorflow.org/guide/migrate#migrate-from-tensorflow-1x-to-tensorflow-2.
+             """))
   if "tensorflow" in sys.modules:
     print("TensorFlow is already loaded. Please restart the runtime to "
           "change versions.")
