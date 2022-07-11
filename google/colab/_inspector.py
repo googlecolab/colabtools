@@ -48,7 +48,7 @@ _APPROVED_ITERABLES = {
 _ITERABLE_SIZE_THRESHOLD = 5
 _MAX_RECURSION_DEPTH = 4
 _MAX_DECORATOR_DEPTH = 12
-_STRING_ABBREV_LIMIT = 20
+_STRING_ABBREV_LIMIT = 40
 
 # Unhelpful docstrings we avoid surfacing to users.
 _BASE_CALL_DOC = types.FunctionType.__call__.__doc__
