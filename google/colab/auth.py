@@ -246,6 +246,10 @@ def authenticate_user(clear_output=True):
           timeout_sec=None)
       _enable_metadata_server_for_gcloud()
     else:
+      if colab_tpu_addr:
+        print(
+            'WARNING: auth.authenticate_user() will eventually stop supporting auth for Tensorflow on TPU devices. See auth.authenticate_service_account() instead.'
+        )
       context_manager = _output.temporary if clear_output else _noop
       with context_manager():
         _gcloud_login()
