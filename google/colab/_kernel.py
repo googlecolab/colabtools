@@ -116,7 +116,7 @@ class Kernel(ipkernel.IPythonKernel):
     self.session.send(stream, 'complete_reply', matches, parent, ident)
 
   def inspect_request(self, stream, ident, parent):
-    # TODO(b/147296819): Consider reverting to a `super()` call here once we
+    # TODO(b/207773817): Consider reverting to a `super()` call here once we
     # support async.
     try:
       content = parent['content']

@@ -23,7 +23,6 @@ import logging
 import math
 import re
 import types
-import warnings
 
 import astor
 from IPython.core import oinspect
@@ -166,20 +165,12 @@ def _getargspec_dict(obj):
   argspec = _getargspec(obj)
   if argspec is None:
     return None
-  d = dict(argspec._asdict())
   # We need to avoid potentially computing expensive string representations, so
   # we proactively call _safe_repr ourselves.
-  if d['defaults']:
-    d['defaults'] = [_safe_repr(val) for val in d['defaults']]
-  # We want to always return `varkw` if the response is going to the frontend,
-  # as the code there assumes the key is present. However, if we're returning
-  # the type returned by inspect.getargspec, we can't add another key
-  # willy-nilly.
-  #
-  # TODO(b/147296819): Remove this tweak.
-  if 'varkw' not in d:
-    d['varkw'] = d.pop('keywords')
-  return d
+  if argspec.defaults:
+    argspec = argspec._replace(
+        defaults=[_safe_repr(val) for val in argspec.defaults])
+  return argspec._asdict()
 
 
 def _getsource(obj):
@@ -367,6 +358,18 @@ def _safe_repr(obj, depth=0, visited=None):
   return '{} instance'.format(fully_qualified_type_name)
 
 
+# The `inspect.Parameter` class hardcodes the use of `repr()` for formatting
+# default values; this is a small shim for replacing defaults using our
+# `_safe_repr` function.
+class _SafeReprParam:
+
+  def __init__(self, v):
+    self._repr = _safe_repr(v)
+
+  def __repr__(self):
+    return self._repr
+
+
 class ColabInspector(oinspect.Inspector):
   """Colab-specific object inspector."""
 
@@ -384,20 +387,24 @@ class ColabInspector(oinspect.Inspector):
     Returns:
       A formatted definition or None.
     """
+    if dir2.safe_hasattr(obj,
+                         '__call__') and not oinspect.is_simple_callable(obj):
+      obj = obj.__call__
 
-    def formatvalue(value):
-      return '=' + _safe_repr(value)
-
-    # TODO(b/147296819): Update this code to use inspect.Signature objects, and
-    # drop the warnings chicanery below.
     try:
-      argspec = _getargspec(obj)
-      if argspec is None:
+      try:
+        sig = inspect.signature(obj)
+      except (TypeError, ValueError):
+        logging.info('Unable to get signature for %r', oname)
         return None
-      with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        return six.ensure_text(
-            oname + inspect.formatargspec(*argspec, formatvalue=formatvalue))
+      new_params = []
+      for v in sig.parameters.values():
+        new_default = v.default
+        if v.default != v.empty:
+          new_default = _SafeReprParam(v.default)
+        new_params.append(v.replace(default=new_default))
+      new_sig = sig.replace(parameters=new_params)
+      return f'{oname}{new_sig}'
     except:  # pylint: disable=bare-except
       logging.exception('Exception raised in ColabInspector._getdef')
 
