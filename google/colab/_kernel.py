@@ -18,7 +18,6 @@ from google.colab import _shell_customizations
 from ipykernel import ipkernel
 from ipykernel.jsonutil import json_clean
 from IPython.utils.tokenutil import token_at_cursor
-import six
 import zmq
 
 
@@ -133,7 +132,7 @@ class Kernel(ipkernel.IPythonKernel):
 
 
 def _to_primitive(o):
-  if isinstance(o, six.string_types):
+  if isinstance(o, str):
     return o
   if isinstance(o, (int, float, bool, bytes, type(None))):
     return o

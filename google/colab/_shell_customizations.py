@@ -42,7 +42,7 @@ def initialize():
     _CustomErrorHandlers(ip)
 
 
-class ColabTraceback(object):
+class ColabTraceback:
 
   def __init__(self, stb, error_details):
     self.stb = stb
@@ -59,7 +59,7 @@ class FormattedTracebackError(Exception):
     return self._colab_traceback
 
 
-class _CustomErrorHandlers(object):
+class _CustomErrorHandlers:
   """Custom error handler for the IPython shell.
 
   Allows us to add custom messaging for certain error types (i.e. ImportError).

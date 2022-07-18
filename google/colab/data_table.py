@@ -20,17 +20,14 @@ Example:
   airports = data.airports()  # DataFrame
   DataTable(airports)  # Displays as interactive table
 """
-from __future__ import absolute_import as _
-from __future__ import division as _
-from __future__ import print_function as _
 
+import html as _html
 import json as _json
 import traceback as _traceback
 import warnings as _warnings
 
 from google.colab import _interactive_table_helper
 import IPython as _IPython
-import six as _six
 
 # pylint: disable=g-import-not-at-top
 with _warnings.catch_warnings():
@@ -55,22 +52,13 @@ _JAVASCRIPT_MODULE_MIME_TYPE = 'application/vnd.google.colaboratory.module+javas
 
 _FAKE_DATAFRAME_COLUMN = '__fake_dataframe_column__'
 
-#  pylint:disable=g-import-not-at-top
-#  pylint:disable=g-importing-member
-if _six.PY2:
-  from cgi import escape as _escape
-else:
-  from html import escape as _escape
-#  pylint:enable=g-importing-member
-#  pylint:enable=g-import-not-at-top
-
 
 def _force_to_latin1(x):
-  return 'nonunicode data: %s...' % _escape(x[:100].decode('latin1'))
+  return f'nonunicode data: {_html.escape(x[:100].decode("latin1"))}...'
 
 
 _DEFAULT_NONUNICODE_FORMATTER = _force_to_latin1
-_DEFAULT_FORMATTERS = {_six.text_type: _six.ensure_str}
+_DEFAULT_FORMATTERS = {str: str}
 _DEFAULT_SUPPRESS_OUTPUT_SCROLLING = True
 
 

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Import hook for ensuring that Altair's Colab renderer is registered."""
 
-from __future__ import print_function
-
 import imp
 import logging
 import os
@@ -30,7 +28,7 @@ _bokeh_resources = None
 _bokeh_io_module = None
 
 
-class _BokehImportHook(object):
+class _BokehImportHook:
   """Configures Bokeh's renderer to support Colab upon import."""
 
   def find_module(self, fullname, path=None):

@@ -21,8 +21,6 @@ import string
 import uuid
 import IPython
 
-import six
-
 from google.colab import output
 from google.colab.html import _provide
 from google.colab.html import _resources
@@ -56,7 +54,7 @@ def _to_html_str(obj):
     html = obj._repr_html_()  # pylint: disable=protected-access
     if html:
       return html
-  elif isinstance(obj, six.string_types):
+  elif isinstance(obj, str):
     return obj
   else:
     try:
@@ -91,19 +89,15 @@ def _call_js_function(js_function, *args):
 
 def _proxy(guid, msg):
   """Makes a proxy call on an element."""
-  template = _resources.get_data(__name__, 'js/_proxy.js')
-  if six.PY3:
-    # pkgutil.get_data returns bytes, but we want a str.
-    template = template.decode('utf8')
+  # pkgutil.get_data returns bytes, but we want a str.
+  template = _resources.get_data(__name__, 'js/_proxy.js').decode('utf8')
   return _call_js_function(template, guid, msg)
 
 
 def _exists(guid):
   """Checks if an element with the given guid exists."""
-  template = _resources.get_data(__name__, 'js/_proxy.js')
-  if six.PY3:
-    # pkgutil.get_data returns bytes, but we want a str.
-    template = template.decode('utf8')
+  # pkgutil.get_data returns bytes, but we want a str.
+  template = _resources.get_data(__name__, 'js/_proxy.js').decode('utf8')
   return _call_js_function(template, guid, {'method': 'exists'}, False)
 
 
@@ -114,10 +108,8 @@ def _utils_url():
   """Return the url to the utils script."""
   global _utils_ref
   if not _utils_ref:
-    src = _resources.get_data(__name__, 'js/_html.js')
-    if six.PY3:
-      # pkgutil.get_data returns bytes, but we want a str.
-      src = src.decode('utf8')
+    # pkgutil.get_data returns bytes, but we want a str.
+    src = _resources.get_data(__name__, 'js/_html.js').decode('utf8')
     _utils_ref = _provide.create(content=src, extension='js')
   return _utils_ref.url
 
@@ -151,7 +143,7 @@ $deps
 """)
 
 
-class Element(object):
+class Element:
   """Create an object which will render as an html element in output cell."""
 
   def __init__(self, tag, attributes=None, properties=None, src=None):
@@ -196,7 +188,7 @@ class Element(object):
     return _proxy(self._guid, {'method': 'getAttribute', 'name': name})
 
   def set_attribute(self, name, value):
-    if not isinstance(value, six.string_types):
+    if not isinstance(value, str):
       raise ValueError('Attribute value must be a string')
     if not self._exists():
       self._attributes[name] = value
@@ -237,7 +229,7 @@ class Element(object):
       ValueError: If callback is not valid.
     """
     msg = {'name': name}
-    if isinstance(callback, six.string_types):
+    if isinstance(callback, str):
       callbacks = self._js_listeners.get(name, {})
       if callback in callbacks:
         raise ValueError('Callback is already added.')
@@ -269,7 +261,7 @@ class Element(object):
     Raises:
       ValueError: If the callback was not added previously.
     """
-    if isinstance(callback, six.string_types):
+    if isinstance(callback, str):
       listener_map = self._js_listeners
     else:
       listener_map = self._py_listeners

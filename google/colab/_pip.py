@@ -4,10 +4,6 @@ The intent is to provide users a useful warning if they !pip install a package
 that is already loaded in sys.modules.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import itertools
 import os
 import re

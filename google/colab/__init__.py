@@ -13,10 +13,6 @@
 # limitations under the License.
 """Colab Python APIs."""
 
-from __future__ import absolute_import as _
-from __future__ import division as _
-from __future__ import print_function as _
-
 from google.colab import _import_hooks
 from google.colab import _import_magics
 from google.colab import _installation_commands

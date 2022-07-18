@@ -13,10 +13,6 @@
 # limitations under the License.
 """Tests for _OpenCVImportHook."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import imp
 import importlib
@@ -37,7 +33,7 @@ class OpenCVImportHookTest(unittest.TestCase):
 
     # Mock the cv amd cv2 imshow function for testing in environments where
     # the modules are not installed.
-    class MockCV(object):
+    class MockCV:
       """Simple mock of the cv2 module's imshow function."""
 
       error = TypeError

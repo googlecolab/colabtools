@@ -32,10 +32,6 @@ the help will update from this module to the actual importing module after the
 first use.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import sys
 
 # IPython requires get_ipython to be available as a local variable wherever you

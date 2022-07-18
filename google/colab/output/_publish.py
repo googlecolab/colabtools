@@ -17,10 +17,6 @@ This module is nothing by a thin wrapper over IPython.display but it allows
 shorter and cleaner code when all we want is to publish common content types.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import hashlib
 
 from IPython import display

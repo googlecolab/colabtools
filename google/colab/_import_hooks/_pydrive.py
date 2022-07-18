@@ -13,17 +13,13 @@
 # limitations under the License.
 """Import hook to allow credentials provided by Colab."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import imp
 import logging
 import os
 import sys
 
 
-class _PyDriveImportHook(object):
+class _PyDriveImportHook:
   """Patches PyDrive to allow credentials provided by Colab."""
 
   env_var = 'DISABLE_COLAB_PYDRIVE_CREDENTIALS_HOOK'

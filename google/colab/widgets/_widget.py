@@ -13,10 +13,6 @@
 # limitations under the License.
 """Base widget for interactive elements."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import contextlib
 
 from google.colab import errors
@@ -28,7 +24,7 @@ from google.colab.output import _util
 WidgetException = errors.WidgetException
 
 
-class OutputAreaWidget(object):
+class OutputAreaWidget:
   """Base widget that redirects output into UI elements, e.g. table."""
 
   def __init__(self):

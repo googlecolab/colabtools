@@ -13,23 +13,18 @@
 # limitations under the License.
 """Colab-specific file helpers."""
 
-from __future__ import absolute_import as _
-from __future__ import division as _
-from __future__ import print_function as _
-
 import base64 as _base64
 import collections as _collections
+from http import server as _http_server
 import json as _json
 import os as _os
 import socket as _socket
+import socketserver as _socketserver
+import urllib as _urllib
 import uuid as _uuid
 
 from google.colab import output as _output
 import IPython as _IPython
-import six as _six
-from six.moves import SimpleHTTPServer as _SimpleHTTPServer
-from six.moves import socketserver as _socketserver
-from six.moves import urllib as _urllib
 
 __all__ = ['upload', 'download', 'view']
 
@@ -121,7 +116,7 @@ def _upload_files(multiple):
   result = _output.eval_js(
       'google.colab._files._uploadFiles("{input_id}", "{output_id}")'.format(
           input_id=input_id, output_id=output_id))
-  files = _collections.defaultdict(_six.binary_type)
+  files = _collections.defaultdict(bytes)
 
   while result['action'] != 'complete':
     result = _output.eval_js(
@@ -153,7 +148,7 @@ class _V6Server(_socketserver.TCPServer):
   address_family = _socket.AF_INET6
 
 
-class _FileHandler(_SimpleHTTPServer.SimpleHTTPRequestHandler):
+class _FileHandler(_http_server.SimpleHTTPRequestHandler):
   """SimpleHTTPRequestHandler with a couple tweaks."""
 
   def translate_path(self, path):
@@ -168,7 +163,7 @@ class _FileHandler(_SimpleHTTPServer.SimpleHTTPRequestHandler):
   def end_headers(self):
     # Do not cache the response in the notebook, since it may be quite large.
     self.send_header('x-colab-notebook-cache-control', 'no-cache')
-    _SimpleHTTPServer.SimpleHTTPRequestHandler.end_headers(self)
+    _http_server.SimpleHTTPRequestHandler.end_headers(self)
 
 
 def download(filename):
@@ -183,10 +178,7 @@ def download(filename):
 
   if not _os.path.exists(filename):
     msg = 'Cannot find file: {}'.format(filename)
-    if _six.PY2:
-      raise OSError(msg)
-    else:
-      raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
+    raise FileNotFoundError(msg)  # pylint: disable=undefined-variable
 
   comm_manager = _IPython.get_ipython().kernel.comm_manager
   comm_id = 'download_' + str(_uuid.uuid4())
@@ -271,10 +263,7 @@ def view(filepath):
 
   if not _os.path.exists(filepath):
     msg = 'Cannot find file: {}'.format(filepath)
-    if _six.PY2:
-      raise OSError(msg)  # pylint: disable=g-doc-exception
-    else:
-      raise FileNotFoundError(msg)
+    raise FileNotFoundError(msg)
 
   filepath = _os.path.abspath(filepath)
   # Remove the filesystem prefix if it's present since the kernel manager

@@ -17,8 +17,6 @@ Provides a %tensorflow_version line magic which allows the user to select which
 version of TensorFlow will be loaded when they do 'import tensorflow as tf'.
 """
 
-from __future__ import print_function
-
 import collections
 import os
 import sys
@@ -129,7 +127,7 @@ def _get_tf_version():
 _instance = None
 
 
-class _TFVersionManager(object):
+class _TFVersionManager:
   """Class that manages the TensorFlow version used by Colab."""
 
   def __init__(self):

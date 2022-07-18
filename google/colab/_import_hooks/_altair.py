@@ -19,7 +19,7 @@ import os
 import sys
 
 
-class _AltairImportHook(object):
+class _AltairImportHook:
   """Enables Altair's Colab renderer upon import."""
 
   def find_module(self, fullname, path=None):

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Custom IPython EventManager."""
 
-from __future__ import print_function
-
 import IPython.core.events as events
 
 

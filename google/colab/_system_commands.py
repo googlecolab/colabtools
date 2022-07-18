@@ -13,12 +13,9 @@
 # limitations under the License.
 """Colab-specific system command helpers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import codecs
 import contextlib
+import io
 import locale
 import os
 import pty
@@ -31,7 +28,6 @@ import time
 
 from IPython.core import magic_arguments
 from IPython.utils import text
-import six
 from google.colab import _ipython
 from google.colab import _message
 from google.colab.output import _tags
@@ -114,7 +110,7 @@ def _shell_cell_magic(args, cmd):
   return result
 
 
-class ShellResult(object):
+class ShellResult:
   """Result of an invocation of the shell magic.
 
   Note: This is intended to mimic subprocess.CompletedProcess, but has slightly
@@ -202,10 +198,10 @@ def _run_command(cmd, clear_streamed_output):
     os.close(parent_pty)
 
 
-class _MonitorProcessState(object):
+class _MonitorProcessState:
 
   def __init__(self):
-    self.process_output = six.StringIO()
+    self.process_output = io.StringIO()
     self.is_pty_still_connected = True
 
 
@@ -410,16 +406,10 @@ def _getoutput_compat(shell, cmd, split=True, depth=0):
   if -result.returncode in _INTERRUPTED_SIGNALS:
     print('^C')
 
-  output = result.output
-  if six.PY2:
-    # Backwards compatibility. Python 2 getoutput() expects the result as a
-    # str, not a unicode.
-    output = output.encode(_ENCODING)
-
   if split:
-    return text.SList(output.splitlines())
+    return text.SList(result.output.splitlines())
   else:
-    return text.LSString(output)
+    return text.LSString(result.output)
 
 
 def _system_compat(shell, cmd, also_return_output=False):
@@ -450,9 +440,4 @@ def _system_compat(shell, cmd, also_return_output=False):
     print('^C')
 
   if also_return_output:
-    output = result.output
-    if six.PY2:
-      # Backwards compatibility. Python 2 getoutput() expects the result as a
-      # str, not a unicode.
-      output = output.encode(_ENCODING)
-    return text.LSString(output)
+    return text.LSString(result.output)

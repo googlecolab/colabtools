@@ -1,7 +1,4 @@
 """Rich representations of built-in types."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import warnings
 # pytype: disable=import-error

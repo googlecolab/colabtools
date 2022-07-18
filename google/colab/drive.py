@@ -13,10 +13,6 @@
 # limitations under the License.
 """Colab-specific Google Drive integration."""
 
-from __future__ import absolute_import as _
-from __future__ import division as _
-from __future__ import print_function as _
-
 import collections as _collections
 import os as _os
 import signal as _signal

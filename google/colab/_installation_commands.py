@@ -17,10 +17,6 @@ This adds %pip and %conda magic commands, mirroring functionality that was
 added in IPython version 7.3.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 
 # backport of %pip magic from IPython 7.3; see
 # https://github.com/ipython/ipython/pull/11524

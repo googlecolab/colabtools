@@ -13,30 +13,9 @@
 # limitations under the License.
 """Helper for constructing interactive tables."""
 
-from __future__ import absolute_import as _
-from __future__ import division as _
-from __future__ import print_function as _
-
+import html as _html
 import json as _json
 import numbers as _numbers
-
-import six as _six
-
-#  pylint:disable=g-import-not-at-top
-#  pylint:disable=g-importing-member
-if _six.PY2:
-  from cgi import escape as _escape
-else:
-  import html as _html
-
-  # html.escape has replaced deprecated cgi.escape, but has different default
-  # arguments.
-  def _escape(s):
-    return _html.escape(s, quote=None)
-
-
-#  pylint:enable=g-importing-member
-#  pylint:enable=g-import-not-at-top
 
 
 class _CellValue(dict):
@@ -116,7 +95,7 @@ def _process_custom_formatters(formatters, columns):
 def _fix_large_ints(x):
   # javascript stores all numbers as floats, so large integers must be
   # represented as strings.
-  if isinstance(x, _six.integer_types) and abs(x) > 2**52:
+  if isinstance(x, int) and abs(x) > 2**52:
     return str(x)
   elif isinstance(x, list):
     return [_fix_large_ints(e) for e in x]
@@ -174,7 +153,7 @@ def _to_js(x,
 
   represent_as_string = str
   if html_encode:
-    represent_as_string = lambda x: _escape(str(x))
+    represent_as_string = lambda x: _html.escape(str(x), quote=None)
 
   if isinstance(x, dict) and not isinstance(x, _CellValue):
     # dictionaries need to be converted to string, if not they will be passed
@@ -193,12 +172,12 @@ def _to_js(x,
       x = [_fix_large_ints(item) for item in x]
 
   # Ensure that we're returning JSON of a string value.
-  double_encode_json = as_string and not isinstance(x, _six.string_types)
+  double_encode_json = as_string and not isinstance(x, str)
 
   try:
     result = _json.dumps(x, default=represent_as_string)
   except UnicodeDecodeError:
-    if isinstance(x, _six.string_types):
+    if isinstance(x, str):
       result = _json.dumps(default_nonunicode_formatter(x))
     else:
       result = _json.dumps([
@@ -312,8 +291,7 @@ def _get_column_type(data, column_index):
     cell = row[column_index]
     t = type(_get_value(cell))
     is_known_type = (
-        cell is None or issubclass(t, _numbers.Number) or
-        issubclass(t, _six.string_types))
+        cell is None or issubclass(t, _numbers.Number) or issubclass(t, str))
     if not is_known_type:
       t = str
     data_types.add(t)

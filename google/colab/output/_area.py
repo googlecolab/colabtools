@@ -13,19 +13,15 @@
 # limitations under the License.
 """Support for custom output areas in colab."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import contextlib
-import six
+
 from google.colab.output import _js_builder
 
 _jsapi = _js_builder.Js('google.colab')
 
 
 def _set_output_area(selector):
-  if isinstance(selector, six.string_types):
+  if isinstance(selector, str):
     element = _js_builder.Js('document').querySelector(selector)
   else:
     element = selector

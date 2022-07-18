@@ -1,9 +1,5 @@
 """Functionality for working with user-defined snippets."""
 
-from __future__ import absolute_import as _
-from __future__ import division as _
-from __future__ import print_function as _
-
 from google.colab import _message
 
 __all__ = ['register']

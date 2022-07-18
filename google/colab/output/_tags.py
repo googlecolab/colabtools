@@ -13,10 +13,6 @@
 # limitations under the License.
 """This module provides support for tagging and selectively deleting outputs."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import contextlib
 import sys
 import threading
@@ -25,7 +21,6 @@ import uuid
 from google.colab import _ipython as ipython
 import IPython
 from IPython import display
-import six
 
 
 def _add_or_remove_tags(tags_to_add=(), tags_to_remove=()):
@@ -59,7 +54,7 @@ def _add_or_remove_tags(tags_to_add=(), tags_to_remove=()):
 
 
 def _convert_string_to_list(v):
-  return [v] if isinstance(v, six.string_types) else v
+  return [v] if isinstance(v, str) else v
 
 
 # Thread local storage for tags

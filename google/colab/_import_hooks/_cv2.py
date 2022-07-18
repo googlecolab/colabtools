@@ -13,10 +13,6 @@
 # limitations under the License.
 """Import hook to disable cv.imshow() and cv2.imshow() within Colab."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import imp
 import logging
@@ -57,7 +53,7 @@ def disable_function(func, message, env_var, name=None):
   return wrapped
 
 
-class _OpenCVImportHook(object):
+class _OpenCVImportHook:
   """Disables cv.imshow() and cv2.imshow() on import of cv or cv2."""
 
   message = (

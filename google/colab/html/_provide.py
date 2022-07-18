@@ -33,10 +33,6 @@ Example inside Colab:
   '''.format(ref=ref)))
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 import collections
 import mimetypes
@@ -44,12 +40,10 @@ import uuid
 import weakref
 
 from google.colab.html import _background_server
-import six
 import tornado.web
 
 
-@six.add_metaclass(abc.ABCMeta)
-class _Resource(object):
+class _Resource(metaclass=abc.ABCMeta):
   """Abstract resource class to handle content to colab."""
 
   def __init__(self, provider, headers, extension, route):

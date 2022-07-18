@@ -13,10 +13,6 @@
 # limitations under the License.
 """Building javascript in python."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import datetime
 import functools
 import json
@@ -39,7 +35,7 @@ class JsException(Exception):  # pylint: disable=g-bad-exception-name
   pass
 
 
-class Js(object):
+class Js:
   """Base class to execute javascript using python chaining.
 
   Basic usage is like this:

@@ -17,7 +17,6 @@ import contextlib
 from google.colab.output import _js_builder as js
 from google.colab.output import _publish
 from google.colab.widgets import _widget
-import six
 
 
 class TabBar(_widget.OutputAreaWidget):
@@ -70,7 +69,7 @@ class TabBar(_widget.OutputAreaWidget):
     }
 
   def _get_tab_id(self, index_or_name):
-    if isinstance(index_or_name, six.string_types):
+    if isinstance(index_or_name, str):
       names = tuple(self.tab_names)
       index = names.index(index_or_name)
       if index_or_name in names[index + 1:]:

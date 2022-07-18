@@ -40,14 +40,14 @@ except ImportError:
 # pylint:enable=g-import-not-at-top
 
 
-class FakeNotebookServer(object):
+class FakeNotebookServer:
 
   def __init__(self, app):
     self.web_app = app
     self.log = logging.getLogger('fake_notebook_server_logger')
 
 
-class FakeUsage(object):
+class FakeUsage:
   """Provides methods that fake memory usage shell invocations."""
   kernel_ids = [
       '3a7c6914-ce88-4ae8-a37a-9ecf7a21bbef',
@@ -79,7 +79,7 @@ class FakeUsage(object):
     return output
 
 
-class FakeKernelManager(object):
+class FakeKernelManager:
   """Provides methods faking an IPython MultiKernelManager."""
   _kernel_factory = collections.namedtuple('FakeKernelFactory', ['kernel'])
   _popen = collections.namedtuple('FakePOpen', ['pid'])

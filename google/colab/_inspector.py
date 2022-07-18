@@ -13,11 +13,9 @@
 # limitations under the License.
 """Colab-specific IPython.oinspect.Inspector and related utilities."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
+import builtins
+import collections.abc as collections_abc
 import inspect
 import logging
 import math
@@ -27,14 +25,6 @@ import types
 import astor
 from IPython.core import oinspect
 from IPython.utils import dir2
-import six
-from six.moves import builtins
-
-# We need to reference collections ABCs, which don't have a name in six.moves.
-if six.PY2:
-  import collections as collections_abc  # pylint: disable=g-import-not-at-top
-else:
-  import collections.abc as collections_abc  # pylint: disable=g-import-not-at-top
 
 # We also iterate over dicts, but the logic differs slightly (due to compound
 # entries), so they don't appear in this mapping.
@@ -94,14 +84,10 @@ def _getdoc(obj):
     except Exception:  # pylint: disable=broad-except
       pass
     else:
-      if isinstance(docstring, six.string_types):
+      if isinstance(docstring, str):
         return docstring
 
-  docstring = inspect.getdoc(obj) or ''
-  # In principle, we want to find the file associated with obj, and use that
-  # encoding here. However, attempting to find the file may lead to calling
-  # repr(obj), so we instead assume UTF8 and replace non-UTF8 characters.
-  return six.ensure_text(docstring, errors='backslashreplace')
+  return inspect.getdoc(obj) or ''
 
 
 def _unwrap(obj):
@@ -233,7 +219,7 @@ def _safe_repr(obj, depth=0, visited=None):
 
   type_name = type(obj).__name__
   module_name = getattr(type(obj), '__module__', _UNAVAILABLE_MODULE_NAME)
-  if not isinstance(module_name, six.text_type):
+  if not isinstance(module_name, str):
     module_name = _UNAVAILABLE_MODULE_NAME
   fully_qualified_type_name = '.'.join((
       module_name,
@@ -241,25 +227,22 @@ def _safe_repr(obj, depth=0, visited=None):
   ))
 
   # Next, we want to allow printing for ~all builtin types other than iterables.
-  if isinstance(obj, (six.binary_type, six.text_type)):
+  if isinstance(obj, (bytes, str)):
     if len(obj) > _STRING_ABBREV_LIMIT:
-      ellipsis = b'...' if isinstance(obj, six.binary_type) else '...'
+      ellipsis = b'...' if isinstance(obj, bytes) else '...'
       return repr(obj[:_STRING_ABBREV_LIMIT] + ellipsis)
     return repr(obj)
   # Bound methods will include the full repr of the object they're bound to,
   # which we need to avoid.
   if isinstance(obj, types.MethodType):
-    if six.PY3:
-      return '{} method'.format(obj.__qualname__)
-    else:
-      return '{}.{} method'.format(obj.im_class.__name__, obj.__func__.__name__)
+    return '{} method'.format(obj.__qualname__)
   # Matching by module name is ugly; we do this because many types (eg
   # type(None)) don't appear in the dir() of any module in py3.
   if (not isinstance(obj, collections_abc.Iterable) and
       module_name == builtins.__name__):
     # The only arbitrary-sized builtin type is int; we compute the first and
     # last 10 digits if the number is larger than 30 digits.
-    if obj and isinstance(obj, six.integer_types):
+    if obj and isinstance(obj, int):
       sign = '-' if obj < 0 else ''
       a = abs(obj)
       ndigits = int(math.log10(a) + 1)
@@ -282,8 +265,8 @@ def _safe_repr(obj, depth=0, visited=None):
   # Sized & shaped objects get a simple summary.
   if isinstance(obj, collections_abc.Sized):
     shape = getattr(obj, 'shape', None)
-    if (isinstance(shape, tuple) or hasattr(shape, '__module__') and
-        isinstance(shape.__module__, six.string_types) and
+    if (isinstance(shape, tuple) or
+        hasattr(shape, '__module__') and isinstance(shape.__module__, str) and
         'tensorflow.' in shape.__module__):
       return '{} with shape {}'.format(type_name, shape)
 
@@ -299,7 +282,7 @@ def _safe_repr(obj, depth=0, visited=None):
           len(obj)) if len(obj) != 1 else '(1 item) '
     if dict is not type(obj):
       type_prefix = fully_qualified_type_name
-    for i, (k, v) in enumerate(six.iteritems(obj)):
+    for i, (k, v) in enumerate(obj.items()):
       if i >= _ITERABLE_SIZE_THRESHOLD:
         s.append('...')
         break

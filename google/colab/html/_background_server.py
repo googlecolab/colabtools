@@ -13,10 +13,6 @@
 # limitations under the License.
 """Tornado server running in a background thread."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import threading
 
 import portpicker
@@ -26,7 +22,7 @@ import tornado.ioloop
 import tornado.web
 
 
-class _BackgroundServer(object):
+class _BackgroundServer:
   """HTTP server that runs in a background thread."""
 
   def __init__(self, app):
