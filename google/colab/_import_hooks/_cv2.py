@@ -36,14 +36,14 @@ def disable_function(func, message, env_var, name=None):
   """Wrapper that prevents a user from calling a function.
 
   Args:
-    func : The function to wrap & disable.
-    message : The user-facing explanation for why this function is disabled.
-    env_var : The name of the environment variable that can optionally be used
-      to re-enable the function.
-    name : The function name to use within the error message.
+    func: The function to wrap & disable.
+    message: The user-facing explanation for why this function is disabled.
+    env_var: The name of the environment variable that can optionally be used to
+      re-enable the function.
+    name: The function name to use within the error message.
 
   Returns:
-    wrapped : the wrapped function
+    wrapped: the wrapped function
   """
 
   @functools.wraps(func)

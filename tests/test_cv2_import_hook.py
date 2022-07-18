@@ -40,9 +40,11 @@ class OpenCVImportHookTest(unittest.TestCase):
     class MockCV(object):
       """Simple mock of the cv2 module's imshow function."""
 
+      error = TypeError
+
       @staticmethod
-      def imshow(name, im):
-        raise NotImplementedError()
+      def imshow(name=None, im=None):
+        raise MockCV.error()
 
     cls.find_module = imp.find_module
     cls.load_module = imp.load_module
@@ -139,5 +141,5 @@ class OpenCVImportHookTest(unittest.TestCase):
 
     # After Enabling, we get a TypeError (because we pass no arguments).
     os.environ[_cv2._OpenCVImportHook.env_var] = "true"
-    with self.assertRaises(TypeError) as err:
+    with self.assertRaises(cv2.error) as err:
       cv2.imshow()
