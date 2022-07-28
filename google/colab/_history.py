@@ -27,9 +27,6 @@ class ColabHistoryManager(history.HistoryManager):
   in Colab's UI.
   """
   _input_hist_cells = [{'code': '', 'cell_id': '', 'start_time': 0}]
-  # TODO(b/193678454): Remove this in early 2022 when we no longer need
-  # backwards compatibility.
-  _supports_cell_ran = True
 
   def reset(self, new_session=True):
     super(ColabHistoryManager, self).reset(new_session=new_session)
