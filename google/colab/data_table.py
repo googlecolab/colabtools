@@ -28,6 +28,7 @@ import warnings as _warnings
 
 from google.colab import _interactive_table_helper
 import IPython as _IPython
+from IPython import display as _display
 
 # pylint: disable=g-import-not-at-top
 with _warnings.catch_warnings():
@@ -62,7 +63,7 @@ _DEFAULT_FORMATTERS = {str: str}
 _DEFAULT_SUPPRESS_OUTPUT_SCROLLING = True
 
 
-class DataTable(_IPython.display.DisplayObject):
+class DataTable(_display.DisplayObject):
   """An interactive data table display.
 
   Attributes:

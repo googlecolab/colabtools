@@ -16,6 +16,7 @@
 from google.colab import _import_hooks
 from google.colab import _import_magics
 from google.colab import _installation_commands
+from google.colab import _interactive_table_hint_button
 from google.colab import _reprs
 from google.colab import _shell_customizations
 from google.colab import _system_commands
@@ -56,3 +57,4 @@ def load_ipython_extension(ipython):
   _reprs.enable_string_repr()
   # TODO(b/203704905): remove workaround when pandas fixes this issue.
   _reprs.enable_df_style_formatter()
+  _interactive_table_hint_button._enable_df_interactive_hint_formatter()  # pylint:disable=protected-access

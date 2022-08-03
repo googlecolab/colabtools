@@ -156,18 +156,24 @@ _original_formatters = {}
 
 def _enable_df_interactive_hint_formatter():
   """Formatter that surfaces the existence of interactive tables to user."""
+  shell = _IPython.get_ipython()
+  if not shell:
+    return
   key = 'text/html'
   if key not in _original_formatters:
-    formatters = _IPython.get_ipython().display_formatter.formatters
+    formatters = shell.display_formatter.formatters
     _original_formatters[key] = formatters[key].for_type_by_name(
         'pandas.core.frame', 'DataFrame', _df_formatter_with_interactive_hint)
 
 
 def _disable_df_interactive_hint_formatter():
   """Restores the original html formatter for Pandas DataFrames."""
+  shell = _IPython.get_ipython()
+  if not shell:
+    return
   key = 'text/html'
   if key in _original_formatters:
-    formatters = _IPython.get_ipython().display_formatter.formatters
+    formatters = shell.display_formatter.formatters
     formatters[key].pop('pandas.core.frame.DataFrame', None)
     formatters[key].for_type_by_name('pandas.core.frame', 'DataFrame',
                                      _original_formatters.pop(key))
