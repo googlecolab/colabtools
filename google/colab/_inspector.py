@@ -378,7 +378,6 @@ class ColabInspector(oinspect.Inspector):
       try:
         sig = inspect.signature(obj)
       except (TypeError, ValueError):
-        logging.info('Unable to get signature for %r', oname)
         return None
       new_params = []
       for v in sig.parameters.values():
