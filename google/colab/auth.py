@@ -71,20 +71,14 @@ def _check_adc(credential_type=_CredentialType.NO_CHECK):
   # yet used google.auth.
   import google.auth as _google_auth  # pylint: disable=g-import-not-at-top
   import google.auth.transport.requests as _auth_requests  # pylint: disable=g-import-not-at-top
-  # google-auth wants to warn the user if no project is set, which makes sense
-  # for cloud-only users, but not in our case. We temporarily change the logging
-  # level here to silence.
-  logger = _logging.getLogger()
-  log_level = logger.level
-  logger.setLevel(_logging.ERROR)
+
   try:
     # refresh() will fail for service account credentials if some scope is not
     # provided
     creds, _ = _google_auth.default(scopes=['email'])
   except _google_auth.exceptions.DefaultCredentialsError:
     return False
-  finally:
-    logger.setLevel(log_level)
+
   transport = _auth_requests.Request()
   # Import here since it transitively brings in google.auth.
   from google.oauth2.service_account import Credentials as _ServiceAccountCredentials  # pylint: disable=g-import-not-at-top
