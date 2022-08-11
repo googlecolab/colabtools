@@ -18,6 +18,11 @@ import os
 import sys
 import traceback
 
+from google.colab import _history
+from google.colab import _inspector
+from google.colab import _pip
+from google.colab import _shell_customizations
+from google.colab import _system_commands
 from ipykernel import jsonutil
 from ipykernel import zmqshell
 from IPython.core import alias
@@ -25,16 +30,9 @@ from IPython.core import inputsplitter
 from IPython.core import interactiveshell
 from IPython.core import oinspect
 from IPython.core.events import available_events
+from IPython.core.events import EventManager
 from IPython.utils import PyColorize
 from ipython_genutils import py3compat
-
-from google.colab import _event_manager
-from google.colab import _history
-from google.colab import _inspector
-from google.colab import _pip
-from google.colab import _shell_customizations
-from google.colab import _system_commands
-
 
 # Python doesn't expose a name in builtins for a getset descriptor attached to a
 # python class implemented in C, eg an entry in this array:
@@ -55,7 +53,7 @@ class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
 
   def init_events(self):
-    self.events = _event_manager.ColabEventManager(self, available_events)
+    self.events = EventManager(self, available_events)
     self.events.register('pre_execute', self._clear_warning_registry)
 
   def init_inspector(self):
@@ -100,8 +98,9 @@ class Shell(zmqshell.ZMQInteractiveShell):
       _pip.print_previous_import_warning(output)
 
   def _send_error(self, exc_content):
-    topic = (self.displayhook.topic.replace(b'execute_result', b'err') if
-             self.displayhook.topic else None)
+    topic = (
+        self.displayhook.topic.replace(b'execute_result', b'err')
+        if self.displayhook.topic else None)
     self.displayhook.session.send(
         self.displayhook.pub_socket,
         u'error',
