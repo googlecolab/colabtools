@@ -23,7 +23,7 @@ DEPENDENCIES = (
     'google-auth>=1.17.2',
     'ipykernel~=5.3.4',
     'ipython~=7.9.0',
-    'notebook~=5.3.0',
+    'notebook~=5.5.0',
     'pandas>=1.1.0',
     'portpicker~=1.3.1',
     'requests>=2.23.0',
@@ -46,6 +46,7 @@ setup(
     classifiers=(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: POSIX',
