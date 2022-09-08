@@ -22,5 +22,9 @@ class AuthorizationError(Error):
   """Authorization-related failures."""
 
 
+class RuntimeManagementError(Error):
+  """Runtime-management-related failures."""
+
+
 class WidgetException(Exception):  # pylint: disable=g-bad-exception-name
   """colab.widgets failures."""

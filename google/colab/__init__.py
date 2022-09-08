@@ -26,11 +26,13 @@ from google.colab import data_table
 from google.colab import drive
 from google.colab import files
 from google.colab import output
+from google.colab import runtime
 from google.colab import snippets
 from google.colab import widgets
 
 __all__ = [
-    'auth', 'data_table', 'drive', 'files', 'output', 'snippets', 'widgets'
+    'auth', 'data_table', 'drive', 'files', 'output', 'runtime', 'snippets',
+    'widgets'
 ]
 
 __version__ = '0.0.1a2'
