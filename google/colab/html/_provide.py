@@ -34,7 +34,7 @@ Example inside Colab:
 """
 
 import abc
-import collections
+import collections.abc
 import mimetypes
 import uuid
 import weakref
@@ -47,7 +47,7 @@ class _Resource(metaclass=abc.ABCMeta):
   """Abstract resource class to handle content to colab."""
 
   def __init__(self, provider, headers, extension, route):
-    if not isinstance(headers, collections.Mapping):
+    if not isinstance(headers, collections.abc.Mapping):
       raise ValueError('headers must be a dict')
     if route and extension:
       raise ValueError('Should only provide one of route or extension.')
