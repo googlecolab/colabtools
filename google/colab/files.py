@@ -18,6 +18,7 @@ import collections as _collections
 from http import server as _http_server
 import json as _json
 import os as _os
+import pkgutil as _pkgutil
 import socket as _socket
 import socketserver as _socketserver
 import urllib as _urllib
@@ -98,6 +99,7 @@ def _upload_files(multiple):
   upload_id = str(_uuid.uuid4())
   input_id = 'files-' + upload_id
   output_id = 'result-' + upload_id
+  files_js = _pkgutil.get_data(__name__, 'resources/files.js').decode('utf8')
 
   _IPython.display.display(
       _IPython.core.display.HTML("""
@@ -107,10 +109,11 @@ def _upload_files(multiple):
       Upload widget is only available when the cell has been executed in the
       current browser session. Please rerun this cell to enable.
       </output>
-      <script src="/nbextensions/google.colab/files.js"></script> """.format(
+      <script>{files_js}</script> """.format(
           input_id=input_id,
           output_id=output_id,
-          multiple_text='multiple' if multiple else '')))
+          multiple_text='multiple' if multiple else '',
+          files_js=files_js)))
 
   # First result is always an indication that the file picker has completed.
   result = _output.eval_js(
