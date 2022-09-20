@@ -265,6 +265,11 @@ def _safe_repr(obj, depth=0, visited=None):
   # Sized & shaped objects get a simple summary.
   if isinstance(obj, collections_abc.Sized):
     shape = getattr(obj, 'shape', None)
+
+    if (isinstance(shape, tuple) and module_name.startswith('pandas.') and
+        type_name == 'Series'):
+      return f'{type_name} with shape {shape} and dtype {obj.dtype}'
+
     if (isinstance(shape, tuple) or
         hasattr(shape, '__module__') and isinstance(shape.__module__, str) and
         'tensorflow.' in shape.__module__):
