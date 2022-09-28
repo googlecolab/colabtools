@@ -27,7 +27,32 @@ import uuid as _uuid
 from google.colab import output as _output
 import IPython as _IPython
 
-__all__ = ['upload', 'download', 'view']
+__all__ = ['upload_file', 'upload', 'download', 'view']
+
+
+def upload_file(filename):
+  """Upload local (to the browser) file to the kernel.
+
+  Blocks until the files are available.
+
+  Args:
+    filename: Name of the file to be written to
+
+  Raises:
+    ValueError: If multiple files were uploaded or no file is not uploaded.
+  """
+
+  uploaded_files = _upload_files(multiple=False)
+  if not uploaded_files:
+    raise ValueError('File has not been uploaded')
+  if len(uploaded_files) > 1:
+    raise ValueError('Multiple files received, please upload a single file')
+
+  with open(filename, 'wb') as f:
+    f.write(list(uploaded_files.values())[0])
+  print('Saved {} to {}'.format(
+      list(uploaded_files.keys())[0],
+      _os.getcwd() + '/' + filename))
 
 
 def upload():
