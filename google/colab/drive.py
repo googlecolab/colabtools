@@ -96,16 +96,21 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
     raise ValueError('flush_and_unmount failed')
 
 
-def mount(mountpoint, force_remount=False, timeout_ms=120000):
+def mount(mountpoint, force_remount=False, read_only=False, timeout_ms=120000):
   """Mount your Google Drive at the specified mountpoint path."""
   return _mount(
       mountpoint,
       force_remount=force_remount,
+      read_only=read_only,
       timeout_ms=timeout_ms,
       ephemeral=True)
 
 
-def _mount(mountpoint, force_remount=False, timeout_ms=120000, ephemeral=False):
+def _mount(mountpoint,
+           force_remount=False,
+           read_only=False,
+           timeout_ms=120000,
+           ephemeral=False):
   """Internal helper to mount Google Drive."""
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
@@ -213,6 +218,7 @@ def _mount(mountpoint, force_remount=False, timeout_ms=120000, ephemeral=False):
           'max_parallel_push_task_instances:10',
           'opendir_timeout_ms:{timeout_ms}',
           'virtual_folders_omit_spaces:true',
+          'read_only_mode:{readonly}',
       ]) + ' '
       '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
       '--preferences=trusted_root_certs_file_path:'
@@ -224,7 +230,8 @@ def _mount(mountpoint, force_remount=False, timeout_ms=120000, ephemeral=False):
           mnt=mountpoint,
           domain_disabled_drivefs=domain_disabled_drivefs,
           problem_and_stopped=problem_and_stopped,
-          drive_exited=drive_exited))
+          drive_exited=drive_exited,
+          readonly='true' if read_only else 'false'))
   d.expect(prompt)
 
   # LINT.IfChange(drivetimeout)
