@@ -324,23 +324,6 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     self.assertEqual(-signal.SIGKILL, result.returncode)
     self.assertEqual('Before sleep\n', result.output)
 
-  def testNonUtf8Locale(self):
-    # The "C" locale uses the US-ASCII 7-bit character set.
-    with temp_env(LC_ALL='C'):
-      run_cell_result = self.run_cell(
-          textwrap.dedent("""
-        import subprocess
-        try:
-          %shell echo "should fail"
-        except NotImplementedError as e:
-          caught_exception = e
-        """))
-      captured_output = run_cell_result.output
-
-      self.assertEqual('', captured_output.stderr)
-      self.assertEqual('', captured_output.stdout)
-      self.assertIsNotNone(self.ip.user_ns['caught_exception'])
-
   def testSystemCompat(self):
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
     # "猫" is "cats" in simplified Chinese.
