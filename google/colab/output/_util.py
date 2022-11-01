@@ -70,6 +70,19 @@ def serve_kernel_port_as_iframe(port,
     iframe.height = height;
     iframe.width = width;
     iframe.style.border = 0;
+    iframe.allow = [
+        'accelerometer',
+        'autoplay',
+        'camera',
+        'clipboard-read',
+        'clipboard-write',
+        'gyroscope',
+        'magnetometer',
+        'microphone',
+        'serial',
+        'usb',
+        'xr-spatial-tracking',
+    ].join('; ');
     element.appendChild(iframe);
   })""" + '({port}, {path}, {width}, {height}, {cache}, window.element)'.format(
       port=port,
