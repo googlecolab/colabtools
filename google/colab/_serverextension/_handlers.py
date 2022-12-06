@@ -17,13 +17,13 @@ import json
 import os
 import subprocess
 
-from notebook.base import handlers
-
-import tornado
-
 from google.colab import _serverextension
 from google.colab import drive
 from google.colab._serverextension import _resource_monitor
+
+from notebook.base import handlers
+
+import tornado
 
 _XSSI_PREFIX = ")]}'\n"
 
@@ -77,4 +77,15 @@ class DriveHandler(handlers.APIHandler):
     drive_status = self._get_drive_errors()
     self.finish(_XSSI_PREFIX + json.dumps({
         'dfs': drive_status,
+    }))
+
+
+class BuildInfoHandler(handlers.APIHandler):
+  """Handles requests for build info of the Colab kernel."""
+
+  @tornado.web.authenticated
+  def get(self, *unused_args, **unused_kwargs):
+    self.set_header('Content-Type', 'application/json')
+    self.finish(_XSSI_PREFIX + json.dumps({
+        'release_tag': os.environ.get('COLAB_RELEASE_TAG'),
     }))
