@@ -14,9 +14,11 @@
 """Colab-specific IPython.oinspect.Inspector and related utilities."""
 
 import ast
+import base64
 import builtins
 import collections.abc as collections_abc
 import inspect
+import io
 import logging
 import math
 import re
@@ -38,6 +40,7 @@ _ITERABLE_SIZE_THRESHOLD = 5
 _MAX_RECURSION_DEPTH = 4
 _MAX_DECORATOR_DEPTH = 12
 _STRING_ABBREV_LIMIT = 40
+_MAX_ALLOWED_SERIES_LEN = 1000000
 
 # Unhelpful docstrings we avoid surfacing to users.
 _BASE_CALL_DOC = types.FunctionType.__call__.__doc__
@@ -57,6 +60,15 @@ _APPROVED_REPRS = (
 )
 
 _UNAVAILABLE_MODULE_NAME = '<unknown>'
+
+# Bool variable to experiment with repr method
+_rich_repr_enabled = False
+
+
+def _enable_rich_reprs(value: bool):
+  """Enable _rich_repr_enabled for experimentation."""
+  global _rich_repr_enabled
+  _rich_repr_enabled = value
 
 
 def _getdoc(obj):
@@ -268,6 +280,10 @@ def _safe_repr(obj, depth=0, visited=None):
 
     if (isinstance(shape, tuple) and module_name.startswith('pandas.') and
         type_name == 'Series'):
+
+      if _rich_repr_enabled:
+        return _series_rich_repr(obj, depth)
+
       return f'{type_name} with shape {shape} and dtype {obj.dtype}'
 
     if (isinstance(shape, tuple) or
@@ -344,6 +360,72 @@ def _safe_repr(obj, depth=0, visited=None):
 
   # We didn't know what it was; we give up and just give the type name.
   return '{} instance'.format(fully_qualified_type_name)
+
+
+def _series_rich_repr(obj, depth=0):
+  """Rich repr for pandas series.
+
+  Args:
+    obj: A python object to provide a repr for.
+    depth: (optional) The current recursion depth.
+
+  Returns:
+    A (potentially abbreviated) string representation for obj.
+  """
+  # Importing matplotlib.pyplot here because of b/261900852
+  import matplotlib.pyplot as plt  # pylint:disable=g-import-not-at-top
+
+  width_figure = 4
+  height_figure = 1
+  shape = getattr(obj, 'shape', None)
+
+  if len(obj) > _MAX_ALLOWED_SERIES_LEN or depth > 0 or obj.dtype.kind not in (
+      'i', 'f', 'b'):
+    return f'Series with shape {shape} and dtype {obj.dtype}'
+
+  if obj.dtype.kind in ('i', 'f'):
+
+    result = f'**{obj.name}** _{obj.dtype}_\n\n'
+    obj.hist(figsize=(width_figure, height_figure))
+    with io.BytesIO() as stream:
+      plt.savefig(stream, format='png', bbox_inches='tight')
+      plt.close()
+      hist = base64.standard_b64encode(stream.getvalue()).decode('utf-8')
+    result += f'![hist](data:image/png;base64,{hist})\n\n'
+    desc = obj.describe()
+    result += '|   |   |\n'
+    result += '|---|---|\n'
+    result += f'|count|{desc["count"]}|\n'
+    result += f'|min|{desc["min"].round(2)}|\n'
+    result += f'|25%|{desc["25%"].round(2)}|\n'
+    result += f'|mean|{desc["mean"].round(2)}|\n'
+    result += f'|median|{desc["50%"].round(2)}|\n'
+    result += f'|75%|{desc["75%"].round(2)}|\n'
+    result += f'|max|{desc["max"].round(2)}|\n'
+    result += f'|nunique|{obj.nunique()}|\n'
+    result += f'|isna|{obj.isna().sum()}|\n'
+    return result
+
+  if obj.dtype.kind == 'b':
+    result = f'**{obj.name}** _{obj.dtype}_\n\n'
+    categories = obj.value_counts().index
+    categories = [str(category) for category in categories]
+    counts = obj.value_counts().values
+    plt.figure(figsize=(width_figure, height_figure))
+    plt.bar(categories, counts)
+    with io.BytesIO() as stream:
+      plt.savefig(stream, format='png', bbox_inches='tight')
+      plt.close()
+      plot = base64.standard_b64encode(stream.getvalue()).decode('utf-8')
+    result += f'![hist](data:image/png;base64,{plot})\n\n'
+    desc = obj.describe()
+    result += '|   |   |\n'
+    result += '|---|---|\n'
+    result += f'|count|{desc["count"]}|\n'
+    result += f'|unique|{desc["unique"]}|\n'
+    result += f'|top|{desc["top"]}|\n'
+    result += f'|freq|{desc["freq"]}|\n'
+    return result
 
 
 # The `inspect.Parameter` class hardcodes the use of `repr()` for formatting
