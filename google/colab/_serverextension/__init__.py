@@ -79,5 +79,6 @@ def load_jupyter_server_extension(nb_server_app):
           'kernel_manager': app.settings['kernel_manager']
       }),
       (url_maker('/api/colab/drive'), _handlers.DriveHandler),
+      (url_maker('/api/colab/build-info'), _handlers.BuildInfoHandler),
   ])
   nb_server_app.log.info('google.colab serverextension initialized.')
