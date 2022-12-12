@@ -8,6 +8,8 @@ import httplib2 as _httplib2
 
 __all__ = ['unassign']
 
+_IS_EXTERNAL_COLAB = True
+
 
 def unassign():
   """Instruct Colab to unassign the currently assigned runtime.
@@ -20,6 +22,9 @@ def unassign():
     google.colab.errors.RuntimeManagementError: Error communicating with the
         backend service.
   """
+  if not _IS_EXTERNAL_COLAB:
+    raise _errors.RuntimeManagementError(
+        'This operation is only supported in external Colab.')
   h = _httplib2.Http()
   runtime_server_addr = _os.environ.get('TBE_RUNTIME_ADDR')
   if not runtime_server_addr:
