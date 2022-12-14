@@ -26,6 +26,7 @@ import types
 
 from IPython.core import oinspect
 from IPython.utils import dir2
+import matplotlib.pyplot as plt
 
 # We also iterate over dicts, but the logic differs slightly (due to compound
 # entries), so they don't appear in this mapping.
@@ -372,9 +373,6 @@ def _series_rich_repr(obj, depth=0):
   Returns:
     A (potentially abbreviated) string representation for obj.
   """
-  # Importing matplotlib.pyplot here because of b/261900852
-  import matplotlib.pyplot as plt  # pylint:disable=g-import-not-at-top
-
   width_figure = 4
   height_figure = 1
   shape = getattr(obj, 'shape', None)
