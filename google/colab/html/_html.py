@@ -114,12 +114,10 @@ def _utils_url():
   return _utils_ref.url
 
 
-_element_template = string.Template("""
-$deps
-<$tag id="$guid">
-  $children
-</$tag>
-<script>
+# note: no whitespace outside the script tag, as this can affect the way the
+# HTML renders.
+_element_template = string.Template("""\
+$deps<$tag id="$guid">$children</$tag><script>
   (function() {
     async function init() {
       const name = '_google_colab_output_html';
@@ -139,8 +137,7 @@ $deps
     }
     window.google.colab.output.pauseOutputUntil(init());
   })();
-</script>
-""")
+</script>""")
 
 
 class Element:
@@ -324,8 +321,10 @@ class Element:
             deps,
         'utils':
             _utils_url(),
+        # Wrap the newline in a comment so that it does not turn into a text
+        # node in the HTML.
         'children':
-            '\n'.join([_to_html_str(c) for c in self._children]),
+            '<!--\n-->'.join([_to_html_str(c) for c in self._children]),
         'config':
             json.dumps({
                 'tag': self._tag,
