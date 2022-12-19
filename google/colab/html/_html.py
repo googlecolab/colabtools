@@ -16,6 +16,7 @@
 """HTML renderable element in notebooks."""
 
 import base64
+import html
 import json
 import string
 import uuid
@@ -40,6 +41,7 @@ def _to_html_str(obj):
 
   Args:
     obj: An object to try to convert into HTML.
+
   Returns:
     An html string representation of the object.
   """
@@ -51,17 +53,18 @@ def _to_html_str(obj):
   except KeyError:  # No html formatter exists
     pass
   if hasattr(obj, '_repr_html_'):
-    html = obj._repr_html_()  # pylint: disable=protected-access
-    if html:
-      return html
-  elif isinstance(obj, str):
-    return obj
-  else:
+    html_str = obj._repr_html_()  # pylint: disable=protected-access
+    if html_str:
+      return html_str
+  # Otherwise, treat as a text node and HTML-escape. If the user wants to pass
+  # a preassembled HTML string, they can create a `IPython.display.HTML()` then
+  # set the `data` attribute, or make a wrapper implementing `_repr_html_`.
+  if not isinstance(obj, str):
     try:
-      return json.dumps(obj)
+      obj = json.dumps(obj)
     except TypeError:  # Not json serializable
-      pass
-  return str(obj)
+      obj = str(obj)
+  return html.escape(obj)
 
 
 def _call_js_function(js_function, *args):
@@ -150,9 +153,10 @@ class Element:
       tag: Custom element tag name.
       attributes: Initial attributes to set.
       properties: Initial properties to set.
-      src: Entry point url of source for element. Should be a dict
-        containing one of the following keys script, html, module.
-        For example: {"script": "data:application/javascript;,"}
+      src: Entry point url of source for element. Should be a dict containing
+        one of the following keys script, html, module. For example: {"script":
+        "data:application/javascript;,"}
+
     Raises:
       ValueError: If invalid deps, attributes, or properites.
     """
@@ -222,6 +226,7 @@ class Element:
     Args:
       name: Name of the event.
       callback: The python function or js string to evaluate when event occurs.
+
     Raises:
       ValueError: If callback is not valid.
     """
@@ -255,6 +260,7 @@ class Element:
     Args:
       name: String of the event.
       callback: The callback passed into add_event_listener previously.
+
     Raises:
       ValueError: If the callback was not added previously.
     """
@@ -279,7 +285,13 @@ class Element:
       })
 
   def append_child(self, child):
-    """Append child to Element."""
+    """Append child to Element.
+
+    Args:
+      child: The child to append. If child is a string, it will be treated as a
+        text node and html-escaped on output. To append raw html, use::  wrapped
+        = IPython.display.HTML() wrapped.data = raw el.append_child(wrapped)
+    """
     # Child could be anything that can be converted to html.
     if isinstance(child, Element):
       child.remove()
