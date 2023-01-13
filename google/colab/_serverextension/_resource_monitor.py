@@ -35,8 +35,12 @@ def get_gpu_usage():
   limit = 0
   try:
     ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
-        '/usr/bin/timeout', '-sKILL', '1s', 'nvidia-smi',
-        '--query-gpu=memory.used,memory.total', '--format=csv,nounits,noheader'
+        '/usr/bin/timeout',
+        '-sKILL',
+        '1s',
+        'nvidia-smi',
+        '--query-gpu=memory.used,memory.total',
+        '--format=csv,nounits,noheader',
     ]).decode('utf-8')
   except (OSError, IOError, subprocess.CalledProcessError):
     # If timeout or nvidia-smi don't exist or the call errors, return zero
@@ -75,34 +79,53 @@ def get_ram_usage(kernel_manager):
       kernels: A dict mapping kernel UUIDs to ints (memory usage in bytes),
     }
   """
+  pids_to_kernel_ids = {}
+  if not os.path.exists('/var/colab/hostname'):
+    # TODO(b/259464430): Consider removing per-kernel reporting: It is
+    # inaccurate to start with (only considers the kernel process) and is only
+    # used for internal local runtimes at this point, which is inconsistent.
+    pids_to_kernel_ids = dict(
+        [
+            (str(kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
+            for kernel_id in kernel_manager.list_kernel_ids()
+        ]
+    )
+
+  if 'TEST_TMPDIR' in os.environ:
+    result = {'usage': 1 << 30, 'limit': 5 << 30}
+    if pids_to_kernel_ids:
+      per_kernel = result['usage'] // len(pids_to_kernel_ids)
+      result['kernels'] = {k: per_kernel for k in pids_to_kernel_ids.values()}
+    return result
+
   free, limit = 0, 0
   with open('/proc/meminfo', 'r') as f:
     lines = f.readlines()
-  line = [x for x in lines if 'MemAvailable:' in x]
+    line = [x for x in lines if 'MemAvailable:' in x]
   if line:
     free = int(line[0].split()[1]) * 1024
-  line = [x for x in lines if 'MemTotal:' in x]
+    line = [x for x in lines if 'MemTotal:' in x]
   if line:
     limit = int(line[0].split()[1]) * 1024
   usage = limit - free
   result = {'usage': usage, 'limit': limit}
-  if not os.path.exists('/var/colab/hostname'):
-    pids_to_kernel_ids = dict([
-        (str(kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
-        for kernel_id in kernel_manager.list_kernel_ids()
-    ])
-    if pids_to_kernel_ids:
-      kernels = {}
-      ps = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
-          '/bin/ps', '-q', ','.join(pids_to_kernel_ids.keys()), '-wwo',
-          'pid rss', '--no-header'
-      ]).decode('utf-8')
-      for proc in ps.split('\n')[:-1]:
-        proc = proc.strip().split(' ', 1)
-        if len(proc) != 2:
-          continue
-        kernels[pids_to_kernel_ids[proc[0]]] = int(proc[1]) * 1024
-      result['kernels'] = kernels
+  if pids_to_kernel_ids:
+    kernels = {}
+    ps = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
+        '/bin/ps',
+        '-q',
+        ','.join(pids_to_kernel_ids.keys()),
+        '-wwo',
+        'pid rss',
+        '--no-header',
+    ]).decode('utf-8')
+    for proc in ps.split('\n')[:-1]:
+      proc = proc.strip().split(' ', 1)
+      if len(proc) != 2:
+        continue
+      kernels[pids_to_kernel_ids[proc[0]]] = int(proc[1]) * 1024
+    result['kernels'] = kernels
+
   return result
 
 
@@ -118,6 +141,9 @@ def get_disk_usage(path=None):
       limit: int,
     }
   """
+  if 'TEST_TMPDIR' in os.environ:
+    return {'usage': 40 << 30, 'limit': 120 << 30}
+
   if not path:
     path = '/'
   usage = 0
