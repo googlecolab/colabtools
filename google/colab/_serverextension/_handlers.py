@@ -36,9 +36,15 @@ class ResourceUsageHandler(handlers.APIHandler):
 
   @tornado.web.authenticated
   def get(self, *unused_args, **unused_kwargs):
-    stats = _resource_monitor.get_resource_stats(self._kernel_manager)
+    ram = _resource_monitor.get_ram_usage(self._kernel_manager)
+    gpu = _resource_monitor.get_gpu_usage()
+    disk = _resource_monitor.get_disk_usage()
     self.set_header('Content-Type', 'application/json')
-    self.finish(_XSSI_PREFIX + json.dumps(stats))
+    self.finish(_XSSI_PREFIX + json.dumps({
+        'ram': ram,
+        'gpu': gpu,
+        'disk': disk
+    }))
 
 
 class DriveHandler(handlers.APIHandler):
@@ -58,10 +64,8 @@ class DriveHandler(handlers.APIHandler):
         # about changes to this status.
         return [
             _serverextension._subprocess_check_output(  # pylint: disable=protected-access
-                '/usr/bin/tail -1 "{}"'.format(filtered_logfile), shell=True
-            )
-            .decode('utf-8')
-            .strip()
+                '/usr/bin/tail -1 "{}"'.format(filtered_logfile),
+                shell=True).decode('utf-8').strip()
         ]
     except subprocess.CalledProcessError:  # Missing log file isn't fatal.
       pass
@@ -71,14 +75,9 @@ class DriveHandler(handlers.APIHandler):
   @tornado.web.authenticated
   def get(self, *unused_args, **unused_kwargs):
     drive_status = self._get_drive_errors()
-    self.finish(
-        _XSSI_PREFIX
-        + json.dumps(
-            {
-                'dfs': drive_status,
-            }
-        )
-    )
+    self.finish(_XSSI_PREFIX + json.dumps({
+        'dfs': drive_status,
+    }))
 
 
 class BuildInfoHandler(handlers.APIHandler):
@@ -87,11 +86,6 @@ class BuildInfoHandler(handlers.APIHandler):
   @tornado.web.authenticated
   def get(self, *unused_args, **unused_kwargs):
     self.set_header('Content-Type', 'application/json')
-    self.finish(
-        _XSSI_PREFIX
-        + json.dumps(
-            {
-                'release_tag': os.environ.get('COLAB_RELEASE_TAG'),
-            }
-        )
-    )
+    self.finish(_XSSI_PREFIX + json.dumps({
+        'release_tag': os.environ.get('COLAB_RELEASE_TAG'),
+    }))
