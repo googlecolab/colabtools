@@ -45,6 +45,7 @@ def get_gpu_usage():
   except (OSError, IOError, subprocess.CalledProcessError):
     # If timeout or nvidia-smi don't exist or the call errors, return zero
     # values for usage and limit.
+    # TODO(b/139691280): Add internal GPU memory monitoring. Install nvidia-smi.
     pass
   else:
     r = csv.reader(ns.splitlines() or [''])
@@ -70,7 +71,7 @@ def get_ram_usage(kernel_manager):
 
   Arguments:
     kernel_manager: an IPython MultiKernelManager that owns child kernel
-      processes
+      processes.
 
   Returns:
     A dict of the form {
@@ -135,7 +136,7 @@ def get_disk_usage(path=None):
   """Reports total disk usage.
 
   Args:
-    path: path at which disk to be measured is mounted
+    path: path at which disk to be measured is mounted.
 
   Returns:
     A dict of the form {
@@ -155,3 +156,57 @@ def get_disk_usage(path=None):
     usage = disk_usage.used
     limit = disk_usage.total
   return {'usage': usage, 'limit': limit}
+
+
+def get_resource_stats(kernel_manager, disk_path=None):
+  """Reports total disk usage.
+
+  Why not return a proto message? Avoid a proto lib dep. It would add to our
+  already complex dep management without much benefit.
+
+  Args:
+    kernel_manager: an IPython MultiKernelManager that owns child kernel
+      processes.
+    disk_path: path at which disk to be measured is mounted.
+
+  Returns:
+    A dict representation of a colab.resourcestats.Resources proto. I.e.:
+      {
+        'memory': {
+          'totalBytes': 123,
+          [...]
+        }
+        [...]
+      }
+  """
+  ram = get_ram_usage(kernel_manager)
+  gpu = get_gpu_usage()
+  disk = get_disk_usage(disk_path)
+
+  stats = {
+      'memory': {
+          'totalBytes': ram['limit'],
+          'freeBytes': ram['limit'] - ram['usage'],
+      },
+      'disks': [
+          {
+              'filesystem': {
+                  'label': 'kernel',
+                  'totalBytes': disk['limit'],
+                  'usedBytes': disk['usage'],
+              }
+          }
+      ],
+      'gpus': [{
+          'memoryUsedBytes': gpu['usage'],
+          'memoryTotalBytes': gpu['limit'],
+          'everUsed': gpu['ever_used'],
+      }],
+  }
+  if 'kernels' in ram:
+    stats['memory']['kernels'] = [
+        {'uuid': uuid, 'usedBytes': usage}
+        for uuid, usage in ram['kernels'].items()
+    ]
+
+  return stats
