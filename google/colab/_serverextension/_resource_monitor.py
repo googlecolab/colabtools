@@ -82,7 +82,7 @@ def get_ram_usage(kernel_manager):
   """
   pids_to_kernel_ids = {}
   if not os.path.exists('/var/colab/hostname'):
-    # TODO(b/259464430): Consider extending reporting per-kernel usage to
+    # TODO(b/265583495): Consider extending reporting per-kernel usage to
     # all environments for consistency. This was removed in cl/337174714. Its 1)
     # is better performed in the frontend presentation layer. 2) was only a
     # requirement for the split (KMC/K) container, a feature that was dropped
