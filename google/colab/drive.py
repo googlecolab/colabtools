@@ -78,17 +78,16 @@ def flush_and_unmount(timeout_ms=24 * 60 * 60 * 1000):
     print('Drive not mounted, so nothing to flush and unmount.')
     return
   drive_bin = _os.path.join(env.root_dir, 'opt/google/drive/drive')
-  # TODO(b/219107975): See if this can be changed to the same env arg to
-  # the _popen_spawn.PopenSpawn() call in _mount() below.
-  subproc_env = _os.environ.copy()
-  subproc_env.pop('LD_PRELOAD', None)
-  p = _subprocess.Popen([
-      drive_bin, '--push_changes_and_quit', '--single_process',
-      '--timeout_sec={}'.format(int(timeout_ms / 1000))
-  ],
-                        env=subproc_env,
-                        stdout=_subprocess.PIPE,
-                        stderr=_subprocess.PIPE)
+  p = _subprocess.Popen(
+      [
+          drive_bin,
+          '--push_changes_and_quit',
+          '--single_process',
+          '--timeout_sec={}'.format(int(timeout_ms / 1000)),
+      ],
+      stdout=_subprocess.PIPE,
+      stderr=_subprocess.PIPE,
+  )
   out, err = p.communicate()
   if mount._DEBUG:  # pylint:disable=protected-access
     print('flush_and_unmount: out: {}\nerr: {}'.format(out, err))
