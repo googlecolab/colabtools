@@ -5,6 +5,7 @@ Note that this file is run under both py2 and py3 in tests.
 
 import csv
 import os
+import shutil
 import subprocess
 
 from google.colab import _serverextension
@@ -15,6 +16,7 @@ try:
 except ImportError:
   psutil = None
 
+_NVIDIA_SMI_PRESENT = None
 # Track whether user has used the GPU in the current session.
 _GPU_EVER_USED = False
 
@@ -27,35 +29,41 @@ def get_gpu_usage():
       usage: int,
       limit: int,
       ever_used : bool,
-    }
+    }, even when no GPU is present.
   """
+  global _NVIDIA_SMI_PRESENT
   global _GPU_EVER_USED
+
+  if _NVIDIA_SMI_PRESENT is None:
+    _NVIDIA_SMI_PRESENT = shutil.which('nvidia-smi') is None
 
   usage = 0
   limit = 0
-  try:
-    ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
-        '/usr/bin/timeout',
-        '-sKILL',
-        '1s',
-        'nvidia-smi',
-        '--query-gpu=memory.used,memory.total',
-        '--format=csv,nounits,noheader',
-    ]).decode('utf-8')
-  except (OSError, IOError, subprocess.CalledProcessError):
-    # If timeout or nvidia-smi don't exist or the call errors, return zero
-    # values for usage and limit.
-    # TODO(b/139691280): Add internal GPU memory monitoring. Install nvidia-smi.
-    pass
-  else:
-    r = csv.reader(ns.splitlines() or [''])
-    row = next(r)
+  if _NVIDIA_SMI_PRESENT:
     try:
-      usage = int(row[0]) * 1024 * 1024
-      limit = int(row[1]) * 1024 * 1024
-    except:  # pylint: disable=bare-except
-      # Certain versions of nvidia-smi may not return the expected values.
+      ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
+          '/usr/bin/timeout',
+          '-sKILL',
+          '1s',
+          'nvidia-smi',
+          '--query-gpu=memory.used,memory.total',
+          '--format=csv,nounits,noheader',
+      ]).decode('utf-8')
+    except (OSError, IOError, subprocess.CalledProcessError):
+      # If timeout or nvidia-smi don't exist or the call errors, return zero
+      # values for usage and limit.
+      # TODO(b/139691280): Add internal GPU memory monitoring. Install
+      # nvidia-smi.
       pass
+    else:
+      r = csv.reader(ns.splitlines() or [''])
+      row = next(r)
+      try:
+        usage = int(row[0]) * 1024 * 1024
+        limit = int(row[1]) * 1024 * 1024
+      except:  # pylint: disable=bare-except
+        # Certain versions of nvidia-smi may not return the expected values.
+        pass
 
   if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
     usage, limit = 123, 456
