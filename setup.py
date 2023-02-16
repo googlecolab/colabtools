@@ -23,11 +23,11 @@ DEPENDENCIES = (
     'google-auth>=1.17.2',
     'ipykernel~=5.3.4',
     'ipython~=7.9.0',
-    'notebook~=5.7.16',
+    'notebook~=6.3.0',
     'pandas>=1.1.0',
     'portpicker~=1.3.1',
     'requests>=2.25.1',
-    'tornado~=6.0.4',
+    'tornado~=6.1',
 )
 
 setup(
