@@ -25,8 +25,8 @@ def eval_js(script, ignore_result=False, timeout_sec=None):
 
   Args:
     script: The javascript string to be evaluated
-    ignore_result: If true, will return immediately
-     and result from javascript side will be ignored.
+    ignore_result: If true, will return immediately and result from javascript
+      side will be ignored.
     timeout_sec: blocks for that many seconds.
 
   Returns:
@@ -55,8 +55,8 @@ def register_callback(function_name, callback):
 
   Args:
     function_name: string
-    callback: function that possibly takes positional and keyword arguments
-    that will be passed via invokeFunction()
+    callback: function that possibly takes positional and keyword arguments that
+      will be passed via invokeFunction()
   """
   _functions[function_name] = callback
 
@@ -88,7 +88,10 @@ def _invoke_function(function_name, json_args, json_kwargs):
 
   callback = _functions.get(function_name, None)
   if not callback:
-    raise ValueError('Function not found: {function_name}'.format(
-        function_name=function_name))
+    raise ValueError(
+        'Function not found: {function_name}'.format(
+            function_name=function_name
+        )
+    )
 
   return callback(*args, **kwargs)

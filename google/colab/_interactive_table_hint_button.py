@@ -81,7 +81,8 @@ def _convert_to_interactive(key):
   elif key in _noninteractive_df_refs:
     return _data_table.DataTable(_noninteractive_df_refs.pop(key))
   print(
-      'Error: Runtime no longer has a reference to this dataframe, please re-run this cell and try again.'
+      'Error: Runtime no longer has a reference to this dataframe, please'
+      ' re-run this cell and try again.'
   )
 
 
@@ -100,7 +101,8 @@ def _df_formatter_with_interactive_hint(dataframe):
   convert_func = 'convertToInteractive'
   if convert_func not in _output_callbacks:
     _output_callbacks[convert_func] = _output.register_callback(
-        convert_func, _convert_to_interactive)
+        convert_func, _convert_to_interactive
+    )
   return _get_html(dataframe, key)
 
 
@@ -163,7 +165,8 @@ def _enable_df_interactive_hint_formatter():
   if key not in _original_formatters:
     formatters = shell.display_formatter.formatters
     _original_formatters[key] = formatters[key].for_type_by_name(
-        'pandas.core.frame', 'DataFrame', _df_formatter_with_interactive_hint)
+        'pandas.core.frame', 'DataFrame', _df_formatter_with_interactive_hint
+    )
 
 
 def _disable_df_interactive_hint_formatter():
@@ -175,5 +178,6 @@ def _disable_df_interactive_hint_formatter():
   if key in _original_formatters:
     formatters = shell.display_formatter.formatters
     formatters[key].pop('pandas.core.frame.DataFrame', None)
-    formatters[key].for_type_by_name('pandas.core.frame', 'DataFrame',
-                                     _original_formatters.pop(key))
+    formatters[key].for_type_by_name(
+        'pandas.core.frame', 'DataFrame', _original_formatters.pop(key)
+    )

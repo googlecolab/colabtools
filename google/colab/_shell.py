@@ -58,10 +58,12 @@ class Shell(zmqshell.ZMQInteractiveShell):
 
   def init_inspector(self):
     """Initialize colab's custom inspector."""
-    self.inspector = _inspector.ColabInspector(oinspect.InspectColors,
-                                               PyColorize.ANSICodeColors,
-                                               'NoColor',
-                                               self.object_info_string_level)
+    self.inspector = _inspector.ColabInspector(
+        oinspect.InspectColors,
+        PyColorize.ANSICodeColors,
+        'NoColor',
+        self.object_info_string_level,
+    )
 
   def init_history(self):
     """Initialize colab's custom history manager."""
@@ -87,7 +89,8 @@ class Shell(zmqshell.ZMQInteractiveShell):
       return super(Shell, self).system(*args, **kwargs)
 
     pip_warn = _show_pip_warning() and _pip.is_pip_install_command(
-        *args, **kwargs)
+        *args, **kwargs
+    )
 
     if pip_warn:
       kwargs.update({'also_return_output': True})
@@ -100,13 +103,16 @@ class Shell(zmqshell.ZMQInteractiveShell):
   def _send_error(self, exc_content):
     topic = (
         self.displayhook.topic.replace(b'execute_result', b'err')
-        if self.displayhook.topic else None)
+        if self.displayhook.topic
+        else None
+    )
     self.displayhook.session.send(
         self.displayhook.pub_socket,
-        u'error',
+        'error',
         jsonutil.json_clean(exc_content),
         self.displayhook.parent_header,
-        ident=topic)
+        ident=topic,
+    )
 
   def _showtraceback(self, etype, evalue, stb):
     # This override is largely the same as the base implementation with special
@@ -152,9 +158,11 @@ class Shell(zmqshell.ZMQInteractiveShell):
     """
     oname = oname.strip()
     # print '1- oname: <%r>' % oname  # dbg
-    if (not oname.startswith(inputsplitter.ESC_MAGIC) and
-        not oname.startswith(inputsplitter.ESC_MAGIC2) and
-        not py3compat.isidentifier(oname, dotted=True)):
+    if (
+        not oname.startswith(inputsplitter.ESC_MAGIC)
+        and not oname.startswith(inputsplitter.ESC_MAGIC2)
+        and not py3compat.isidentifier(oname, dotted=True)
+    ):
       return dict(found=False)
 
     if namespaces is None:
@@ -240,7 +248,7 @@ class Shell(zmqshell.ZMQInteractiveShell):
         'namespace': ospace,
         'ismagic': ismagic,
         'isalias': isalias,
-        'parent': parent
+        'parent': parent,
     }
 
   @staticmethod
@@ -300,15 +308,19 @@ class Shell(zmqshell.ZMQInteractiveShell):
         obj = info.pop('obj', '')
         info.pop('parent', '')
         result = self.inspector.info(
-            obj, oname, info=info, detail_level=detail_level)
+            obj, oname, info=info, detail_level=detail_level
+        )
       except Exception as e:  # pylint: disable=broad-except
-        self.kernel.log.info('Exception caught during object inspection: '
-                             '{!r}\nTraceback:\n{}'.format(
-                                 e, ''.join(
-                                     traceback.format_tb(sys.exc_info()[2]))))
+        self.kernel.log.info(
+            'Exception caught during object inspection: '
+            '{!r}\nTraceback:\n{}'.format(
+                e, ''.join(traceback.format_tb(sys.exc_info()[2]))
+            )
+        )
     else:
       result = super(Shell, self).object_inspect(
-          oname, detail_level=detail_level)
+          oname, detail_level=detail_level
+      )
     return result
 
 

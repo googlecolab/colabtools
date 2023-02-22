@@ -33,8 +33,7 @@ def redirect_to_element(selector):
   """Will redirect all output to a given element.
 
   Args:
-     selector: either a javascript query selector, or
-     Js expression.
+     selector: either a javascript query selector, or Js expression.
 
   Yields:
     context where the output is redirected

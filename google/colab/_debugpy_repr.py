@@ -52,9 +52,12 @@ def get_shape(obj):
   if isinstance(obj, collections_abc.Sized):
     try:
       shape = getattr(obj, 'shape', None)
-      if (isinstance(shape, tuple) or
-          hasattr(shape, '__module__') and isinstance(shape.__module__, str) and
-          'tensorflow.' in shape.__module__):
+      if (
+          isinstance(shape, tuple)
+          or hasattr(shape, '__module__')
+          and isinstance(shape.__module__, str)
+          and 'tensorflow.' in shape.__module__
+      ):
         return str(shape)
     except Exception:  # pylint: disable=broad-except
       logging.exception('Unexpected exception finding object shape')

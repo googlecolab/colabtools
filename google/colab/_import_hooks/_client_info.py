@@ -38,6 +38,7 @@ class APICoreClientInfoImportHook:
 
     Args:
       fullname: fullname of the module
+
     Returns:
       A modified google.api_core.client_info module.
     """

@@ -87,8 +87,11 @@ class Kernel(ipkernel.IPythonKernel):
       cursor_pos = content['cursor_pos']
 
       matches = self.do_complete(code, cursor_pos)
-      if parent.get('metadata', {}).get('colab_options',
-                                        {}).get('include_colab_metadata'):
+      if (
+          parent.get('metadata', {})
+          .get('colab_options', {})
+          .get('include_colab_metadata')
+      ):
         # If we're fetching additional metadata on each item, we want to
         # restrict the number of items. We also want to signal that not all
         # matches were included.
@@ -99,11 +102,12 @@ class Kernel(ipkernel.IPythonKernel):
         if matches_incomplete:
           matches['matches'] = matches['matches'][:100]
         matches['metadata'] = {
-            'colab_types_experimental':
+            'colab_types_experimental': (
                 _shell_customizations.compute_completion_metadata(
-                    self.shell, matches['matches']),
-            'matches_incomplete':
-                matches_incomplete,
+                    self.shell, matches['matches']
+                )
+            ),
+            'matches_incomplete': matches_incomplete,
         }
       matches = json_clean(matches)
     except BaseException as e:  # pylint: disable=broad-except
@@ -119,15 +123,17 @@ class Kernel(ipkernel.IPythonKernel):
     # support async.
     try:
       content = parent['content']
-      reply_content = self.do_inspect(content['code'], content['cursor_pos'],
-                                      content.get('detail_level', 0))
+      reply_content = self.do_inspect(
+          content['code'], content['cursor_pos'], content.get('detail_level', 0)
+      )
       reply_content = json_clean(reply_content)
     except BaseException as e:  # pylint: disable=broad-except
       # TODO(b/124400682): Consider returning an error here.
       self.log.info('Error caught during object inspection: %s', e)
       reply_content = '{"status":"ok","found":false}'
-    msg = self.session.send(stream, 'inspect_reply', reply_content, parent,
-                            ident)
+    msg = self.session.send(
+        stream, 'inspect_reply', reply_content, parent, ident
+    )
     self.log.debug('%s', msg)
 
 

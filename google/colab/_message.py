@@ -96,11 +96,14 @@ def read_reply_from_input(message_id, timeout_sec=None):
     if reply == _NOT_READY or not isinstance(reply, dict):
       time.sleep(0.025)
       continue
-    if (reply.get('type') == 'colab_reply' and
-        reply.get('colab_msg_id') == message_id):
+    if (
+        reply.get('type') == 'colab_reply'
+        and reply.get('colab_msg_id') == message_id
+    ):
       if 'error' in reply:
         raise MessageError(reply['error'])
       return reply.get('data', None)
+
 
 # Global counter for message id.
 # Note: this is not thread safe, if we want to make this
@@ -142,7 +145,8 @@ def send_request(request_type, request_body, parent=None, expect_reply=True):
       }
 
   msg = instance.session.msg(
-      'colab_request', content=content, metadata=metadata, parent=parent)
+      'colab_request', content=content, metadata=metadata, parent=parent
+  )
   instance.session.send(instance.iopub_socket, msg)
 
   return request_id
@@ -160,6 +164,7 @@ def blocking_request(request_type, request='', timeout_sec=5, parent=None):
     request: Jsonable object to send to front end as the request.
     timeout_sec: max number of seconds to block, None, for no timeout.
     parent: Parent message, for routing.
+
   Returns:
     Reply by front end (Json'able object), or None if the timeout occurs.
   """
@@ -167,5 +172,6 @@ def blocking_request(request_type, request='', timeout_sec=5, parent=None):
   # not discard messages with unknown msg ids as well as making msg_ids globally
   # unique.
   request_id = send_request(
-      request_type, request, parent=parent, expect_reply=True)
+      request_type, request, parent=parent, expect_reply=True
+  )
   return read_reply_from_input(request_id, timeout_sec)

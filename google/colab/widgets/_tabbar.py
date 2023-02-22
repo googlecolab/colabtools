@@ -30,6 +30,7 @@ class TabBar(_widget.OutputAreaWidget):
      with tab.output_to('morning'):
        print('bye')
   """
+
   TABBAR_JS = '/nbextensions/google.colab/tabbar_main.min.js'
   TAB_CSS = '/nbextensions/google.colab/tabbar.css'
 
@@ -38,13 +39,10 @@ class TabBar(_widget.OutputAreaWidget):
 
     Args:
       tab_names: list of strings for the tab names.
+      location: location of tabs. Acceptable values: 'top', 'start' (left of the
+        text, for left-to-right text) 'end' (right of the text for left-to-right
+        text) 'bottom'
 
-      location: location of tabs.
-      Acceptable values:
-         'top',
-         'start' (left of the text, for left-to-right text)
-         'end' (right of the text for left-to-right text)
-         'bottom'
     Raises:
       ValueError: if location is not valid
     """
@@ -72,7 +70,7 @@ class TabBar(_widget.OutputAreaWidget):
     if isinstance(index_or_name, str):
       names = tuple(self.tab_names)
       index = names.index(index_or_name)
-      if index_or_name in names[index + 1:]:
+      if index_or_name in names[index + 1 :]:
         raise ValueError('Ambiguous tab name: %s ' % index_or_name)
     else:
       index = index_or_name
@@ -102,10 +100,8 @@ class TabBar(_widget.OutputAreaWidget):
       self._publish()
     tabid, index = self._get_tab_id(tab)
     with self._active_component(
-        tabid, init_params={
-            'select': select,
-            'index': index
-        }):
+        tabid, init_params={'select': select, 'index': index}
+    ):
       yield
 
   def clear_tab(self, tab=None):
@@ -113,7 +109,7 @@ class TabBar(_widget.OutputAreaWidget):
 
     Args:
       tab: if None clears current tab  otherwise clears the corresponding tab.
-      Tab could be the tab's name (if it is unique), or 0-based index.
+        Tab could be the tab's name (if it is unique), or 0-based index.
     """
     if tab is not None:
       tabid, _ = self._get_tab_id(tab)
@@ -122,7 +118,9 @@ class TabBar(_widget.OutputAreaWidget):
     self._clear_component(tabid)
 
   def __iter__(self):
-    """Iterates over tabs. Allows quick population of tab in a loop.
+    """Iterates over tabs.
+
+    Allows quick population of tab in a loop.
 
     Yields:
       current tab index
@@ -139,9 +137,9 @@ class TabBar(_widget.OutputAreaWidget):
     """
     if self._published:
       return
-    content_height = 'initial',
-    content_border = '0px',
-    border_color = '#a7a7a7',
+    content_height = ('initial',)
+    content_border = ('0px',)
+    border_color = ('#a7a7a7',)
     self._content_div = self._id + '_content'
     super(TabBar, self)._publish()
     with self._output_in_widget():

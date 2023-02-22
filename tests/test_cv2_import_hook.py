@@ -86,7 +86,6 @@ class OpenCVImportHookTest(unittest.TestCase):
     sys.modules.pop("cv2", None)
 
   def testDisableFunction(self):
-
     def a_very_bad_func():
       return "did a bad thing"
 
@@ -114,7 +113,8 @@ class OpenCVImportHookTest(unittest.TestCase):
     with self.assertRaises(_cv2.DisabledFunctionError) as err:
       cv.imshow()
     self.assertEqual(
-        _cv2._OpenCVImportHook.message.format("cv"), str(err.exception))
+        _cv2._OpenCVImportHook.message.format("cv"), str(err.exception)  # pylint: disable=protected-access
+    )
 
     # After Enabling, we get a TypeError (because we pass no arguments).
     os.environ[_cv2._OpenCVImportHook.env_var] = "true"
@@ -133,7 +133,8 @@ class OpenCVImportHookTest(unittest.TestCase):
     with self.assertRaises(_cv2.DisabledFunctionError) as err:
       cv2.imshow()
     self.assertEqual(
-        _cv2._OpenCVImportHook.message.format("cv2"), str(err.exception))
+        _cv2._OpenCVImportHook.message.format("cv2"), str(err.exception)  # pylint: disable=protected-access
+    )
 
     # After Enabling, we get a TypeError (because we pass no arguments).
     os.environ[_cv2._OpenCVImportHook.env_var] = "true"

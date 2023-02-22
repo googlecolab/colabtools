@@ -73,8 +73,11 @@ def _shell_line_magic(line):
     '--ignore-errors',
     dest='ignore_errors',
     action='store_true',
-    help=('Don\'t raise a `subprocess.CalledProcessError` when the '
-          'subprocess returns a non-0 exit code.'))
+    help=(
+        "Don't raise a `subprocess.CalledProcessError` when the "
+        'subprocess returns a non-0 exit code.'
+    ),
+)
 def _shell_cell_magic(args, cmd):
   """Run the cell via a shell command, allowing input to be provided.
 
@@ -132,7 +135,8 @@ class ShellResult:
   def check_returncode(self):
     if self.returncode:
       raise subprocess.CalledProcessError(
-          returncode=self.returncode, cmd=self.args, output=self.output)
+          returncode=self.returncode, cmd=self.args, output=self.output
+      )
 
   def _repr_pretty_(self, p, cycle):  # pylint:disable=unused-argument
     # Note: When invoking the magic and not assigning the result
@@ -161,7 +165,8 @@ def _run_command(cmd, clear_streamed_output):
   locale_encoding = locale.getpreferredencoding()
   if locale_encoding != _ENCODING:
     raise NotImplementedError(
-        'A UTF-8 locale is required. Got {}'.format(locale_encoding))
+        'A UTF-8 locale is required. Got {}'.format(locale_encoding)
+    )
 
   parent_pty, child_pty = pty.openpty()
   _configure_term_settings(child_pty)
@@ -169,7 +174,8 @@ def _run_command(cmd, clear_streamed_output):
   epoll = select.epoll()
   epoll.register(
       parent_pty,
-      (select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR))
+      (select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLERR),
+  )
 
   stdin = child_pty
   if os.getenv('COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS', None):
@@ -178,7 +184,8 @@ def _run_command(cmd, clear_streamed_output):
     temporary_clearer = _tags.temporary if clear_streamed_output else _no_op
 
     with temporary_clearer(), _display_stdin_widget(
-        delay_millis=500) as update_stdin_widget:
+        delay_millis=500
+    ) as update_stdin_widget:
       # TODO(b/115531839): Ensure that subprocesses are terminated upon
       # interrupt.
       p = subprocess.Popen(
@@ -188,7 +195,8 @@ def _run_command(cmd, clear_streamed_output):
           stdout=child_pty,
           stdin=stdin,
           stderr=child_pty,
-          close_fds=True)
+          close_fds=True,
+      )
       # The child PTY is only needed by the spawned process.
       os.close(child_pty)
 
@@ -264,8 +272,9 @@ def _poll_process(parent_pty, epoll, p, cmd, decoder, state):
     # remaining output from the terminated process. Continuing to watch write
     # events may cause early termination of the loop if no output was
     # available but the pty was ready for writing.
-    epoll.modify(parent_pty,
-                 (select.EPOLLIN | select.EPOLLHUP | select.EPOLLERR))
+    epoll.modify(
+        parent_pty, (select.EPOLLIN | select.EPOLLHUP | select.EPOLLERR)
+    )
 
   output_available = False
 
@@ -342,7 +351,8 @@ def _display_stdin_widget(delay_millis=0):
   shell = _ipython.get_ipython()
   display_args = ['cell_display_stdin', {'delayMillis': delay_millis}]
   _message.send_request(
-      *display_args, parent=shell.parent_header, expect_reply=False)
+      *display_args, parent=shell.parent_header, expect_reply=False
+  )
 
   def echo_updater(new_echo_status):
     # Note: Updating the echo status uses colab_request / colab_reply on the
@@ -352,12 +362,14 @@ def _display_stdin_widget(delay_millis=0):
     # https://github.com/googlecolab/colabtools/blob/56e4dbec7c4fa09fad51b60feb5c786c69d688c6/google/colab/_message.py#L100.
     update_args = ['cell_update_stdin', {'echo': new_echo_status}]
     _message.send_request(
-        *update_args, parent=shell.parent_header, expect_reply=False)
+        *update_args, parent=shell.parent_header, expect_reply=False
+    )
 
   yield echo_updater
 
   _message.send_request(
-      'cell_remove_stdin', {}, parent=shell.parent_header, expect_reply=False)
+      'cell_remove_stdin', {}, parent=shell.parent_header, expect_reply=False
+  )
 
 
 @contextlib.contextmanager
@@ -367,9 +379,11 @@ def _no_op():
 
 def _register_magics(ip):
   ip.register_magic_function(
-      _shell_line_magic, magic_kind='line', magic_name='shell')
+      _shell_line_magic, magic_kind='line', magic_name='shell'
+  )
   ip.register_magic_function(
-      _shell_cell_magic, magic_kind='cell', magic_name='shell')
+      _shell_cell_magic, magic_kind='cell', magic_name='shell'
+  )
 
 
 _INTERRUPTED_SIGNALS = (
@@ -395,6 +409,7 @@ def _getoutput_compat(shell, cmd, split=True, depth=0):
       InteractiveShell.getoutput.
     split: Same as the corresponding argument to InteractiveShell.getoutput.
     depth: Same as the corresponding argument to InteractiveShell.getoutput.
+
   Returns:
     The output as a SList if split was true, otherwise an LSString.
   """
@@ -402,7 +417,8 @@ def _getoutput_compat(shell, cmd, split=True, depth=0):
   # is expected to call this function, thus adding one level of nesting to the
   # stack.
   result = _run_command(
-      shell.var_expand(cmd, depth=depth + 2), clear_streamed_output=True)
+      shell.var_expand(cmd, depth=depth + 2), clear_streamed_output=True
+  )
   if -result.returncode in _INTERRUPTED_SIGNALS:
     print('^C')
 
@@ -427,6 +443,7 @@ def _system_compat(shell, cmd, also_return_output=False):
       InteractiveShell.system_piped.
     also_return_output: if True, return any output from this function, along
       with printing it. Otherwise, print output and return None.
+
   Returns:
     LSString if also_return_output=True, else None.
   """
@@ -434,7 +451,8 @@ def _system_compat(shell, cmd, also_return_output=False):
   # is expected to call this function, thus adding one level of nesting to the
   # stack.
   result = _run_command(
-      shell.var_expand(cmd, depth=2), clear_streamed_output=False)
+      shell.var_expand(cmd, depth=2), clear_streamed_output=False
+  )
   shell.user_ns['_exit_code'] = result.returncode
   if -result.returncode in _INTERRUPTED_SIGNALS:
     print('^C')

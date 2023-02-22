@@ -43,7 +43,10 @@ class _PyDriveImportHook:
       try:
         import httplib2  # pylint:disable=g-import-not-at-top
         from oauth2client.contrib.gce import AppAssertionCredentials  # pylint:disable=g-import-not-at-top
-        orig_local_webserver_auth = pydrive_auth_module.GoogleAuth.LocalWebserverAuth
+
+        orig_local_webserver_auth = (
+            pydrive_auth_module.GoogleAuth.LocalWebserverAuth
+        )
 
         # Capture the environment variable outside of the patched method since
         # self will refer to a GoogleAuth object in these cases.
@@ -51,12 +54,15 @@ class _PyDriveImportHook:
 
         def PatchedLocalWebServerAuth(self, *args, **kwargs):  # pylint:disable=invalid-name
           if not os.environ.get(env_var, '') and isinstance(
-              self.credentials, AppAssertionCredentials):
+              self.credentials, AppAssertionCredentials
+          ):
             self.credentials.refresh(httplib2.Http())
             return
           return orig_local_webserver_auth(self, *args, **kwargs)
 
-        pydrive_auth_module.GoogleAuth.LocalWebserverAuth = PatchedLocalWebServerAuth
+        pydrive_auth_module.GoogleAuth.LocalWebserverAuth = (
+            PatchedLocalWebServerAuth
+        )
       except:  # pylint: disable=bare-except
         logging.exception('Error patching PyDrive')
 

@@ -73,7 +73,8 @@ class _CustomErrorHandlers:
         DisabledFunctionError: _CustomErrorHandlers.disabled_message,
     }
     shell.set_custom_exc(
-        tuple(self.custom_error_handlers.keys()), self.handle_error)
+        tuple(self.custom_error_handlers.keys()), self.handle_error
+    )
 
   def _get_error_handler(self, etype):
     """Choose error handler for error of etype based on runtime state."""
@@ -92,13 +93,15 @@ class _CustomErrorHandlers:
     if result:
       custom_message, details = result
       structured_traceback = shell.InteractiveTB.structured_traceback(
-          etype, exception, tb, tb_offset=tb_offset)
+          etype, exception, tb, tb_offset=tb_offset
+      )
       # Ensure a blank line appears between the standard traceback and custom
       # error messaging.
       if custom_message:
         structured_traceback += ['', custom_message]
       wrapped = FormattedTracebackError(
-          str(exception), structured_traceback, details)
+          str(exception), structured_traceback, details
+      )
       return shell.showtraceback(exc_tuple=(etype, wrapped, tb))
 
   @staticmethod
@@ -109,11 +112,13 @@ class _CustomErrorHandlers:
     if funcname:
       msg = ''
       details = {
-          'actions': [{
-              'action': 'open_snippet',
-              'action_text': 'Search Snippets for {}'.format(funcname),
-              'snippet_filter': funcname,
-          },],
+          'actions': [
+              {
+                  'action': 'open_snippet',
+                  'action_text': 'Search Snippets for {}'.format(funcname),
+                  'snippet_filter': funcname,
+              },
+          ],
       }
       return msg, details
 
@@ -124,19 +129,23 @@ class _CustomErrorHandlers:
     # over regex matching if the attribute is available.
     module_name = getattr(error, 'name', None)
     if not module_name:
-      match = re.search(r'No module named \'?(?P<name>[a-zA-Z0-9_\.]+)\'?',
-                        str(error))
+      match = re.search(
+          r'No module named \'?(?P<name>[a-zA-Z0-9_\.]+)\'?', str(error)
+      )
       module_name = match.groupdict()['name'].split('.')[0] if match else None
 
     if module_name in SNIPPET_MODULES:
-      msg = textwrap.dedent("""\
+      msg = textwrap.dedent(
+          """\
         {sep}{green}
         NOTE: If your import is failing due to a missing package, you can
         manually install dependencies using either !pip or !apt.
 
         To install {snippet}, click the button below.
         {sep}{normal}\n""".format(
-            sep=_SEP, green=_GREEN, normal=_NORMAL, snippet=module_name))
+              sep=_SEP, green=_GREEN, normal=_NORMAL, snippet=module_name
+          )
+      )
       details = {
           'actions': [
               {
@@ -150,21 +159,27 @@ class _CustomErrorHandlers:
       }
       return msg, details
 
-    msg = textwrap.dedent("""\
+    msg = textwrap.dedent(
+        """\
         {sep}{green}
         NOTE: If your import is failing due to a missing package, you can
         manually install dependencies using either !pip or !apt.
 
         To view examples of installing some common dependencies, click the
         "Open Examples" button below.
-        {sep}{normal}\n""".format(sep=_SEP, green=_GREEN, normal=_NORMAL))
+        {sep}{normal}\n""".format(
+            sep=_SEP, green=_GREEN, normal=_NORMAL
+        )
+    )
 
     details = {
-        'actions': [{
-            'action': 'open_url',
-            'action_text': 'Open Examples',
-            'url': '/notebooks/snippets/importing_libraries.ipynb',
-        },],
+        'actions': [
+            {
+                'action': 'open_url',
+                'action_text': 'Open Examples',
+                'url': '/notebooks/snippets/importing_libraries.ipynb',
+            },
+        ],
     }
     return msg, details
 
@@ -176,7 +191,7 @@ def compute_completion_metadata(shell, matches, inspect_magics=True):
     shell: IPython shell
     matches: List of string completion matches.
     inspect_magics: (optional, default: True) If unset, don't call
-        object_inspect on any symbols starting with %.
+      object_inspect on any symbols starting with %.
 
   Returns:
     Metadata for each of the matches.

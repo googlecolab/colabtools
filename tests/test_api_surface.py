@@ -1,6 +1,4 @@
-"""Test that our definition of the API for modules in google.colab is correct.
-
-"""
+"""Test that our definition of the API for modules in google.colab is correct."""
 
 import os
 import unittest
@@ -27,8 +25,10 @@ class ApiTest(unittest.TestCase):
         continue
       self.assertTrue(has_all, 'No __all__ in ' + module.__name__)
       self.assertLessEqual(
-          set(module.__all__), set(dir(module)),
-          '__all__ contains name not in dir(module) for ' + module.__name__)
+          set(module.__all__),
+          set(dir(module)),
+          '__all__ contains name not in dir(module) for ' + module.__name__,
+      )
 
   def testUnderscorePrefixing(self):
     for module_name in google.colab.__all__:
@@ -40,6 +40,9 @@ class ApiTest(unittest.TestCase):
       public_names = set([n for n in dir(module) if not n.startswith('_')])
       all_set = set(module.__all__)
       self.assertLessEqual(
-          public_names, all_set,
+          public_names,
+          all_set,
           'Non-_-prefixed symbol(s) {} not in __all__ in {}'.format(
-              public_names - all_set, module.__name__))
+              public_names - all_set, module.__name__
+          ),
+      )

@@ -31,14 +31,16 @@ __all__ = ['flush_and_unmount', 'mount']
 
 _Environment = _collections.namedtuple(
     '_Environment',
-    ('home', 'root_dir', 'inet_family', 'dev', 'path', 'config_dir'))
+    ('home', 'root_dir', 'inet_family', 'dev', 'path', 'config_dir'),
+)
 
 
 def _env():
   """Create and return an _Environment to use."""
   home = _os.environ['HOME']
   root_dir = _os.path.realpath(
-      _os.path.join(_os.environ['CLOUDSDK_CONFIG'], '../..'))
+      _os.path.join(_os.environ['CLOUDSDK_CONFIG'], '../..')
+  )
   inet_family = 'IPV4_ONLY'
   dev = '/dev/fuse'
   path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
@@ -58,7 +60,8 @@ def _env():
       inet_family=inet_family,
       dev=dev,
       path=path,
-      config_dir=config_dir)
+      config_dir=config_dir,
+  )
 
 
 def _logs_dir():
@@ -102,14 +105,17 @@ def mount(mountpoint, force_remount=False, timeout_ms=120000, readonly=False):
       force_remount=force_remount,
       timeout_ms=timeout_ms,
       ephemeral=True,
-      readonly=readonly)
+      readonly=readonly,
+  )
 
 
-def _mount(mountpoint,
-           force_remount=False,
-           timeout_ms=120000,
-           ephemeral=False,
-           readonly=False):
+def _mount(
+    mountpoint,
+    force_remount=False,
+    timeout_ms=120000,
+    ephemeral=False,
+    readonly=False,
+):
   """Internal helper to mount Google Drive."""
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
@@ -117,11 +123,15 @@ def _mount(mountpoint,
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
 
-  metadata_server_addr = _os.environ[
-      'TBE_EPHEM_CREDS_ADDR'] if ephemeral else _os.environ['TBE_CREDS_ADDR']
+  metadata_server_addr = (
+      _os.environ['TBE_EPHEM_CREDS_ADDR']
+      if ephemeral
+      else _os.environ['TBE_CREDS_ADDR']
+  )
   if ephemeral:
     _message.blocking_request(
-        'request_auth', request={'authType': 'dfs_ephemeral'}, timeout_sec=None)
+        'request_auth', request={'authType': 'dfs_ephemeral'}, timeout_sec=None
+    )
 
   mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
@@ -129,7 +139,8 @@ def _mount(mountpoint,
   if not force_remount and already_mounted:
     print(
         'Drive already mounted at {mnt}; to attempt to forcibly remount, '
-        'call drive.mount("{mnt}", force_remount=True).'.format(mnt=mountpoint))
+        'call drive.mount("{mnt}", force_remount=True).'.format(mnt=mountpoint)
+    )
     return
 
   env = _env()
@@ -147,7 +158,7 @@ def _mount(mountpoint,
       raise ValueError('{} must be a directory if present'.format(config_dir))
 
   # Launch an intermediate bash to manage DriveFS' I/O (b/141747058#comment6).
-  prompt = u'root@{}-{}: '.format(_socket.gethostname(), _uuid.uuid4().hex)
+  prompt = 'root@{}-{}: '.format(_socket.gethostname(), _uuid.uuid4().hex)
   logfile = None
   if mount._DEBUG:  # pylint:disable=protected-access
     logfile = _sys.stdout
@@ -158,19 +169,19 @@ def _mount(mountpoint,
       maxread=int(1e6),
       encoding='utf-8',
       logfile=logfile,
-      env={
-          'HOME': home,
-          'FUSE_DEV_NAME': dev,
-          'PATH': path
-      })
+      env={'HOME': home, 'FUSE_DEV_NAME': dev, 'PATH': path},
+  )
   d.sendline('unset HISTFILE; export PS1="{}"'.format(prompt))
   d.expect(prompt)  # The new prompt.
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
   # because that leaves enough cruft behind in the mount table that future
   # operations fail with "Transport endpoint is not connected".
-  d.sendline('umount -f {mnt} || umount {mnt}; pkill -9 -x drive'.format(
-      mnt=mountpoint))
+  d.sendline(
+      'umount -f {mnt} || umount {mnt}; pkill -9 -x drive'.format(
+          mnt=mountpoint
+      )
+  )
   # Wait for above to be received, using the next prompt.
   d.expect(prompt)
   d.sendline('pkill -9 -f {d}/directoryprefetcher_binary'.format(d=drive_dir))
@@ -191,46 +202,56 @@ def _mount(mountpoint,
     raise
 
   # Watch for success.
-  success = u'google.colab.drive MOUNTED'
+  success = 'google.colab.drive MOUNTED'
   success_watcher = (
       '( while `sleep 0.5`; do if [[ -d "{m}" && "$(ls -A {m})" != "" ]]; '
-      'then echo "{s}"; break; fi; done ) &').format(
-          m=mountpoint, s=success)
+      'then echo "{s}"; break; fi; done ) &'
+  ).format(m=mountpoint, s=success)
   d.sendline(success_watcher)
   d.expect(prompt)
 
-  domain_disabled_drivefs = u'The domain policy has disabled Drive File Stream'
+  domain_disabled_drivefs = 'The domain policy has disabled Drive File Stream'
   problem_and_stopped = (
-      u'Drive File Stream encountered a problem and has stopped')
-  drive_exited = u'drive EXITED'
+      'Drive File Stream encountered a problem and has stopped'
+  )
+  drive_exited = 'drive EXITED'
   metadata_auth_arg = (
       '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
-          metadata_server=metadata_server_addr))
+          metadata_server=metadata_server_addr
+      )
+  )
 
-  d.sendline((
-      '( {d}/drive '
-      '--features=' + ','.join([
-          'fuse_max_background:1000',
-          'max_read_qps:1000',
-          'max_write_qps:1000',
-          'max_operation_batch_size:15',
-          'max_parallel_push_task_instances:10',
-          'opendir_timeout_ms:{timeout_ms}',
-          'virtual_folders_omit_spaces:true',
-          'read_only_mode:{readonly}',
-      ]) + ' '
-      '--inet_family=' + inet_family + ' ' + metadata_auth_arg +
-      '--preferences=trusted_root_certs_file_path:'
-      '{d}/roots.pem,mount_point_path:{mnt} 2>&1 '
-      '| grep --line-buffered -E "{problem_and_stopped}|{domain_disabled_drivefs}"; '
-      'echo "{drive_exited}"; ) &').format(
+  d.sendline(
+      (
+          '( {d}/drive --features='
+          + ','.join([
+              'fuse_max_background:1000',
+              'max_read_qps:1000',
+              'max_write_qps:1000',
+              'max_operation_batch_size:15',
+              'max_parallel_push_task_instances:10',
+              'opendir_timeout_ms:{timeout_ms}',
+              'virtual_folders_omit_spaces:true',
+              'read_only_mode:{readonly}',
+          ])
+          + ' --inet_family='
+          + inet_family
+          + ' '
+          + metadata_auth_arg
+          + '--preferences=trusted_root_certs_file_path:{d}/roots.pem,mount_point_path:{mnt}'
+          ' 2>&1 | grep --line-buffered -E'
+          ' "{problem_and_stopped}|{domain_disabled_drivefs}"; echo'
+          ' "{drive_exited}"; ) &'
+      ).format(
           d=drive_dir,
           timeout_ms=timeout_ms,
           mnt=mountpoint,
           domain_disabled_drivefs=domain_disabled_drivefs,
           problem_and_stopped=problem_and_stopped,
           drive_exited=drive_exited,
-          readonly='true' if readonly else 'false'))
+          readonly='true' if readonly else 'false',
+      )
+  )
   d.expect(prompt)
 
   # LINT.IfChange(drivetimeout)
@@ -248,15 +269,17 @@ def _mount(mountpoint,
     ])
     if case == 0:
       break
-    elif (case == 1 or case == 2 or case == 3):
+    elif case == 1 or case == 2 or case == 3:
       # Prompt appearing here means something went wrong with the drive binary.
       d.kill(_signal.SIGKILL)
       extra_reason = ''
       if 0 == _subprocess.call(
-          'grep -q "{}" "{}"'.format(timeout_pattern, dfs_log), shell=True):
+          'grep -q "{}" "{}"'.format(timeout_pattern, dfs_log), shell=True
+      ):
         extra_reason = (
             ': timeout during initial read of root folder; for more info: '
-            'https://research.google.com/colaboratory/faq.html#drive-timeout')
+            'https://research.google.com/colaboratory/faq.html#drive-timeout'
+        )
       raise ValueError('mount failed' + extra_reason)
     elif case == 4:
       # Terminate the DriveFS binary before killing bash.
@@ -266,16 +289,17 @@ def _mount(mountpoint,
       # Now kill bash.
       d.kill(_signal.SIGKILL)
       raise ValueError(
-          str(domain_disabled_drivefs) +
-          ': https://support.google.com/a/answer/7496409')
+          str(domain_disabled_drivefs)
+          + ': https://support.google.com/a/answer/7496409'
+      )
   filtered_logfile = _timeouts_path()
   d.sendline('fuser -kw "{f}" ; rm -rf "{f}"'.format(f=filtered_logfile))
   d.expect(prompt)
   filter_script = _os.path.join(drive_dir, 'drive-filter.py')
   filter_cmd = (
       """nohup bash -c 'tail -n +0 -F "{}" | """
-      """python3 {} > "{}" ' < /dev/null > /dev/null 2>&1 &""").format(
-          dfs_log, filter_script, filtered_logfile)
+      """python3 {} > "{}" ' < /dev/null > /dev/null 2>&1 &"""
+  ).format(dfs_log, filter_script, filtered_logfile)
   d.sendline(filter_cmd)
   d.expect(prompt)
   if 'ENABLE_DIRECTORYPREFETCHER' in _os.environ:
@@ -284,7 +308,9 @@ def _mount(mountpoint,
         """>> {log} 2>&1 &""".format(
             d=drive_dir,
             mnt=mountpoint,
-            log=_os.path.join(_logs_dir(), 'dpb.txt')))
+            log=_os.path.join(_logs_dir(), 'dpb.txt'),
+        )
+    )
     d.expect(prompt)
   d.sendline('disown -a')
   d.expect(prompt)

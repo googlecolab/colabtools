@@ -50,9 +50,11 @@ def upload_file(filename):
 
   with open(filename, 'wb') as f:
     f.write(list(uploaded_files.values())[0])
-  print('Saved {} to {}'.format(
-      list(uploaded_files.keys())[0],
-      _os.getcwd() + '/' + filename))
+  print(
+      'Saved {} to {}'.format(
+          list(uploaded_files.keys())[0], _os.getcwd() + '/' + filename
+      )
+  )
 
 
 def upload():
@@ -72,8 +74,11 @@ def upload():
     if not local_filename:
       local_filename = _get_unique_filename(filename)
       local_filenames[filename] = local_filename
-      print('Saving {filename} to {local_filename}'.format(
-          filename=filename, local_filename=local_filename))
+      print(
+          'Saving {filename} to {local_filename}'.format(
+              filename=filename, local_filename=local_filename
+          )
+      )
     with open(local_filename, 'ab') as f:
       f.write(data)
   return uploaded_files
@@ -127,7 +132,8 @@ def _upload_files(multiple):
   files_js = _pkgutil.get_data(__name__, 'resources/files.js').decode('utf8')
 
   _IPython.display.display(
-      _IPython.core.display.HTML("""
+      _IPython.core.display.HTML(
+          """
      <input type="file" id="{input_id}" name="files[]" {multiple_text} disabled
         style="border:none" />
      <output id="{output_id}">
@@ -135,21 +141,28 @@ def _upload_files(multiple):
       current browser session. Please rerun this cell to enable.
       </output>
       <script>{files_js}</script> """.format(
-          input_id=input_id,
-          output_id=output_id,
-          multiple_text='multiple' if multiple else '',
-          files_js=files_js)))
+              input_id=input_id,
+              output_id=output_id,
+              multiple_text='multiple' if multiple else '',
+              files_js=files_js,
+          )
+      )
+  )
 
   # First result is always an indication that the file picker has completed.
   result = _output.eval_js(
       'google.colab._files._uploadFiles("{input_id}", "{output_id}")'.format(
-          input_id=input_id, output_id=output_id))
+          input_id=input_id, output_id=output_id
+      )
+  )
   files = _collections.defaultdict(bytes)
 
   while result['action'] != 'complete':
     result = _output.eval_js(
         'google.colab._files._uploadFilesContinue("{output_id}")'.format(
-            output_id=output_id))
+            output_id=output_id
+        )
+    )
     if result['action'] != 'append':
       # JS side uses a generator of promises to process all of the files- some
       # steps may not produce data for the Python side, so just proceed onto the
@@ -228,7 +241,8 @@ def download(filename):
   comm_manager.register_target(comm_id, download_file)
 
   _IPython.display.display(
-      _IPython.display.Javascript("""
+      _IPython.display.Javascript(
+          """
     async function download(id, filename, size) {
       if (!google.colab.kernel.accessAllowed) {
         return;
@@ -268,12 +282,18 @@ def download(filename):
       a.click();
       div.remove();
     }
-  """))
+  """
+      )
+  )
   size = _os.path.getsize(filename)
   name = _os.path.basename(filename)
   _IPython.display.display(
-      _IPython.display.Javascript('download({id}, {name}, {size})'.format(
-          id=_json.dumps(comm_id), name=_json.dumps(name), size=size)))
+      _IPython.display.Javascript(
+          'download({id}, {name}, {size})'.format(
+              id=_json.dumps(comm_id), name=_json.dumps(name), size=size
+          )
+      )
+  )
 
 
 def view(filepath):
@@ -298,13 +318,18 @@ def view(filepath):
   # paths will be rooted at DATALAB_ROOT.
   if 'DATALAB_ROOT' in _os.environ:
     if filepath.startswith(_os.environ['DATALAB_ROOT']):
-      filepath = filepath[len(_os.environ['DATALAB_ROOT']):]
+      filepath = filepath[len(_os.environ['DATALAB_ROOT']) :]
 
   _IPython.display.display(
-      _IPython.display.Javascript("""
+      _IPython.display.Javascript(
+          """
       ((filepath) => {{
         if (!google.colab.kernel.accessAllowed) {{
           return;
         }}
         google.colab.files.view(filepath);
-      }})(""" + _json.dumps(filepath) + ')'))
+      }})("""
+          + _json.dumps(filepath)
+          + ')'
+      )
+  )

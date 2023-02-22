@@ -11,7 +11,7 @@ def cv2_imshow(a):
   """A replacement for cv2.imshow() for use in Jupyter notebooks.
 
   Args:
-    a : np.ndarray. shape (N, M) or (N, M, 1) is an NxM grayscale image. shape
+    a: np.ndarray. shape (N, M) or (N, M, 1) is an NxM grayscale image. shape
       (N, M, 3) is an NxM BGR color image. shape (N, M, 4) is an NxM BGRA color
       image.
   """

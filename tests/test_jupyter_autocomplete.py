@@ -15,7 +15,8 @@ def _run_under_jupyter(code_lines):
   # Clear PYTHONPATH to ignore any path munging done in _tensorflow_magics.
   # In the real container, Jupyter is not subject to path changes anyway.
   output = subprocess.check_output(
-      command + kernel, shell=True, env={'PYTHONPATH': ''})
+      command + kernel, shell=True, env={'PYTHONPATH': ''}
+  )
   # subprocess output comes back as bytes, but we convert to unicode for easier
   # comparison.
   return output.decode('utf8')
@@ -23,7 +24,8 @@ def _run_under_jupyter(code_lines):
 
 @unittest.skipIf(
     os.environ.get('SKIP_JUPYTER_AUTOCOMPLETE', ''),
-    'Skipping this test outside of full VM.')
+    'Skipping this test outside of full VM.',
+)
 class JupyterAutocompleteTest(unittest.TestCase):
 
   def testBasicAutocompletions(self):

@@ -44,8 +44,10 @@ class FakeShell(interactiveshell.InteractiveShell):
 
 
 class RunCellResult(
-    collections.namedtuple('RunCellResult',
-                           ('output', 'update_calls', 'stdout_flushes'))):
+    collections.namedtuple(
+        'RunCellResult', ('output', 'update_calls', 'stdout_flushes')
+    )
+):
   """RunCellResult contains details after invoking the %%shell magic.
 
   Fields include:
@@ -72,9 +74,11 @@ class SystemCommandsTest(unittest.TestCase):
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = self.orig_pty_max_read_bytes
 
   def testSubprocessOutputCaptured(self):
-    run_cell_result = self.run_cell("""
+    run_cell_result = self.run_cell(
+        """
 r = %shell echo -n "hello err, " 1>&2 && echo -n "hello out, " && echo "bye..."
-""")
+"""
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -93,8 +97,9 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual('cats\nFirst: cats\nSecond: dogs\n',
-                     captured_output.stdout)
+    self.assertEqual(
+        'cats\nFirst: cats\nSecond: dogs\n', captured_output.stdout
+    )
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
     self.assertEqual('cats\nFirst: cats\nSecond: dogs\n', result.output)
@@ -117,13 +122,16 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
   def testStdinDisabled(self):
     with temp_env(COLAB_DISABLE_STDIN_FOR_SHELL_MAGICS='1'):
       run_cell_result = self.run_cell(
-          textwrap.dedent("""
+          textwrap.dedent(
+              """
         import subprocess
         try:
           %shell read result
         except subprocess.CalledProcessError as e:
           caught_exception = e
-        """))
+        """
+          )
+      )
       captured_output = run_cell_result.output
 
       self.assertEqual('', captured_output.stderr)
@@ -135,7 +143,8 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
   def testStdinRequired(self):
     run_cell_result = self.run_cell(
         'r = %shell read result && echo "You typed: $result"',
-        provided_inputs=['cats\n'])
+        provided_inputs=['cats\n'],
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -150,7 +159,8 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     # or a newline is encountered, whichever comes first.
     run_cell_result = self.run_cell(
         'r = %shell read -n1 char && echo "You typed: $char"',
-        provided_inputs=['cats\n'])
+        provided_inputs=['cats\n'],
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -175,13 +185,16 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 
   def testErrorPropagatesByDefault(self):
     run_cell_result = self.run_cell(
-        textwrap.dedent("""
+        textwrap.dedent(
+            """
       import subprocess
       try:
         %shell /bin/false
       except subprocess.CalledProcessError as e:
         caught_exception = e
-      """))
+      """
+        )
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -192,10 +205,13 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 
   def testIgnoreErrorsDoesNotPropagate(self):
     run_cell_result = self.run_cell(
-        textwrap.dedent("""
+        textwrap.dedent(
+            """
       %%shell --ignore-errors
       /bin/false
-      """))
+      """
+        )
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -232,55 +248,58 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 
   def testUnicodeCmd(self):
     # "小狗" is "dogs" in simplified Chinese.
-    run_cell_result = self.run_cell(u'r = %shell echo -n "Dogs is 小狗"')
+    run_cell_result = self.run_cell('r = %shell echo -n "Dogs is 小狗"')
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'Dogs is 小狗', captured_output.stdout)
+    self.assertEqual('Dogs is 小狗', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual(u'Dogs is 小狗', result.output)
+    self.assertEqual('Dogs is 小狗', result.output)
 
   def testNonUtf8Cmd(self):
     # Regression test for b/177070077
-    run_cell_result = self.run_cell(u'r = %shell printf "\\200" ; echo -n Yay')
+    run_cell_result = self.run_cell('r = %shell printf "\\200" ; echo -n Yay')
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'�Yay', captured_output.stdout)
+    self.assertEqual('�Yay', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual(u'�Yay', result.output)
+    self.assertEqual('�Yay', result.output)
 
   def testUnicodeInputAndOutput(self):
     # "猫" is "cats" in simplified Chinese and its representation requires
     # three bytes. Force reading only one byte at a time and ensure that the
     # character is preserved.
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
-    cmd = u'r = %shell read result && echo "You typed: $result"'
-    run_cell_result = self.run_cell(cmd, provided_inputs=[u'猫\n'])
+    cmd = 'r = %shell read result && echo "You typed: $result"'
+    run_cell_result = self.run_cell(cmd, provided_inputs=['猫\n'])
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'猫\nYou typed: 猫\n', captured_output.stdout)
+    self.assertEqual('猫\nYou typed: 猫\n', captured_output.stdout)
     result = self.ip.user_ns['r']
     self.assertEqual(0, result.returncode)
-    self.assertEqual(u'猫\nYou typed: 猫\n', result.output)
+    self.assertEqual('猫\nYou typed: 猫\n', result.output)
 
     # Ensure that ShellResult objects don't have a "pretty" representation. This
     # ensures that no output is printed if the magic is the only statement in
     # the cell.
-    self.assertEqual(u'', pretty.pretty(result))
+    self.assertEqual('', pretty.pretty(result))
 
   def testFirstInterruptSendsSigInt(self):
     run_cell_result = self.run_cell(
-        textwrap.dedent("""
+        textwrap.dedent(
+            """
       %%shell --ignore-errors
       echo 'Before sleep'
       read -t 600
       echo 'Invalid. Read call should never terminate.'
-      """),
-        provided_inputs=['interrupt'])
+      """
+        ),
+        provided_inputs=['interrupt'],
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -290,15 +309,18 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 
   def testSecondInterruptSendsSigTerm(self):
     run_cell_result = self.run_cell(
-        textwrap.dedent("""
+        textwrap.dedent(
+            """
       %%shell --ignore-errors
       # Trapping with an empty command causes the signal to be ignored.
       trap '' SIGINT
       echo 'Before sleep'
       read -t 600
       echo 'Invalid. Read call should never terminate.'
-      """),
-        provided_inputs=['interrupt', 'interrupt'])
+      """
+        ),
+        provided_inputs=['interrupt', 'interrupt'],
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -308,15 +330,18 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
 
   def testSecondInterruptSendsSigKillAfterSigterm(self):
     run_cell_result = self.run_cell(
-        textwrap.dedent("""
+        textwrap.dedent(
+            """
       %%shell --ignore-errors
       # Trapping with an empty command causes the signal to be ignored.
       trap '' SIGINT SIGTERM
       echo 'Before sleep'
       read -t 600
       echo 'Invalid. Read call should never terminate.'
-      """),
-        provided_inputs=['interrupt', 'interrupt'])
+      """
+        ),
+        provided_inputs=['interrupt', 'interrupt'],
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
@@ -328,11 +353,12 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     _system_commands._PTY_READ_MAX_BYTES_FOR_TEST = 1
     # "猫" is "cats" in simplified Chinese.
     run_cell_result = self.run_cell(
-        '!read res && echo "You typed: $res"', provided_inputs=[u'猫\n'])
+        '!read res && echo "You typed: $res"', provided_inputs=['猫\n']
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'猫\nYou typed: 猫\n', captured_output.stdout)
+    self.assertEqual('猫\nYou typed: 猫\n', captured_output.stdout)
     self.assertEqual(0, self.ip.user_ns['_exit_code'])
     self.assertNotIn('_', self.ip.user_ns)
 
@@ -341,49 +367,53 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'^C\n', captured_output.stdout)
+    self.assertEqual('^C\n', captured_output.stdout)
     self.assertEqual(-signal.SIGINT, self.ip.user_ns['_exit_code'])
     self.assertNotIn('_', self.ip.user_ns)
 
   def testSystemCompatWithVarExpansion(self):
-    cmd = textwrap.dedent(u"""
+    cmd = textwrap.dedent(
+        """
       def some_func():
         local_var = 'Hello there'
         !echo "{local_var}"
       some_func()
-      """)
+      """
+    )
     run_cell_result = self.run_cell(cmd, provided_inputs=[])
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'Hello there\n', captured_output.stdout)
+    self.assertEqual('Hello there\n', captured_output.stdout)
     self.assertEqual(0, self.ip.user_ns['_exit_code'])
     self.assertNotIn('_', self.ip.user_ns)
 
   def testGetOutputCompat(self):
     # "猫" is "cats" in simplified Chinese.
     run_cell_result = self.run_cell(
-        '!!read res && echo "You typed: $res"', provided_inputs=[u'猫\n'])
+        '!!read res && echo "You typed: $res"', provided_inputs=['猫\n']
+    )
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
     self.assertNotIn('_exit_code', self.ip.user_ns.keys())
     result = self.ip.user_ns['_']
     self.assertEqual(2, len(result))
-    self.assertEqual(u'猫', result[0])
-    self.assertEqual(u'You typed: 猫', result[1])
+    self.assertEqual('猫', result[0])
+    self.assertEqual('You typed: 猫', result[1])
 
   def testGetOutputCompatWithInterrupt(self):
     run_cell_result = self.run_cell('!!read res', provided_inputs=['interrupt'])
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertIn(u'^C\n', captured_output.stdout)
+    self.assertIn('^C\n', captured_output.stdout)
     result = self.ip.user_ns['_']
     self.assertEqual(0, len(result))
 
   def testGetOutputCompatWithVarExpansion(self):
-    cmd = textwrap.dedent(u"""
+    cmd = textwrap.dedent(
+        """
       def some_func():
         local_var = 'Hello there'
         # The result of "!!" cannot be assigned or returned. Write the contents
@@ -392,12 +422,13 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
         with open('/tmp/getoutputwithvarexpansion.txt', 'r') as f:
           print(f.read())
       some_func()
-      """)
+      """
+    )
     run_cell_result = self.run_cell(cmd, provided_inputs=[])
     captured_output = run_cell_result.output
 
     self.assertEqual('', captured_output.stderr)
-    self.assertEqual(u'Hello there\n\n', captured_output.stdout)
+    self.assertEqual('Hello there\n\n', captured_output.stdout)
 
   def run_cell(self, cell_contents, provided_inputs=None):
     """Execute the cell contents, optionally providing input to the subprocess.
@@ -415,7 +446,6 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
     # asynchronously provide input by periodically popping the content and
     # forwarding it to the subprocess.
     def worker(inputs, result_container):
-
       def mock_stdin_provider():
         if not inputs:
           return None
@@ -426,35 +456,36 @@ r = %shell read r1 && echo "First: $r1" && read -s r2 && echo "Second: $r2"
         return val
 
       mock_stdin_widget, echo_updater_calls = create_mock_stdin_widget()
-      with \
-        mock.patch.object(
-            _message,
-            '_read_stdin_message',
-            side_effect=mock_stdin_provider,
-            autospec=True), \
-        mock.patch.object(
-            _system_commands,
-            '_display_stdin_widget',
-            mock_stdin_widget):
+      with mock.patch.object(
+          _message,
+          '_read_stdin_message',
+          side_effect=mock_stdin_provider,
+          autospec=True,
+      ), mock.patch.object(
+          _system_commands, '_display_stdin_widget', mock_stdin_widget
+      ):
         _system_commands._register_magics(self.ip)
 
         with io.capture_output() as captured:
           with mock.patch.object(
-              captured._stdout, 'flush',
-              wraps=captured._stdout.flush) as stdout_flushes:
+              captured._stdout, 'flush', wraps=captured._stdout.flush  # pylint: disable=protected-access
+          ) as stdout_flushes:
             self.ip.run_cell(cell_contents)
 
-        run_cell_result = RunCellResult(captured, echo_updater_calls,
-                                        stdout_flushes.call_count)
+        run_cell_result = RunCellResult(
+            captured, echo_updater_calls, stdout_flushes.call_count
+        )
         result_container['run_cell_result'] = run_cell_result
 
     result = {}
     input_queue = []
     t = threading.Thread(
-        target=worker, args=(
+        target=worker,
+        args=(
             input_queue,
             result,
-        ))
+        ),
+    )
     t.daemon = True
     t.start()
 
@@ -482,9 +513,11 @@ class DisplayStdinWidgetTest(unittest.TestCase):
 
     mock_send_request.assert_has_calls([
         mock.call(
-            'cell_display_stdin', {'delayMillis': 1000},
+            'cell_display_stdin',
+            {'delayMillis': 1000},
             expect_reply=False,
-            parent='12345'),
+            parent='12345',
+        ),
         mock.call('cell_remove_stdin', {}, expect_reply=False, parent='12345'),
     ])
 
@@ -505,7 +538,6 @@ def create_mock_stdin_widget():
 
   @contextlib.contextmanager
   def mock_stdin_widget(*unused_args, **unused_kwargs):
-
     def echo_updater(echo):
       calls.append(echo)
 

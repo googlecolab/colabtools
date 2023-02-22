@@ -48,8 +48,10 @@ class _ColabLoggingFilter(logging.Filter):
   def filter(self, record):
     # We don't use Jupyter message signing for security, so we disable this
     # message to avoid spurious and confusing logging for users.
-    return record.msg != ('Message signing is disabled.  This is insecure and '
-                          'not recommended!')
+    return (
+        record.msg
+        != 'Message signing is disabled.  This is insecure and not recommended!'
+    )
 
 
 def _jupyter_server_extension_paths():
@@ -74,11 +76,16 @@ def load_jupyter_server_extension(nb_server_app):
   url_maker = lambda path: utils.url_path_join(app.settings['base_url'], path)
   monitor_relative_path = '/api/colab/resources'
 
-  app.add_handlers('.*$', [
-      (url_maker(monitor_relative_path), _handlers.ResourceUsageHandler, {
-          'kernel_manager': app.settings['kernel_manager']
-      }),
-      (url_maker('/api/colab/drive'), _handlers.DriveHandler),
-      (url_maker('/api/colab/build-info'), _handlers.BuildInfoHandler),
-  ])
+  app.add_handlers(
+      '.*$',
+      [
+          (
+              url_maker(monitor_relative_path),
+              _handlers.ResourceUsageHandler,
+              {'kernel_manager': app.settings['kernel_manager']},
+          ),
+          (url_maker('/api/colab/drive'), _handlers.DriveHandler),
+          (url_maker('/api/colab/build-info'), _handlers.BuildInfoHandler),
+      ],
+  )
   nb_server_app.log.info('google.colab serverextension initialized.')

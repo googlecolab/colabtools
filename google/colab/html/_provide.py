@@ -151,13 +151,15 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
 
     super(_Provider, self).__init__(app)
 
-  def create(self,
-             content=None,
-             filepath=None,
-             handler=None,
-             headers=None,
-             extension=None,
-             route=None):
+  def create(
+      self,
+      content=None,
+      filepath=None,
+      handler=None,
+      headers=None,
+      extension=None,
+      route=None,
+  ):
     """Creates and provides a new resource to be served.
 
     Can only provide one of content, path, or handler.
@@ -169,6 +171,7 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
       headers: A dict of header values to return.
       extension: Optional extension to add to the url.
       route: Optional route to serve on.
+
     Returns:
       The `_Resource` object which will be served and will provide its url.
     Raises:
@@ -177,7 +180,8 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
     sources = sum(map(bool, (content, filepath, handler)))
     if sources != 1:
       raise ValueError(
-          'Must provide exactly one of content, filepath, or handler')
+          'Must provide exactly one of content, filepath, or handler'
+      )
 
     if not headers:
       headers = {}
@@ -191,21 +195,24 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
           headers=headers,
           extension=extension,
           provider=self,
-          route=route)
+          route=route,
+      )
     elif filepath:
       resource = _FileResource(
           filepath,
           headers=headers,
           extension=extension,
           provider=self,
-          route=route)
+          route=route,
+      )
     elif handler:
       resource = _HandlerResource(
           handler,
           headers=headers,
           extension=extension,
           provider=self,
-          route=route)
+          route=route,
+      )
     else:
       raise ValueError('Must provide one of content, filepath, or handler.')
 

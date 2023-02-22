@@ -23,16 +23,14 @@ from IPython.utils import io
 from google.colab import load_ipython_extension
 
 MOCKED_COMMANDS = {
-    'pip install pandas':
-        """
+    'pip install pandas': """
 Requirement already satisfied: pandas in /usr/local/lib/python2.7/dist-packages (0.22.0)
 Requirement already satisfied: pytz>=2011k in /usr/local/lib/python2.7/dist-packages (from pandas) (2018.9)
 Requirement already satisfied: python-dateutil in /usr/local/lib/python2.7/dist-packages (from pandas) (2.5.3)
 Requirement already satisfied: numpy>=1.9.0 in /usr/local/lib/python2.7/dist-packages (from pandas) (1.16.2)
 Requirement already satisfied: six>=1.5 in /usr/local/lib/python2.7/dist-packages (from python-dateutil->pandas) (1.11.0)
 """,
-    'pip install -U numpy':
-        """
+    'pip install -U numpy': """
 Collecting numpy
   Downloading https://files.pythonhosted.org/packages/c4/33/8ec8dcdb4ede5d453047bbdbd01916dbaccdb63e98bba60989718f5f0876/numpy-1.16.2-cp27-cp27mu-manylinux1_x86_64.whl (17.0MB)
     100% |============================| 17.0MB 660kB/s
@@ -44,7 +42,7 @@ Installing collected packages: numpy
     Uninstalling numpy-1.14.6:
       Successfully uninstalled numpy-1.14.6
 Successfully installed numpy-1.16.2
-"""
+""",
 }
 
 

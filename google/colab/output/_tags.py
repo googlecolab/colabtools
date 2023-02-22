@@ -40,7 +40,7 @@ def _add_or_remove_tags(tags_to_add=(), tags_to_remove=()):
       'outputarea': {
           'nodisplay': True,
           'add_tags': tags_to_add,
-          'remove_tags': tags_to_remove
+          'remove_tags': tags_to_remove,
       }
   }
 
@@ -104,8 +104,8 @@ def use_tags(tags, append=True):
 
   Args:
     tags: one or more tags to attach to outputs within this context
-    append: if true, the set of tag will be added to currently
-    active, otherwise it will replace the set.
+    append: if true, the set of tag will be added to currently active, otherwise
+      it will replace the set.
 
   Yields:
     set of current tags.
@@ -117,7 +117,8 @@ def use_tags(tags, append=True):
     added_tags = set(tags).difference(current_tags)
     remove_tags = [] if append else set(current_tags).difference(tags)
     tags = _add_or_remove_tags(
-        tags_to_add=added_tags, tags_to_remove=remove_tags)
+        tags_to_add=added_tags, tags_to_remove=remove_tags
+    )
     yield tags
   finally:
     _add_or_remove_tags(tags_to_add=remove_tags, tags_to_remove=added_tags)
@@ -150,9 +151,8 @@ def clear(wait=False, output_tags=()):
 
   Args:
     wait: whether to wait until the next output before clearing output.
-
-    output_tags: string or iterable over strings. If provided, only
-    outputs that are marked with superset of output_tags will be cleared.
+    output_tags: string or iterable over strings. If provided, only outputs that
+      are marked with superset of output_tags will be cleared.
   """
   if not isinstance(wait, bool):
     raise ValueError('wait must be a boolean value')
@@ -177,10 +177,11 @@ def clear(wait=False, output_tags=()):
   session = ip.kernel.session
   session.send(
       display_pub.pub_socket,
-      u'clear_output',
+      'clear_output',
       content,
       parent=display_pub.parent_header,
-      ident=display_pub.topic)
+      ident=display_pub.topic,
+  )
 
 
 @contextlib.contextmanager

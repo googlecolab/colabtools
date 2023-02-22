@@ -26,6 +26,7 @@ class ColabHistoryManager(history.HistoryManager):
   This allows us to associate code executions with the cell which was executed
   in Colab's UI.
   """
+
   _input_hist_cells = [{'code': '', 'cell_id': '', 'start_time': 0}]
 
   def reset(self, new_session=True):
@@ -36,12 +37,16 @@ class ColabHistoryManager(history.HistoryManager):
   def store_inputs(self, line_num, source, source_raw=None):
     """Variant of HistoryManager.store_inputs which also stores the cell ID."""
     super(ColabHistoryManager, self).store_inputs(
-        line_num, source, source_raw=source_raw)
+        line_num, source, source_raw=source_raw
+    )
 
     # The parent_header on the shell is the message that resulted in the code
     # execution request. Grab the cell ID out of that.
-    cell_id = self.shell.parent_header.get('metadata',
-                                           {}).get('colab', {}).get('cell_id')
+    cell_id = (
+        self.shell.parent_header.get('metadata', {})
+        .get('colab', {})
+        .get('cell_id')
+    )
 
     self._input_hist_cells.append({
         'code': source_raw,
@@ -76,10 +81,10 @@ class ColabHistoryManager(history.HistoryManager):
       if include_source_hash:
         # LINT.IfChange(execution_count)
         cells[cell['cell_id']] = {
-            'executionCount':
-                i,
-            'sourceHash':
-                hashlib.md5(cell['code'].encode('utf8')).hexdigest()[:10]
+            'executionCount': i,
+            'sourceHash': hashlib.md5(cell['code'].encode('utf8')).hexdigest()[
+                :10
+            ],
         }
         # LINT.ThenChange()
       else:

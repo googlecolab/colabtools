@@ -34,10 +34,12 @@ def enable_custom_widget_manager(version=_default_version):
   version_hash = _supported_widgets_versions.get(version)
   if not version_hash:
     raise ValueError(
-        'Unknown widgets version: {version}'.format(version=version))
+        'Unknown widgets version: {version}'.format(version=version)
+    )
   _install_custom_widget_manager(
       'https://ssl.gstatic.com/colaboratory-static/widgets/colab-cdn-widget-manager/{version_hash}/manager.min.js'
-      .format(version_hash=version_hash))
+      .format(version_hash=version_hash)
+  )
 
 
 def disable_custom_widget_manager():
@@ -77,8 +79,13 @@ def _widget_display_hook(msg):
   if not widget_data:
     return msg
 
-  widget_metadata = content.setdefault('metadata',
-                                       {}).setdefault(_WIDGET_MIME_TYPE, {})
-  widget_metadata['colab'] = {'custom_widget_manager': {'url': _installed_url,}}
+  widget_metadata = content.setdefault('metadata', {}).setdefault(
+      _WIDGET_MIME_TYPE, {}
+  )
+  widget_metadata['colab'] = {
+      'custom_widget_manager': {
+          'url': _installed_url,
+      }
+  }
 
   return msg

@@ -41,15 +41,22 @@ with _warnings.catch_warnings():
 
 
 __all__ = [
-    'DataTable', 'enable_dataframe_formatter', 'disable_dataframe_formatter',
-    'load_ipython_extension', 'unload_ipython_extension'
+    'DataTable',
+    'enable_dataframe_formatter',
+    'disable_dataframe_formatter',
+    'load_ipython_extension',
+    'unload_ipython_extension',
 ]
 
 _GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/fb998edc550c7947/data_table.js'
 
-_DATA_TABLE_HELP_URL = 'https://colab.research.google.com/notebooks/data_table.ipynb'
+_DATA_TABLE_HELP_URL = (
+    'https://colab.research.google.com/notebooks/data_table.ipynb'
+)
 
-_JAVASCRIPT_MODULE_MIME_TYPE = 'application/vnd.google.colaboratory.module+javascript'
+_JAVASCRIPT_MODULE_MIME_TYPE = (
+    'application/vnd.google.colaboratory.module+javascript'
+)
 
 _FAKE_DATAFRAME_COLUMN = '__fake_dataframe_column__'
 
@@ -76,6 +83,7 @@ class DataTable(_display.DisplayObject):
       specified, the table shrink down to the maximum of this value and the
       width needed for the content.
   """
+
   # Configurable defaults for initialization.
   include_index = True
   num_rows_per_page = 25
@@ -95,23 +103,28 @@ class DataTable(_display.DisplayObject):
     # For large dataframes, fall back to pandas rather than truncating.
     if dataframe.shape[0] > cls.max_rows:
       print(
-          ('Warning: total number of rows (%d) exceeds max_rows (%d). '
-           'Falling back to pandas display.') % (len(dataframe), cls.max_rows))
+          'Warning: total number of rows (%d) exceeds max_rows (%d). '
+          'Falling back to pandas display.' % (len(dataframe), cls.max_rows)
+      )
       return None
     if dataframe.shape[1] > cls.max_columns:
-      print(('Warning: Total number of columns (%d) exceeds max_columns (%d). '
-             'Falling back to pandas display.') %
-            (len(dataframe.columns), cls.max_columns))
+      print(
+          'Warning: Total number of columns (%d) exceeds max_columns (%d). '
+          'Falling back to pandas display.'
+          % (len(dataframe.columns), cls.max_columns)
+      )
       return None
     return cls(dataframe, **kwargs)._repr_javascript_module_()  # pylint: disable=protected-access
 
-  def __init__(self,
-               dataframe,
-               include_index=None,
-               num_rows_per_page=None,
-               max_rows=None,
-               max_columns=None,
-               min_width=None):
+  def __init__(
+      self,
+      dataframe,
+      include_index=None,
+      num_rows_per_page=None,
+      max_rows=None,
+      max_columns=None,
+      min_width=None,
+  ):
     """Constructor.
 
     Args:
@@ -134,8 +147,9 @@ class DataTable(_display.DisplayObject):
 
     self._dataframe = dataframe
     self._include_index = _default(include_index, self.include_index)
-    self._num_rows_per_page = _default(num_rows_per_page,
-                                       self.num_rows_per_page)
+    self._num_rows_per_page = _default(
+        num_rows_per_page, self.num_rows_per_page
+    )
     self._max_rows = _default(max_rows, self.max_rows)
     self._max_columns = _default(max_columns, self.max_columns)
     self._min_width = _default(min_width, self.min_width)
@@ -145,14 +159,17 @@ class DataTable(_display.DisplayObject):
   def _preprocess_dataframe(self):
     if len(self._dataframe.columns) > self._max_columns:
       print(
-          ('Warning: Total number of columns (%d) exceeds max_columns (%d)'
-           ' limiting to first (%d) columns.') %
-          (len(self._dataframe.columns), self._max_columns, self._max_columns))
+          'Warning: Total number of columns (%d) exceeds max_columns (%d)'
+          ' limiting to first (%d) columns.'
+          % (len(self._dataframe.columns), self._max_columns, self._max_columns)
+      )
     if len(self._dataframe) > self._max_rows:
-      print(('Warning: total number of rows (%d) exceeds max_rows (%d). '
-             'Limiting to first (%d) rows.') %
-            (len(self._dataframe), self._max_rows, self._max_rows))
-    dataframe = self._dataframe.iloc[:self._max_rows, :self._max_columns]
+      print(
+          'Warning: total number of rows (%d) exceeds max_rows (%d). '
+          'Limiting to first (%d) rows.'
+          % (len(self._dataframe), self._max_rows, self._max_rows)
+      )
+    dataframe = self._dataframe.iloc[: self._max_rows, : self._max_columns]
 
     if self._include_index or dataframe.shape[1] == 0:
       dataframe = dataframe.reset_index()
@@ -200,14 +217,16 @@ class DataTable(_display.DisplayObject):
     data_formatters = {}
     header_formatters = {}
     default_formatter = _interactive_table_helper._find_formatter(  # pylint: disable=protected-access
-        _DEFAULT_FORMATTERS)
+        _DEFAULT_FORMATTERS
+    )
 
     for i, _ in enumerate(columns):
       data_formatters[i] = default_formatter
       header_formatters[i] = default_formatter
 
     formatted_data = _interactive_table_helper._format_data(  # pylint: disable=protected-access
-        data, _DEFAULT_NONUNICODE_FORMATTER, data_formatters)
+        data, _DEFAULT_NONUNICODE_FORMATTER, data_formatters
+    )
     column_types = formatted_data['column_types']
 
     columns_and_types = []
@@ -220,7 +239,7 @@ class DataTable(_display.DisplayObject):
       # they will auto-expand as necessary.
       column_options = [{
           'width': '1px',
-          'className': 'index_column'
+          'className': 'index_column',
       }] * self._dataframe.index.nlevels
 
     return """
@@ -243,9 +262,12 @@ class DataTable(_display.DisplayObject):
         num_rows_per_page=self._num_rows_per_page,
         help_url=_DATA_TABLE_HELP_URL,
         suppress_output_scrolling=_json.dumps(
-            _DEFAULT_SUPPRESS_OUTPUT_SCROLLING),
-        min_width=('"' + self._min_width +
-                   '"') if self._min_width else 'undefined')
+            _DEFAULT_SUPPRESS_OUTPUT_SCROLLING
+        ),
+        min_width=('"' + self._min_width + '"')
+        if self._min_width
+        else 'undefined',
+    )
 
 
 class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
@@ -261,7 +283,8 @@ def _register_jsmodule_mimetype():
   display_formatter = shell.display_formatter
   display_formatter.formatters.setdefault(
       _JAVASCRIPT_MODULE_MIME_TYPE,
-      _JavascriptModuleFormatter(parent=display_formatter))
+      _JavascriptModuleFormatter(parent=display_formatter),
+  )
 
 
 _original_formatters = {}
@@ -274,7 +297,8 @@ def enable_dataframe_formatter():
     _register_jsmodule_mimetype()
     formatters = _IPython.get_ipython().display_formatter.formatters
     _original_formatters[key] = formatters[key].for_type_by_name(
-        'pandas.core.frame', 'DataFrame', DataTable.formatter)
+        'pandas.core.frame', 'DataFrame', DataTable.formatter
+    )
 
 
 def disable_dataframe_formatter():
@@ -284,8 +308,9 @@ def disable_dataframe_formatter():
     formatters = _IPython.get_ipython().display_formatter.formatters
     # pop() handles the case of original_formatter = None.
     formatters[key].pop('pandas.core.frame.DataFrame')
-    formatters[key].for_type_by_name('pandas.core.frame', 'DataFrame',
-                                     _original_formatters.pop(key))
+    formatters[key].for_type_by_name(
+        'pandas.core.frame', 'DataFrame', _original_formatters.pop(key)
+    )
 
 
 def load_ipython_extension(ipython):  # pylint: disable=unused-argument

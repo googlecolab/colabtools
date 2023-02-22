@@ -24,12 +24,14 @@ def unassign():
   """
   if not _IS_EXTERNAL_COLAB:
     raise _errors.RuntimeManagementError(
-        'This operation is only supported in external Colab.')
+        'This operation is only supported in external Colab.'
+    )
   h = _httplib2.Http()
   runtime_server_addr = _os.environ.get('TBE_RUNTIME_ADDR')
   if not runtime_server_addr:
     raise _errors.RuntimeManagementError(
-        'Unable to find the runtime management service.')
+        'Unable to find the runtime management service.'
+    )
   resp, _ = h.request(f'http://{runtime_server_addr}/unassign', 'POST')
   if resp.status != _http.HTTPStatus.OK:
     raise _errors.RuntimeManagementError('Unable to request VM unassignment.')
