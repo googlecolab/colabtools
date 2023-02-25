@@ -76,13 +76,25 @@ _last_noninteractive_df = {}
 
 def _convert_to_interactive(key):
   """Converts a stored df into a data table if we still hold a ref to it."""
+  df = _get_dataframe(key)
+  if df is not None:
+    return _data_table.DataTable(df)
+
+
+def _get_dataframe(key):
   if key in _last_noninteractive_df:
-    return _data_table.DataTable(_last_noninteractive_df.pop(key))
+    return _last_noninteractive_df.pop(key)
   elif key in _noninteractive_df_refs:
-    return _data_table.DataTable(_noninteractive_df_refs.pop(key))
+    return _noninteractive_df_refs.pop(key)
   print(
       'Error: Runtime no longer has a reference to this dataframe, please re-run this cell and try again.'
   )
+
+
+def _get_last_dataframe_key():
+  df_keys = list(_last_noninteractive_df.keys())
+  if df_keys:
+    return df_keys[0]
 
 
 _output_callbacks = {}
