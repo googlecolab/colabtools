@@ -51,7 +51,8 @@ class _BokehImportHook:
         #     output_notebook()
         # just works without modification.
         _bokeh_io_module.notebook.install_notebook_hook(
-            'jupyter', _load_notebook, _show_doc, _show_app, overwrite=True)
+            'jupyter', _load_notebook, _show_doc, _show_app, overwrite=True
+        )
       except:  # pylint: disable=bare-except
         logging.exception('Error enabling Bokeh Colab rendering.')
         os.environ['COLAB_BOKEH_IMPORT_HOOK_EXCEPTION'] = '1'
@@ -77,17 +78,17 @@ def _show_doc(obj, state, notebook_handle):
     _bokeh_loaded_in_this_cell = True
     IPython.get_ipython().events.register('post_run_cell', _post_execute)  # pylint: disable=undefined-variable
     _bokeh_io_module.notebook.load_notebook(
-        resources=_bokeh_resources, hide_banner=True)
+        resources=_bokeh_resources, hide_banner=True
+    )
 
   # Call the default bokeh rendering path.
   return _bokeh_io_module.notebook.show_doc(obj, state, notebook_handle)
 
 
 # pylint: disable=unused-argument
-def _load_notebook(resources=None,
-                   verbose=False,
-                   hide_banner=False,
-                   load_timeout=5000):
+def _load_notebook(
+    resources=None, verbose=False, hide_banner=False, load_timeout=5000
+):
   global _bokeh_resources
   # In Jupyter this method is called once per notebook launch but with Colab's
   # isolated outputframes this loading needs to be done for each outputframe.

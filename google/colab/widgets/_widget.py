@@ -95,8 +95,8 @@ class OutputAreaWidget:
     This function will often remain empty in the implementation.
 
     Args:
-      **kwargs: any extra arguments passed by the implementing class
-      to _active_component
+      **kwargs: any extra arguments passed by the implementing class to
+        _active_component
     """
 
   @contextlib.contextmanager
@@ -126,8 +126,8 @@ class OutputAreaWidget:
 
     Args:
       component_id: which component to clear.
-      wait: if True, the output won't be cleared until the next user output.
-      See colab.output.clear for full details.
+      wait: if True, the output won't be cleared until the next user output. See
+        colab.output.clear for full details.
 
     Raises:
       WidgetException: if component_id and no active element is

@@ -50,8 +50,9 @@ def _get_extension_magic(name, module, magic_type, magic_module_loader):
   magic_module_loader(module)
   m = get_ipython().magics_manager.magics[magic_type][name]
   if m.__module__ == __name__:
-    raise ValueError('No %s magic named "%s" found in "%s"' %
-                     (magic_type, name, module))
+    raise ValueError(
+        'No %s magic named "%s" found in "%s"' % (magic_type, name, module)
+    )
   return m
 
 
@@ -63,12 +64,14 @@ def _declare_line_magic(name, module, magic_module_loader):
     return
 
   def impl(line, **kwargs):
-    return _get_extension_magic(name, module, 'line',
-                                magic_module_loader)(line, **kwargs)
+    return _get_extension_magic(name, module, 'line', magic_module_loader)(
+        line, **kwargs
+    )
 
   # pylint: disable=g-long-lambda
-  impl.getdoc = lambda: _get_extension_magic(name, module, 'line',
-                                             magic_module_loader).__doc__
+  impl.getdoc = lambda: _get_extension_magic(
+      name, module, 'line', magic_module_loader
+  ).__doc__
   magic.register_line_magic(name)(impl)
 
 
@@ -80,12 +83,14 @@ def _declare_cell_magic(name, module, magic_module_loader):
     return
 
   def impl(line, cell, **kwargs):
-    return _get_extension_magic(name, module, 'cell',
-                                magic_module_loader)(line, cell, **kwargs)
+    return _get_extension_magic(name, module, 'cell', magic_module_loader)(
+        line, cell, **kwargs
+    )
 
   # pylint: disable=g-long-lambda
-  impl.getdoc = lambda: _get_extension_magic(name, module, 'cell',
-                                             magic_module_loader).__doc__
+  impl.getdoc = lambda: _get_extension_magic(
+      name, module, 'cell', magic_module_loader
+  ).__doc__
   magic.register_cell_magic(name)(impl)
 
 

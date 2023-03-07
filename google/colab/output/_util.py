@@ -36,17 +36,15 @@ def flush_all():
 
 
 def get_locally_unique_id(prefix='id'):
-  """"Returns id which is unique with the session."""
+  """Returns id which is unique with the session."""
   global _id_counter
   _id_counter += 1
   return prefix + str(_id_counter)
 
 
-def serve_kernel_port_as_iframe(port,
-                                path='/',
-                                width='100%',
-                                height='400',
-                                cache_in_notebook=False):
+def serve_kernel_port_as_iframe(
+    port, path='/', width='100%', height='400', cache_in_notebook=False
+):
   """Displays an iframe in the output to a port on the kernel.
 
   This allows viewing URLs hosted on the kernel from output frames.
@@ -89,7 +87,8 @@ def serve_kernel_port_as_iframe(port,
       path=json.dumps(path),
       width=json.dumps(width),
       height=json.dumps(height),
-      cache=json.dumps(cache_in_notebook))
+      cache=json.dumps(cache_in_notebook),
+  )
   display.display(display.Javascript(code))
 
 
@@ -122,5 +121,6 @@ def serve_kernel_port_as_window(port, path='/', anchor_text=None):
     anchor.textContent = text;
     element.appendChild(anchor);
   })""" + '({port}, {path}, {text}, window.element)'.format(
-      port=port, path=json.dumps(path), text=json.dumps(anchor_text))
+      port=port, path=json.dumps(path), text=json.dumps(anchor_text)
+  )
   display.display(display.Javascript(code))

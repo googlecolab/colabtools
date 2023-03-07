@@ -74,9 +74,9 @@ class Js:
       js_func = Js('function() { ...}') will create a function that could
       be later called like a regular function.
     Args:
-      expr: if provided will create an opaque representatoin
-      of this javascript expression and it could be used to directly
-      operate on it. If None: will assume a global context.
+      expr: if provided will create an opaque representatoin of this javascript
+        expression and it could be used to directly operate on it. If None: will
+        assume a global context.
       mode: how to run javascript, one of (PERSISTENT or EVAL)
     """
     self._attr_map = {}
@@ -110,9 +110,9 @@ class Js:
 
     Args:
       *args: list of arguments to pass to a javascript function.
-      **kwargs: optional keyword args.  Currently only supports result_name
-        to store the result of the call in the named JS variable.  If omitted,
-        the result is stored in a window member named after a UUID generated for
+      **kwargs: optional keyword args.  Currently only supports result_name to
+        store the result of the call in the named JS variable.  If omitted, the
+        result is stored in a window member named after a UUID generated for
         this call.
 
     Returns:
@@ -151,7 +151,8 @@ class Js:
 
   def __getitem__(self, name):
     return self._builder(
-        self._js_value_as_object() + '[' + json.dumps(name) + ']')
+        self._js_value_as_object() + '[' + json.dumps(name) + ']'
+    )
 
   def __setitem__(self, name, value):
     """Enables setting properties on javascript object.
@@ -195,6 +196,7 @@ class Js:
 
     Args:
       name: name of the attribute to look up.
+
     Returns:
       The named attribute (as a Js object).
     Raises:
@@ -382,7 +384,8 @@ class _JavascriptEncoder(json.JSONEncoder):
       # `json.dumps`.
       nan_free_object = json.loads(
           json.dumps(o, default=self.default),
-          parse_constant=lambda constant: constant)
+          parse_constant=lambda constant: constant,
+      )
       result = json.dumps(nan_free_object)
     # Why is this correct? Well, it is invalid to have </script> anywhere
     # outside of quotes. (won't be a valid javascript) And it is invalid
@@ -392,6 +395,7 @@ class _JavascriptEncoder(json.JSONEncoder):
     for k, v in self._replacement_map.items():
       result = result.replace('"%s"' % (k,), v)
     return result
+
 
 # global context
 js_global = Js()

@@ -34,17 +34,21 @@ def _tensorflow_version(line):
   if line.startswith("1"):
     raise ValueError(
         # pylint: disable=line-too-long
-        textwrap.dedent("""\
+        textwrap.dedent(
+            """\
              Tensorflow 1 is unsupported in Colab.
-    
+
              Your notebook should be updated to use Tensorflow 2.
              See the guide at https://www.tensorflow.org/guide/migrate#migrate-from-tensorflow-1x-to-tensorflow-2."""
-                       ))
+        )
+    )
 
   print(
-      "Colab only includes TensorFlow 2.x; %tensorflow_version has no effect.")
+      "Colab only includes TensorFlow 2.x; %tensorflow_version has no effect."
+  )
 
 
 def _register_magics(ip):
   ip.register_magic_function(
-      _tensorflow_version, magic_kind="line", magic_name="tensorflow_version")
+      _tensorflow_version, magic_kind="line", magic_name="tensorflow_version"
+  )

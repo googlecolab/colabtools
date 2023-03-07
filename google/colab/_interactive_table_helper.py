@@ -46,8 +46,16 @@ def _find_formatter(formatters):
   return formatter
 
 
-_NP_INT_TYPES = ('int32', 'int64', 'int8', 'int16', 'uint32', 'uint64', 'uint8',
-                 'uint16')
+_NP_INT_TYPES = (
+    'int32',
+    'int64',
+    'int8',
+    'int16',
+    'uint32',
+    'uint64',
+    'uint8',
+    'uint16',
+)
 
 
 def _process_custom_formatters(formatters, columns):
@@ -68,12 +76,16 @@ def _process_custom_formatters(formatters, columns):
   column_set = set(columns)
   for col in formatters:
     if isinstance(col, int) and col >= len(columns):
-      print(('Warning: Custom formatter column index %d exceeds total number '
-             'of columns (%d)') % (col, len(columns)))
+      print(
+          'Warning: Custom formatter column index %d exceeds total number '
+          'of columns (%d)' % (col, len(columns))
+      )
 
     if not isinstance(col, int) and col not in column_set:
-      print(('Warning: Custom formatter column name %s not present in column '
-             'list') % col)
+      print(
+          'Warning: Custom formatter column name %s not present in column list'
+          % col
+      )
 
   # Separate out the custom formatters that use indices.
   output_formatters = {
@@ -84,8 +96,10 @@ def _process_custom_formatters(formatters, columns):
     # Attempt to find a formatter based on column name.
     if name in formatters:
       if i in output_formatters:
-        print(('Warning: Custom formatter for column index %d present, '
-               'ignoring formatter for column name %s') % (i, name))
+        print(
+            'Warning: Custom formatter for column index %d present, '
+            'ignoring formatter for column name %s' % (i, name)
+        )
       else:
         output_formatters[i] = formatters[name]
 
@@ -102,11 +116,13 @@ def _fix_large_ints(x):
   return x
 
 
-def _to_js(x,
-           default_nonunicode_formatter,
-           formatter=None,
-           as_string=False,
-           html_encode=False):
+def _to_js(
+    x,
+    default_nonunicode_formatter,
+    formatter=None,
+    as_string=False,
+    html_encode=False,
+):
   """Formats given x into js-parseable structure.
 
   Args:
@@ -135,6 +151,7 @@ def _to_js(x,
     if x.dtype.kind == 'M':
       # We want to avoid proactively importing pandas at kernel startup.
       import pandas as _pd  # pylint: disable=g-import-not-at-top
+
       x = str(_pd.to_datetime(x))
     elif x.shape:
       # Convert lists into their string representations
@@ -166,7 +183,8 @@ def _to_js(x,
     # If this is a list of dictionaries, we need to convert each dict to
     # a string.
     if all(
-        (isinstance(el, dict) and not isinstance(el, _CellValue) for el in x)):
+        (isinstance(el, dict) and not isinstance(el, _CellValue) for el in x)
+    ):
       x = [represent_as_string(elem) for elem in x]
     else:
       x = [_fix_large_ints(item) for item in x]
@@ -180,18 +198,21 @@ def _to_js(x,
     if isinstance(x, str):
       result = _json.dumps(default_nonunicode_formatter(x))
     else:
-      result = _json.dumps([
-          _to_js(el, default_nonunicode_formatter, html_encode=html_encode)
-          for el in x
-      ])
+      result = _json.dumps(
+          [
+              _to_js(el, default_nonunicode_formatter, html_encode=html_encode)
+              for el in x
+          ]
+      )
   result = result.replace('</', '<\\/')
   if double_encode_json:
     result = _json.dumps(result)
   return result
 
 
-def _to_js_matrix(matrix, default_nonunicode_formatter, custom_formatters,
-                  max_data_size):
+def _to_js_matrix(
+    matrix, default_nonunicode_formatter, custom_formatters, max_data_size
+):
   """Creates a two dimensional javascript compatible matrix.
 
   Args:
@@ -214,7 +235,8 @@ def _to_js_matrix(matrix, default_nonunicode_formatter, custom_formatters,
           el,
           default_nonunicode_formatter,
           custom_formatters.get(i, None),
-          html_encode=True)
+          html_encode=True,
+      )
 
   values = [','.join(_row_to_js(row)) for row in matrix]
   total = 0
@@ -227,17 +249,21 @@ def _to_js_matrix(matrix, default_nonunicode_formatter, custom_formatters,
       values = values[:i]
       break
   if discarded:
-    print(('The table data exceeds the limit %d. Will discard last %d rows ' %
-           (max_data_size, discarded)))
-  return '[[%s]]' % ('],\n ['.join(values))
+    print(
+        'The table data exceeds the limit %d. Will discard last %d rows '
+        % (max_data_size, discarded)
+    )
+  return '[[%s]]' % '],\n ['.join(values)
 
 
 def _trim_columns(columns, max_columns):
   """Prints a warning and returns trimmed columns if necessary."""
   if len(columns) <= max_columns:
     return columns
-  print(('Warning: Total number of columns (%d) exceeds max_columns (%d)'
-         ' limiting to first max_columns ') % (len(columns), max_columns))
+  print(
+      'Warning: Total number of columns (%d) exceeds max_columns (%d)'
+      ' limiting to first max_columns ' % (len(columns), max_columns)
+  )
   return columns[:max_columns]
 
 
@@ -251,8 +277,10 @@ def _trim_data(data, max_rows, max_columns=None):
 
   if len(data) <= max_rows:
     return data
-  print(('Warning: total number of rows (%d) exceeds max_rows (%d). '
-         'Limiting to first max_rows.') % (len(data), max_rows))
+  print(
+      'Warning: total number of rows (%d) exceeds max_rows (%d). '
+      'Limiting to first max_rows.' % (len(data), max_rows)
+  )
   return data[:max_rows]
 
 
@@ -265,7 +293,8 @@ def _determine_column_type(data_types):
   # Allow None which will be converted to NaN.
   if all(
       issubclass(t, (_numbers.Number, type(None))) and not issubclass(t, bool)
-      for t in data_types):
+      for t in data_types
+  ):
     return 'number'
   return 'string'
 
@@ -291,7 +320,8 @@ def _get_column_type(data, column_index):
     cell = row[column_index]
     t = type(_get_value(cell))
     is_known_type = (
-        cell is None or issubclass(t, _numbers.Number) or issubclass(t, str))
+        cell is None or issubclass(t, _numbers.Number) or issubclass(t, str)
+    )
     if not is_known_type:
       t = str
     data_types.add(t)
@@ -339,24 +369,30 @@ def _format_data(data, default_formatter, custom_formatters, html_encode=False):
       column_type = column_types[column_index]
       if column_type != 'number' or not custom_formatter:
         formatted_row.append(
-            _to_js(formatted_value, default_formatter, html_encode=html_encode))
+            _to_js(formatted_value, default_formatter, html_encode=html_encode)
+        )
       else:
         raw_value = _to_js(
-            _get_value(cell), default_formatter, html_encode=html_encode)
+            _get_value(cell), default_formatter, html_encode=html_encode
+        )
         formatted_value = _to_js(
             _get_formatted(formatted_value),
             default_formatter,
             as_string=True,
-            html_encode=html_encode)
-        formatted_row.append("""{
+            html_encode=html_encode,
+        )
+        formatted_row.append(
+            """{
             'v': %s,
             'f': %s,
-        }""" % (raw_value, formatted_value))
+        }"""
+            % (raw_value, formatted_value)
+        )
 
     formatted_values.append(',\n'.join(formatted_row))
 
   if formatted_values:
-    formatted_data = '[[%s]]' % ('],\n ['.join(formatted_values))
+    formatted_data = '[[%s]]' % '],\n ['.join(formatted_values)
   else:
     formatted_data = '[]'
 

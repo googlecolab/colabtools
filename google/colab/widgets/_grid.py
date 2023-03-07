@@ -31,12 +31,9 @@ class Grid(_widget.OutputAreaWidget):
   etc...
   """
 
-  def __init__(self,
-               rows,
-               columns,
-               header_row=False,
-               header_column=False,
-               style=''):
+  def __init__(
+      self, rows, columns, header_row=False, header_column=False, style=''
+  ):
     """Creates a new grid object.
 
     Args:
@@ -91,11 +88,14 @@ class Grid(_widget.OutputAreaWidget):
     row_offset = 1 if self.header_row else 0
     col_offset = 1 if self.header_column else 0
 
-    if (row_offset + len(rows) > self.rows or
-        col_offset + len(cols) > self.columns):
-      raise _widget.WidgetException('Can not fit %dx%d data into %dx%d grid. ' %
-                                    (len(rows), len(cols), self.rows,
-                                     self.columns))
+    if (
+        row_offset + len(rows) > self.rows
+        or col_offset + len(cols) > self.columns
+    ):
+      raise _widget.WidgetException(
+          'Can not fit %dx%d data into %dx%d grid. '
+          % (len(rows), len(cols), self.rows, self.columns)
+      )
     for row, col in iter(self):
       row -= row_offset
       col -= col_offset
@@ -128,7 +128,7 @@ class Grid(_widget.OutputAreaWidget):
           tag = 'td'
         html += '<%(tag)s id=%(id)s></%(tag)s>' % {
             'tag': tag,
-            'id': self._get_cell_id(row, col)
+            'id': self._get_cell_id(row, col),
         }
       html += '</tr>'
     html += '</table>'
@@ -144,15 +144,15 @@ class Grid(_widget.OutputAreaWidget):
       return
     super(Grid, self)._publish()
     with self._output_in_widget():
-      _publish.css("""
+      _publish.css(
+          """
        table#%(id)s, #%(id)s > tbody > tr > th, #%(id)s > tbody > tr > td {
          border: 1px solid lightgray;
          border-collapse:collapse;
          %(userstyle)s
-        }""" % {
-            'id': self._id,
-            'userstyle': self._style
-        })
+        }"""
+          % {'id': self._id, 'userstyle': self._style}
+      )
 
       _publish.html(self._html_repr())
 
@@ -169,19 +169,22 @@ class Grid(_widget.OutputAreaWidget):
     """
     if row < 0 or column < 0 or row >= self.rows or column >= self.columns:
       raise _widget.WidgetException(
-          'Cell (%d, %d) is outside of boundaries of %dx%d grid' %
-          (row, column, self.rows, self.columns))
+          'Cell (%d, %d) is outside of boundaries of %dx%d grid'
+          % (row, column, self.rows, self.columns)
+      )
     component_id = self._get_cell_id(row, column)
     with self._active_component(component_id):
       yield
 
 
-def create_grid(row_data,
-                col_data,
-                render,
-                header_render=None,
-                header_row=True,
-                header_column=True):
+def create_grid(
+    row_data,
+    col_data,
+    render,
+    header_render=None,
+    header_row=True,
+    header_column=True,
+):
   """Creates Grid using cross product of rows and cols.
 
 
@@ -205,17 +208,15 @@ def create_grid(row_data,
     row_data: an iterable returning a generating element for each row
     col_data: an iterable returning a generating element for each col
     render: element display function. It should accept two arguments
-    (corresponding row and column element).
-    This function can produce output using either or both of two ways.
-      1. It can use print statement, or any other display functions -
-       such as pylab.show(), or display_html.
-      2. It can return not None object to be rendered via IPython.display.
-      This will produce repr(..) for vanilla python object and rich outputs
-      for things like display.html.
-
-    header_render: header display function that accepts one element to
-    display. If no header rendering function is provided, each header
-    is displayed using Python.display() function.
+      (corresponding row and column element). This function can produce output
+      using either or both of two ways. 1. It can use print statement, or any
+      other display functions - such as pylab.show(), or display_html. 2. It can
+      return not None object to be rendered via IPython.display. This will
+      produce repr(..) for vanilla python object and rich outputs for things
+      like display.html.
+    header_render: header display function that accepts one element to display.
+      If no header rendering function is provided, each header is displayed
+      using Python.display() function.
     header_row: if True the header row will be created
     header_column: if True the header column will be created.
 
@@ -232,7 +233,8 @@ def create_grid(row_data,
       len(rows) + header_row,
       len(cols) + header_column,
       header_row=header_row,
-      header_column=header_column)
+      header_column=header_column,
+  )
   # pylint: disable=protected-access
   t._populate(rows, cols, render, header_render)
   return t

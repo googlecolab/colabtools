@@ -73,11 +73,9 @@ class DriveHandler(handlers.APIHandler):
     drive_status = self._get_drive_errors()
     self.finish(
         _XSSI_PREFIX
-        + json.dumps(
-            {
-                'dfs': drive_status,
-            }
-        )
+        + json.dumps({
+            'dfs': drive_status,
+        })
     )
 
 
@@ -89,9 +87,7 @@ class BuildInfoHandler(handlers.APIHandler):
     self.set_header('Content-Type', 'application/json')
     self.finish(
         _XSSI_PREFIX
-        + json.dumps(
-            {
-                'release_tag': os.environ.get('COLAB_RELEASE_TAG'),
-            }
-        )
+        + json.dumps({
+            'release_tag': os.environ.get('COLAB_RELEASE_TAG'),
+        })
     )

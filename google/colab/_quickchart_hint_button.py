@@ -159,5 +159,6 @@ def _disable_df_interactive_hint_formatter():
   if key in _original_formatters:
     formatters = shell.display_formatter.formatters
     formatters[key].pop('pandas.core.frame.DataFrame', None)
-    formatters[key].for_type_by_name('pandas.core.frame', 'DataFrame',
-                                     _original_formatters.pop(key))
+    formatters[key].for_type_by_name(
+        'pandas.core.frame', 'DataFrame', _original_formatters.pop(key)
+    )

@@ -37,7 +37,7 @@ def _pip_magic(line):
     %pip help
 
   Args:
-    line : string of arguments to pip command
+    line: String of arguments to pip command.
 
   Returns:
     None

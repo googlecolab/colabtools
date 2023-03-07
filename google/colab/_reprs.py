@@ -40,7 +40,8 @@ def _register_intrinsic_mimetype():
     return
 
   display_formatter.formatters.setdefault(
-      _INTRINSIC_MIME_TYPE, _IntrinsicTypeFormatter(parent=display_formatter))
+      _INTRINSIC_MIME_TYPE, _IntrinsicTypeFormatter(parent=display_formatter)
+  )
 
 
 def enable_string_repr():
@@ -55,7 +56,8 @@ def enable_string_repr():
 
     formatters = shell.display_formatter.formatters
     _original_string_formatters[key] = formatters[key].for_type(
-        str, _string_intrinsic_repr)
+        str, _string_intrinsic_repr
+    )
 
 
 def disable_string_repr():
@@ -85,7 +87,8 @@ def enable_df_style_formatter():
     return dataframe.set_table_attributes('class="dataframe"')._repr_html_()  # pylint: disable=protected-access
 
   _original_df_formatters[key] = formatters[key].for_type_by_name(
-      'pandas.io.formats.style', 'Styler', new_formatter)
+      'pandas.io.formats.style', 'Styler', new_formatter
+  )
 
 
 def disable_df_style_formatter():
@@ -95,5 +98,6 @@ def disable_df_style_formatter():
     return
   formatters = IPython.get_ipython().display_formatter.formatters
   formatters[key].pop('pandas.io.formats.style.Styler')
-  formatters[key].for_type_by_name('pandas.io.formats.style', 'Styler',
-                                   _original_df_formatters.pop(key))
+  formatters[key].for_type_by_name(
+      'pandas.io.formats.style', 'Styler', _original_df_formatters.pop(key)
+  )

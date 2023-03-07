@@ -41,10 +41,9 @@ class DataTableTest(unittest.TestCase):
     super(DataTableTest, self).tearDown()
 
   def testDataTable(self):
-    df = pd.DataFrame({
-        'x': [12345, 23456, 34567],
-        'y': ['abcde', 'bcdef', 'cdefg']
-    })
+    df = pd.DataFrame(
+        {'x': [12345, 23456, 34567], 'y': ['abcde', 'bcdef', 'cdefg']}
+    )
 
     dt = data_table.DataTable(df)
     html = dt._repr_html_()
@@ -53,13 +52,13 @@ class DataTableTest(unittest.TestCase):
         self.assertIn('{}'.format(val), html)
 
   def testFormatterEnableDisable(self):
-
     def get_formatter():
       key = data_table._JAVASCRIPT_MODULE_MIME_TYPE
       formatters = IPython.get_ipython().display_formatter.formatters
       if key in formatters:
-        return formatters[key].for_type_by_name('pandas.core.frame',
-                                                'DataFrame')
+        return formatters[key].for_type_by_name(
+            'pandas.core.frame', 'DataFrame'
+        )
       else:
         return None
 
@@ -70,7 +69,8 @@ class DataTableTest(unittest.TestCase):
     data_table.enable_dataframe_formatter()
     # classmethod identity is not preserved; compare reprs:
     self.assertEqual(
-        repr(get_formatter()), repr(data_table.DataTable.formatter))
+        repr(get_formatter()), repr(data_table.DataTable.formatter)
+    )
 
     # disabling restores the default.
     data_table.disable_dataframe_formatter()

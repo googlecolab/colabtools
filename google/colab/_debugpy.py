@@ -66,8 +66,8 @@ def enable_attach_async(enable_inspector=False):
       # Need to start this thread after the debugpy.listen() call but before
       # the undo_patch_thread_modules().
       threading.Thread(
-          target=inspector_thread, name='_colab_inspector_thread',
-          daemon=True).start()
+          target=inspector_thread, name='_colab_inspector_thread', daemon=True
+      ).start()
       inspector_thread_started.wait()
 
     # Debugger tracing isn't needed for just tracebacks, but if full debugging
@@ -81,10 +81,12 @@ def enable_attach_async(enable_inspector=False):
     try:
       # Stop debugpy from tracing newly created threads.
       from _pydev_bundle import pydev_monkey  # pylint: disable=g-import-not-at-top
+
       pydev_monkey.undo_patch_thread_modules()
     except ModuleNotFoundError:
       # _pydev_bundle may be vendored into either location.
       from pydevd._pydev_bundle import pydev_monkey  # pylint: disable=g-import-not-at-top
+
       pydev_monkey.undo_patch_thread_modules()
 
     # Clear the trace flag to allow fetching stack traces.

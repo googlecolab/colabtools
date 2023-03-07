@@ -75,19 +75,26 @@ def _call_js_function(js_function, *args):
 
   name = str(uuid.uuid4())
   for i in range(0, len(serialized), _MSG_CHUNK_SIZE):
-    chunk = serialized[i:i + _MSG_CHUNK_SIZE]
+    chunk = serialized[i : i + _MSG_CHUNK_SIZE]
     output.eval_js(
         """window["{name}"] = (window["{name}"] || "") + atob("{b64_chunk}");
     """.format(
-        name=name, b64_chunk=base64.b64encode(chunk.encode()).decode('ascii')),
-        ignore_result=True)
-  return output.eval_js("""
+            name=name,
+            b64_chunk=base64.b64encode(chunk.encode()).decode('ascii'),
+        ),
+        ignore_result=True,
+    )
+  return output.eval_js(
+      """
     (function() {{
       const msg = JSON.parse(window["{name}"]);
       delete window["{name}"];
       return ({js_function})(...msg);
     }})();
-  """.format(name=name, js_function=js_function))
+  """.format(
+          name=name, js_function=js_function
+      )
+  )
 
 
 def _proxy(guid, msg):
@@ -119,7 +126,8 @@ def _utils_url():
 
 # note: no whitespace outside the script tag, as this can affect the way the
 # HTML renders.
-_element_template = string.Template("""\
+_element_template = string.Template(
+    """\
 $deps<$tag id="$guid">$children</$tag><script>
   (function() {
     async function init() {
@@ -140,7 +148,8 @@ $deps<$tag id="$guid">$children</$tag><script>
     }
     window.google.colab.output.pauseOutputUntil(init());
   })();
-</script>""")
+</script>"""
+)
 
 
 class Element:
@@ -194,11 +203,9 @@ class Element:
     if not self._exists():
       self._attributes[name] = value
     else:
-      _proxy(self._guid, {
-          'method': 'setAttribute',
-          'value': value,
-          'name': name
-      })
+      _proxy(
+          self._guid, {'method': 'setAttribute', 'value': value, 'name': name}
+      )
 
   def get_property(self, name):
     if not self._exists():
@@ -209,11 +216,9 @@ class Element:
     if not self._exists():
       self._properties[name] = value
     else:
-      _proxy(self._guid, {
-          'method': 'setProperty',
-          'value': value,
-          'name': name
-      })
+      _proxy(
+          self._guid, {'method': 'setProperty', 'value': value, 'name': name}
+      )
 
   def call(self, method, *args):
     if not self._exists():
@@ -278,11 +283,14 @@ class Element:
     if not callbacks:
       del listener_map[name]
     if self._exists():
-      _proxy(self._guid, {
-          'method': 'removeEventListener',
-          'name': name,
-          'value': callback_name
-      })
+      _proxy(
+          self._guid,
+          {
+              'method': 'removeEventListener',
+              'name': name,
+              'value': callback_name,
+          },
+      )
 
   def append_child(self, child):
     """Append child to Element.
@@ -321,33 +329,28 @@ class Element:
         deps = '<script src="{}"></script>'.format(self._src['script'])
       elif 'module' in self._src:
         deps = '<script type="module">import "{}";</script>'.format(
-            self._src['module'])
+            self._src['module']
+        )
       elif 'html' in self._src:
         deps = '<link rel="import" href="{}" />'.format(self._src['html'])
     return _element_template.safe_substitute({
-        'tag':
-            self._tag,
-        'guid':
-            self._guid,
-        'deps':
-            deps,
-        'utils':
-            _utils_url(),
+        'tag': self._tag,
+        'guid': self._guid,
+        'deps': deps,
+        'utils': _utils_url(),
         # Wrap the newline in a comment so that it does not turn into a text
         # node in the HTML.
-        'children':
-            '<!--\n-->'.join([_to_html_str(c) for c in self._children]),
-        'config':
-            json.dumps({
-                'tag': self._tag,
-                'guid': self._guid,
-                'attributes': self._attributes,
-                'properties': self._properties,
-                'js_listeners': {
-                    k: list(v.values()) for k, v in self._js_listeners.items()
-                },
-                'py_listeners': {
-                    k: list(v.values()) for k, v in self._py_listeners.items()
-                },
-            }),
+        'children': '<!--\n-->'.join([_to_html_str(c) for c in self._children]),
+        'config': json.dumps({
+            'tag': self._tag,
+            'guid': self._guid,
+            'attributes': self._attributes,
+            'properties': self._properties,
+            'js_listeners': {
+                k: list(v.values()) for k, v in self._js_listeners.items()
+            },
+            'py_listeners': {
+                k: list(v.values()) for k, v in self._py_listeners.items()
+            },
+        }),
     })

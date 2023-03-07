@@ -20,7 +20,7 @@ def run(shell, time):
   globals().clear()
 
   while True:
-    time.sleep(.2)
+    time.sleep(0.2)
 
     if shell:
       # Clear on each step to remove any deleted globals.

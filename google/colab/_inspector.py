@@ -167,7 +167,8 @@ def _getargspec_dict(obj):
   # we proactively call _safe_repr ourselves.
   if argspec.defaults:
     argspec = argspec._replace(
-        defaults=[_safe_repr(val) for val in argspec.defaults])
+        defaults=[_safe_repr(val) for val in argspec.defaults]
+    )
   return argspec._asdict()
 
 
@@ -250,8 +251,10 @@ def _safe_repr(obj, depth=0, visited=None):
     return '{} method'.format(obj.__qualname__)
   # Matching by module name is ugly; we do this because many types (eg
   # type(None)) don't appear in the dir() of any module in py3.
-  if (not isinstance(obj, collections_abc.Iterable) and
-      module_name == builtins.__name__):
+  if (
+      not isinstance(obj, collections_abc.Iterable)
+      and module_name == builtins.__name__
+  ):
     # The only arbitrary-sized builtin type is int; we compute the first and
     # last 10 digits if the number is larger than 30 digits.
     if obj and isinstance(obj, int):
@@ -259,7 +262,7 @@ def _safe_repr(obj, depth=0, visited=None):
       a = abs(obj)
       ndigits = int(math.log10(a) + 1)
       if ndigits > 30:
-        start = int(a // 10**(ndigits - 10))
+        start = int(a // 10 ** (ndigits - 10))
         # Our log10 might be wrong, due to rounding errors; we recalculate based
         # on how many digits remain here (which is either 9 or 10).
         ndigits = (ndigits - 10) + len(str(start))
@@ -278,17 +281,22 @@ def _safe_repr(obj, depth=0, visited=None):
   if isinstance(obj, collections_abc.Sized):
     shape = getattr(obj, 'shape', None)
 
-    if (isinstance(shape, tuple) and module_name.startswith('pandas.') and
-        type_name == 'Series'):
-
+    if (
+        isinstance(shape, tuple)
+        and module_name.startswith('pandas.')
+        and type_name == 'Series'
+    ):
       if _rich_repr_enabled:
         return _series_rich_repr(obj, depth)
 
       return f'{type_name} with shape {shape} and dtype {obj.dtype}'
 
-    if (isinstance(shape, tuple) or
-        hasattr(shape, '__module__') and isinstance(shape.__module__, str) and
-        'tensorflow.' in shape.__module__):
+    if (
+        isinstance(shape, tuple)
+        or hasattr(shape, '__module__')
+        and isinstance(shape.__module__, str)
+        and 'tensorflow.' in shape.__module__
+    ):
       return '{} with shape {}'.format(type_name, shape)
 
   # We recur on the types allowed above; the logic is slightly different for
@@ -299,8 +307,9 @@ def _safe_repr(obj, depth=0, visited=None):
     type_prefix = ''
     length_prefix = ''
     if depth == 0:
-      length_prefix = '({} items) '.format(
-          len(obj)) if len(obj) != 1 else '(1 item) '
+      length_prefix = (
+          '({} items) '.format(len(obj)) if len(obj) != 1 else '(1 item) '
+      )
     if dict is not type(obj):
       type_prefix = fully_qualified_type_name
     for i, (k, v) in enumerate(obj.items()):
@@ -312,10 +321,12 @@ def _safe_repr(obj, depth=0, visited=None):
       if depth == _MAX_RECURSION_DEPTH:
         s.append('...')
         break
-      s.append(': '.join((
-          _safe_repr(k, depth=depth + 1, visited=visited),
-          _safe_repr(v, depth=depth + 1, visited=visited),
-      )))
+      s.append(
+          ': '.join((
+              _safe_repr(k, depth=depth + 1, visited=visited),
+              _safe_repr(v, depth=depth + 1, visited=visited),
+          ))
+      )
     return ''.join((length_prefix, type_prefix, '{', ', '.join(s), '}'))
 
   if isinstance(obj, tuple(_APPROVED_ITERABLES)):
@@ -332,8 +343,9 @@ def _safe_repr(obj, depth=0, visited=None):
         type_prefix = ''
         length_prefix = ''
         if depth == 0:
-          length_prefix = '({} items) '.format(
-              len(obj)) if len(obj) != 1 else '(1 item) '
+          length_prefix = (
+              '({} items) '.format(len(obj)) if len(obj) != 1 else '(1 item) '
+          )
         if collection_type is not type(obj):
           type_prefix = fully_qualified_type_name
         s = []
@@ -379,12 +391,14 @@ def _series_rich_repr(obj, depth=0):
   height_figure = 1
   shape = getattr(obj, 'shape', None)
 
-  if len(obj) > _MAX_ALLOWED_SERIES_LEN or depth > 0 or obj.dtype.kind not in (
-      'i', 'f', 'b'):
+  if (
+      len(obj) > _MAX_ALLOWED_SERIES_LEN
+      or depth > 0
+      or obj.dtype.kind not in ('i', 'f', 'b')
+  ):
     return f'Series with shape {shape} and dtype {obj.dtype}'
 
   if obj.dtype.kind in ('i', 'f'):
-
     result = f'**{obj.name}** _{obj.dtype}_\n\n'
     obj.hist(figsize=(width_figure, height_figure))
     with io.BytesIO() as stream:
@@ -457,8 +471,9 @@ class ColabInspector(oinspect.Inspector):
     Returns:
       A formatted definition or None.
     """
-    if dir2.safe_hasattr(obj,
-                         '__call__') and not oinspect.is_simple_callable(obj):
+    if dir2.safe_hasattr(obj, '__call__') and not oinspect.is_simple_callable(
+        obj
+    ):
       obj = obj.__call__
 
     try:
@@ -582,8 +597,10 @@ class ColabInspector(oinspect.Inspector):
 
     if _iscallable(obj):
       filename = oinspect.find_file(obj)
-      if filename and (filename.endswith(
-          ('.py', '.py3', '.pyc')) or '<ipython-input' in filename):
+      if filename and (
+          filename.endswith(('.py', '.py3', '.pyc'))
+          or '<ipython-input' in filename
+      ):
         out['file'] = filename
 
       line = oinspect.find_source_lines(obj)
@@ -632,8 +649,13 @@ class ColabInspector(oinspect.Inspector):
 
 def _iscallable(obj):
   """Check if an object is a callable object safe for inspect.find_file."""
-  return inspect.ismodule(obj) or inspect.isclass(obj) or inspect.ismethod(
-      obj) or inspect.isfunction(obj) or inspect.iscode(obj)
+  return (
+      inspect.ismodule(obj)
+      or inspect.isclass(obj)
+      or inspect.ismethod(obj)
+      or inspect.isfunction(obj)
+      or inspect.iscode(obj)
+  )
 
 
 def _get_source_definition(obj):
@@ -641,8 +663,9 @@ def _get_source_definition(obj):
   try:
     obj = _unwrap(obj)
 
-    if dir2.safe_hasattr(obj,
-                         '__call__') and not oinspect.is_simple_callable(obj):
+    if dir2.safe_hasattr(obj, '__call__') and not oinspect.is_simple_callable(
+        obj
+    ):
       obj = obj.__call__
 
     lines, lnum = inspect.findsource(obj)
@@ -653,7 +676,7 @@ def _get_source_definition(obj):
     trimmed = []
     for line in block:
       if line.startswith(prefix):
-        line = line[len(prefix):]
+        line = line[len(prefix) :]
       trimmed.append(line)
 
     # Override the default join to avoid wrapping.
@@ -669,7 +692,8 @@ def _get_source_definition(obj):
     function.body = []
     function.decorator_list = []
     decl = astor.to_source(
-        function, indent_with='', pretty_source=join_lines).strip()
+        function, indent_with='', pretty_source=join_lines
+    ).strip()
     # Strip the trailing `:`
     if decl.endswith(':'):
       decl = decl[:-1]

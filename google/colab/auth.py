@@ -52,6 +52,7 @@ def _is_service_account_key(key_json_text):
 
 class _CredentialType(_enum.Enum):
   """Enum class for selecting the type of credential that is expected."""
+
   NO_CHECK = 0
   USER = 1
   SERVICE_ACCOUNT = 2
@@ -82,6 +83,7 @@ def _check_adc(credential_type=_CredentialType.NO_CHECK):
   transport = _auth_requests.Request()
   # Import here since it transitively brings in google.auth.
   from google.oauth2.service_account import Credentials as _ServiceAccountCredentials  # pylint: disable=g-import-not-at-top
+
   if credential_type == _CredentialType.SERVICE_ACCOUNT:
     # TODO(b/224641665) We should call refresh() on service account credentials
     # as well.
@@ -114,7 +116,8 @@ def _gcloud_login():
       stdin=_subprocess.PIPE,
       stdout=f,
       stderr=_subprocess.STDOUT,
-      universal_newlines=True)
+      universal_newlines=True,
+  )
   try:
     while True:
       _time.sleep(0.2)
@@ -129,7 +132,8 @@ def _gcloud_login():
     # Suppress the --launch-browser deprecation warning.
     # TODO(b/218377323): Remove this.
     prompt = '\n'.join(
-        [line for line in prompt.splitlines() if 'launch-browser' not in line])
+        [line for line in prompt.splitlines() if 'launch-browser' not in line]
+    )
     code = input(prompt + ' ')
     gcloud_process.communicate(code.strip())
   finally:
@@ -141,7 +145,8 @@ def _gcloud_login():
 
 def _get_adc_path():
   dir_path = _os.path.join(
-      _os.environ.get('DATALAB_ROOT', '/'), 'content/.adc/')
+      _os.environ.get('DATALAB_ROOT', '/'), 'content/.adc/'
+  )
   _os.makedirs(dir_path, exist_ok=True)
   return _os.path.join(dir_path, 'adc.json')
 
@@ -149,7 +154,8 @@ def _get_adc_path():
 def _install_adc():
   """Install the gcloud token as the Application Default Credential."""
   gcloud_db_path = _os.path.join(
-      _os.environ.get('DATALAB_ROOT', '/'), 'content/.config/credentials.db')
+      _os.environ.get('DATALAB_ROOT', '/'), 'content/.config/credentials.db'
+  )
   db = _sqlite3.connect(gcloud_db_path)
   c = db.cursor()
   ls = list(c.execute('SELECT * FROM credentials;'))
@@ -163,9 +169,11 @@ def _enable_metadata_server_for_gcloud():
     _subprocess.run(
         'gcloud config unset compute/gce_metadata_read_timeout_sec',
         shell=True,
-        check=True)
+        check=True,
+    )
     gce_cache_path = _os.path.join(
-        _os.environ.get('CLOUDSDK_CONFIG', ''), 'gce')
+        _os.environ.get('CLOUDSDK_CONFIG', ''), 'gce'
+    )
     if _os.path.exists(gce_cache_path):
       _os.remove(gce_cache_path)
 
@@ -181,6 +189,7 @@ def _setup_tpu_auth():
   # If we've got a TPU attached, we want to run a TF operation to provide
   # our new credentials to the TPU for GCS operations.
   import tensorflow as tf  # pylint: disable=g-import-not-at-top
+
   if tf.__version__.startswith('1'):
     colab_tpu_addr = _os.environ.get('COLAB_TPU_ADDR', '')
     with tf.compat.v1.Session('grpc://{}'.format(colab_tpu_addr)) as sess:
@@ -189,8 +198,10 @@ def _setup_tpu_auth():
   else:
     # pytype: skip-file
     tf.config.experimental_connect_to_cluster(
-        tf.distribute.cluster_resolver.TPUClusterResolver())
+        tf.distribute.cluster_resolver.TPUClusterResolver()
+    )
     import tensorflow_gcs_config as _tgc  # pylint: disable=g-import-not-at-top
+
     _tgc.configure_gcs_from_colab_auth()
 
 
@@ -217,8 +228,11 @@ def authenticate_user(clear_output=True):
   """
   use_auth_ephem = _os.environ.get('USE_AUTH_EPHEM', '0') == '1'
   colab_tpu_addr = _os.environ.get('COLAB_TPU_ADDR', '')
-  configure_tpu_auth = ('COLAB_SKIP_AUTOMATIC_TPU_AUTH' not in _os.environ and
-                        colab_tpu_addr and not use_auth_ephem)
+  configure_tpu_auth = (
+      'COLAB_SKIP_AUTOMATIC_TPU_AUTH' not in _os.environ
+      and colab_tpu_addr
+      and not use_auth_ephem
+  )
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
   if _check_adc(_CredentialType.USER):
@@ -230,12 +244,15 @@ def authenticate_user(clear_output=True):
       _message.blocking_request(
           'request_auth',
           request={'authType': 'auth_user_ephemeral'},
-          timeout_sec=None)
+          timeout_sec=None,
+      )
       _enable_metadata_server_for_gcloud()
     else:
       if colab_tpu_addr:
         print(
-            'WARNING: auth.authenticate_user() will eventually stop supporting auth for Tensorflow on TPU devices. See auth.authenticate_service_account() instead.'
+            'WARNING: auth.authenticate_user() will eventually stop supporting'
+            ' auth for Tensorflow on TPU devices. See'
+            ' auth.authenticate_service_account() instead.'
         )
       context_manager = _output.temporary if clear_output else _noop
       with context_manager():
@@ -267,11 +284,13 @@ def _activate_service_account_key(key_content, clear_output):
         gcloud_auth_command,
         universal_newlines=True,
         stderr=_subprocess.STDOUT,
-        check=_CHECK_GCLOUD_AUTH_ERRORS)
+        check=_CHECK_GCLOUD_AUTH_ERRORS,
+    )
   project_id = key_obj.get('project_id', '')
   if not project_id:
     raise _errors.AuthorizationError(
-        'Could not get cloud project id from credentials')
+        'Could not get cloud project id from credentials'
+    )
   with context_manager():
     gcloud_project_command = [
         'gcloud',
@@ -284,7 +303,8 @@ def _activate_service_account_key(key_content, clear_output):
         gcloud_project_command,
         universal_newlines=True,
         stderr=_subprocess.STDOUT,
-        check=_CHECK_GCLOUD_AUTH_ERRORS)
+        check=_CHECK_GCLOUD_AUTH_ERRORS,
+    )
 
 
 def authenticate_service_account(clear_output=True):
@@ -310,13 +330,16 @@ def authenticate_service_account(clear_output=True):
   if _check_adc(_CredentialType.SERVICE_ACCOUNT):
     return
   colab_tpu_addr = _os.environ.get('COLAB_TPU_ADDR', '')
-  configure_tpu_auth = ('COLAB_SKIP_AUTOMATIC_TPU_AUTH' not in _os.environ and
-                        colab_tpu_addr)
+  configure_tpu_auth = (
+      'COLAB_SKIP_AUTOMATIC_TPU_AUTH' not in _os.environ and colab_tpu_addr
+  )
   _os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = _get_adc_path()
   if not _check_adc(_CredentialType.SERVICE_ACCOUNT):
     with _output.temporary():
       print(
-          'Upload the private key for your service account.\n\nSee the guide at https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-console for help.\n\n'
+          'Upload the private key for your service account.\n\nSee the guide at'
+          ' https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-console'
+          ' for help.\n\n'
       )
       adc_path = _get_adc_path()
       # TODO(b/226659795): Offer programmatic option, https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-gcloud
@@ -336,6 +359,7 @@ def authenticate_service_account(clear_output=True):
         raise _errors.AuthorizationError('Failed to fetch user credentials')
   if _check_adc(_CredentialType.SERVICE_ACCOUNT):
     import google.auth as _google_auth  # pylint: disable=g-import-not-at-top
+
     creds, _ = _google_auth.default()
     print('Successfully saved credentials for', creds.service_account_email)
     return

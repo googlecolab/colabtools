@@ -99,9 +99,13 @@ def print_previous_import_warning(output):
     # display a list of packages using the colab-display-data mimetype, which
     # will be printed as a warning + restart button by the Colab frontend.
     _display_mimetype(
-        _COLAB_DATA_MIMETYPE, ({
-            "pip_warning": {
-                "packages": packages,
-            }
-        },),
-        raw=True)
+        _COLAB_DATA_MIMETYPE,
+        (
+            {
+                "pip_warning": {
+                    "packages": packages,
+                }
+            },
+        ),
+        raw=True,
+    )

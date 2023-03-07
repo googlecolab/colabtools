@@ -60,7 +60,8 @@ class _OpenCVImportHook:
       '{0}.imshow() is disabled in Colab, because it causes Jupyter sessions\n'
       'to crash; see https://github.com/jupyter/notebook/issues/3935.\n'
       'As a substitution, consider using\n'
-      '  from google.colab.patches import {0}_imshow\n')
+      '  from google.colab.patches import {0}_imshow\n'
+  )
   env_var = 'ENABLE_CV2_IMSHOW'
 
   def find_module(self, fullname, path=None):
@@ -82,7 +83,8 @@ class _OpenCVImportHook:
             cv_module.imshow,
             message=self.message.format(name),
             env_var=self.env_var,
-            name='{}.imshow'.format(name))
+            name='{}.imshow'.format(name),
+        )
       except:  # pylint: disable=bare-except
         logging.exception('Error disabling %s.imshow().', name)
         os.environ['COLAB_CV2_IMPORT_HOOK_EXCEPTION'] = '1'

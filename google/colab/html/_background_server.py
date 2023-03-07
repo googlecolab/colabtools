@@ -93,7 +93,8 @@ class _BackgroundServer:
     self._port = port or portpicker.pick_unused_port()
 
     self._server = tornado.httpserver.HTTPServer(
-        self._app, idle_connection_timeout=timeout, body_timeout=timeout)
+        self._app, idle_connection_timeout=timeout, body_timeout=timeout
+    )
     self._ioloop = tornado.ioloop.IOLoop()
 
     def start_server(httpd, ioloop, port):
@@ -108,8 +109,9 @@ class _BackgroundServer:
         kwargs={
             'httpd': self._server,
             'ioloop': self._ioloop,
-            'port': self._port
-        })
+            'port': self._port,
+        },
+    )
     started = threading.Event()
     self._ioloop.add_callback(started.set)
     self._server_thread.start()
