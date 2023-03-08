@@ -105,7 +105,10 @@ def _select_first_k_pairs(colnames, k=None):
   Returns:
     (list<(str, str)>) A k-length sequence of column name pairs.
   """
-  return itertools.islice((itertools.pairwise(colnames)), k)
+  # Lazy import to avoid loading on kernel init.
+  import more_itertools  # pylint: disable=g-import-not-at-top
+
+  return itertools.islice(more_itertools.pairwise(colnames), k)
 
 
 def _select_faceted_numeric_cols(numeric_cols, categorical_cols, k=None):
