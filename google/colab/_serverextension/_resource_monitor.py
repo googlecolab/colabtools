@@ -22,6 +22,9 @@ _GPU_EVER_USED = False
 def get_gpu_usage():
   """Reports total and per-kernel GPU memory usage.
 
+  Systems with multiple GPUs are not supported. Usage with a limit of
+  0 is reported when no GPU is detected.
+
   Returns:
     A dict of the form {
       usage: int,
@@ -180,7 +183,6 @@ def get_resource_stats(kernel_manager, disk_path=None):
       }
   """
   ram = get_ram_usage(kernel_manager)
-  gpu = get_gpu_usage()
   disk = get_disk_usage(disk_path)
 
   stats = {
@@ -197,12 +199,17 @@ def get_resource_stats(kernel_manager, disk_path=None):
               }
           }
       ],
-      'gpus': [{
-          'memoryUsedBytes': gpu['usage'],
-          'memoryTotalBytes': gpu['limit'],
-          'everUsed': gpu['ever_used'],
-      }],
+      'gpus': [],
   }
+
+  gpu = get_gpu_usage()
+  if gpu['limit'] > 0:
+    stats['gpus'].append({
+        'memoryUsedBytes': gpu['usage'],
+        'memoryTotalBytes': gpu['limit'],
+        'everUsed': gpu['ever_used'],
+    })
+
   if 'kernels' in ram:
     stats['memory']['kernels'] = [
         {'uuid': uuid, 'usedBytes': usage}
