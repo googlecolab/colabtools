@@ -323,5 +323,14 @@ class Shell(zmqshell.ZMQInteractiveShell):
       )
     return result
 
+  def run_cell_magic(self, magic_name, line, cell):
+    # We diverge from Jupyter behavior here: we want to allow cell magics with a
+    # nonempty line and no cell to execute, to unblock users executing a cell
+    # like:
+    # %%mymagic --help
+    if line and not cell:
+      cell = ' '
+    return super().run_cell_magic(magic_name, line, cell)
+
 
 interactiveshell.InteractiveShellABC.register(Shell)
