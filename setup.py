@@ -25,7 +25,7 @@ DEPENDENCIES = (
     'notebook~=6.3.0',
     'pandas>=1.1.0',
     'portpicker~=1.3.1',
-    'requests>=2.25.1',
+    'requests>=2.27.0',
     'tornado~=6.2',
 )
 
