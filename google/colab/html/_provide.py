@@ -40,6 +40,7 @@ import uuid
 import weakref
 
 from google.colab.html import _background_server
+import portpicker
 import tornado.web
 
 
@@ -137,6 +138,17 @@ class _ResourceHandler(tornado.web.RequestHandler):
     resource.get(self)
 
 
+def _pick_port(port_options):
+  for port in port_options:
+    if portpicker.is_port_free(port):
+      return port
+  msg = 'No free ports found from the given options: ' + ', '.join(
+      map(str, port_options)
+  )
+
+  raise ValueError(msg)
+
+
 class _Provider(_background_server._BackgroundServer):  # pylint: disable=protected-access
   """Background server which can provide a set of resources."""
 
@@ -144,6 +156,7 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
     """Initialize the server with a ResourceHandler script."""
     resources = weakref.WeakValueDictionary()
     self._resources = resources
+    self.port_options = []
 
     app = tornado.web.Application([
         (r'.*', _ResourceHandler, dict(resources=self._resources)),
@@ -218,7 +231,10 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
 
     self._resources[resource.guid] = resource
     if self._server_thread is None:
-      self.start()
+      port = None
+      if self.port_options:
+        port = _pick_port(self.port_options)
+      self.start(port)
     return resource
 
 
@@ -226,3 +242,7 @@ class _Provider(_background_server._BackgroundServer):  # pylint: disable=protec
 _global_provider = _Provider()
 
 create = _global_provider.create
+
+
+def set_port_options(p):
+  _global_provider.port_options = p
