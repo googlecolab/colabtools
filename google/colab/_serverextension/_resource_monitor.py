@@ -4,6 +4,7 @@ Note that this file is run under both py2 and py3 in tests.
 """
 
 import csv
+import dataclasses
 import os
 import subprocess
 
@@ -19,6 +20,8 @@ except ImportError:
 _GPU_EVER_USED = False
 
 
+# TODO(b/274790007): Remove once call sites have been updated to use
+# get_gpu_stats().
 def get_gpu_usage():
   """Reports total and per-kernel GPU memory usage.
 
@@ -67,6 +70,85 @@ def get_gpu_usage():
     _GPU_EVER_USED = True
 
   return {'usage': usage, 'limit': limit, 'ever_used': _GPU_EVER_USED}
+
+
+@dataclasses.dataclass
+class GpuInfo:
+  # Use camel case out of convenience as it allows us to use asdict() to
+  # directly return the resource stats representation below.
+  # pylint: disable=invalid-name
+  name: str
+  memoryUsedBytes: int
+  memoryTotalBytes: int
+  gpuUtilization: float
+  memoryUtilization: float
+  everUsed: bool
+  # pylint: enable=invalid-name
+
+
+def get_gpu_stats():
+  """Reports stats for each GPU present in the system.
+
+  Returns:
+    A list of GpuInfo.
+  """
+  global _GPU_EVER_USED
+
+  usages = []
+  try:
+    ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
+        '/usr/bin/timeout',
+        '-sKILL',
+        '1s',
+        'nvidia-smi',
+        # Note that the `nvidia-smi`'s sampling period of the utilization
+        # metrics is sub-second. Sampling this function at a larger period may
+        # miss periods of activity or inactivity.
+        # The index is included to ensure a stable ordering in returned stats.
+        '--query-gpu=index,name,memory.used,memory.total,utilization.gpu,utilization.memory',
+        '--format=csv,nounits,noheader',
+    ]).decode('utf-8')
+  except (OSError, IOError, subprocess.CalledProcessError):
+    # If timeout or nvidia-smi don't exist or the call errors, don't report on
+    # any GPUs.
+    # TODO(b/139691280): Add internal GPU memory monitoring. Install nvidia-smi.
+    pass
+  else:
+    try:
+      lines = ns.splitlines()
+      lines.sort(key=lambda l: int(l.split(',', 1)[0]))
+      for row in csv.reader(lines):
+        memory_used = int(row[2]) * 1024 * 1024
+        _GPU_EVER_USED |= memory_used > 0
+        usages.append(
+            GpuInfo(
+                name=row[1].strip(),
+                memoryUsedBytes=memory_used,
+                memoryTotalBytes=int(row[3]) * 1024 * 1024,
+                gpuUtilization=int(row[4]) / 100,
+                memoryUtilization=int(row[5]) / 100,
+                everUsed=memory_used > 0,
+            )
+        )
+    except:  # pylint: disable=bare-except
+      # Certain versions of nvidia-smi may not return the expected values. In
+      # this case we don't report on any GPUs, even if we succeeded parsing for
+      # some.
+      usages = []
+
+  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
+    usages = [
+        GpuInfo(
+            name='Tesla T4',
+            memoryUsedBytes=123,
+            memoryTotalBytes=456,
+            gpuUtilization=0.1,
+            memoryUtilization=0.2,
+            everUsed=True,
+        )
+    ]
+
+  return usages
 
 
 def get_ram_usage(kernel_manager):
@@ -199,16 +281,8 @@ def get_resource_stats(kernel_manager, disk_path=None):
               }
           }
       ],
-      'gpus': [],
+      'gpus': [dataclasses.asdict(gpu) for gpu in get_gpu_stats()],
   }
-
-  gpu = get_gpu_usage()
-  if gpu['limit'] > 0:
-    stats['gpus'].append({
-        'memoryUsedBytes': gpu['usage'],
-        'memoryTotalBytes': gpu['limit'],
-        'everUsed': gpu['ever_used'],
-    })
 
   if 'kernels' in ram:
     stats['memory']['kernels'] = [
