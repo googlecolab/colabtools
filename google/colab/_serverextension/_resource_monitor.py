@@ -9,6 +9,7 @@ import os
 import subprocess
 
 from google.colab import _serverextension
+from google.colab import runtime
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -93,6 +94,20 @@ def get_gpu_stats():
     A list of GpuInfo.
   """
   global _GPU_EVER_USED
+  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
+    return [
+        GpuInfo(
+            name='Tesla T4',
+            memoryUsedBytes=123,
+            memoryTotalBytes=456,
+            gpuUtilization=0.1,
+            memoryUtilization=0.2,
+            everUsed=True,
+        )
+    ]
+
+  if not runtime._IS_EXTERNAL_COLAB:  # pylint: disable=protected-access
+    return []
 
   usages = []
   try:
@@ -135,18 +150,6 @@ def get_gpu_stats():
       # this case we don't report on any GPUs, even if we succeeded parsing for
       # some.
       usages = []
-
-  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
-    usages = [
-        GpuInfo(
-            name='Tesla T4',
-            memoryUsedBytes=123,
-            memoryTotalBytes=456,
-            gpuUtilization=0.1,
-            memoryUtilization=0.2,
-            everUsed=True,
-        )
-    ]
 
   return usages
 
