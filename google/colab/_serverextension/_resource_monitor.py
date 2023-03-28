@@ -20,58 +20,6 @@ except ImportError:
 _GPU_EVER_USED = False
 
 
-# TODO(b/274790007): Remove once call sites have been updated to use
-# get_gpu_stats().
-def get_gpu_usage():
-  """Reports total and per-kernel GPU memory usage.
-
-  Systems with multiple GPUs are not supported. Usage with a limit of
-  0 is reported when no GPU is detected.
-
-  Returns:
-    A dict of the form {
-      usage: int,
-      limit: int,
-      ever_used : bool,
-    }
-  """
-  global _GPU_EVER_USED
-
-  usage = 0
-  limit = 0
-  try:
-    ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
-        '/usr/bin/timeout',
-        '-sKILL',
-        '1s',
-        'nvidia-smi',
-        '--query-gpu=memory.used,memory.total',
-        '--format=csv,nounits,noheader',
-    ]).decode('utf-8')
-  except (OSError, IOError, subprocess.CalledProcessError):
-    # If timeout or nvidia-smi don't exist or the call errors, return zero
-    # values for usage and limit.
-    # TODO(b/139691280): Add internal GPU memory monitoring. Install nvidia-smi.
-    pass
-  else:
-    r = csv.reader(ns.splitlines() or [''])
-    row = next(r)
-    try:
-      usage = int(row[0]) * 1024 * 1024
-      limit = int(row[1]) * 1024 * 1024
-    except:  # pylint: disable=bare-except
-      # Certain versions of nvidia-smi may not return the expected values.
-      pass
-
-  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
-    usage, limit = 123, 456
-
-  if usage:
-    _GPU_EVER_USED = True
-
-  return {'usage': usage, 'limit': limit, 'ever_used': _GPU_EVER_USED}
-
-
 @dataclasses.dataclass
 class GpuInfo:
   # Use camel case out of convenience as it allows us to use asdict() to
