@@ -1,7 +1,5 @@
 """Library of charts for use by quickchart."""
 
-import itertools
-
 import altair as alt
 
 _COLORMAP = 'dark2'
@@ -275,7 +273,11 @@ def _chunked(seq, chunk_size):
   Yields:
     (sequence<sequence<T>>) A sequence of chunks.
   """
-  for start, end in itertools.pairwise(
+  # Lazy import to avoid loading on kernel init.
+  # TODO(b/275732775): switch back to itertools.pairwise when possible.
+  import more_itertools  # pylint: disable=g-import-not-at-top
+
+  for start, end in more_itertools.pairwise(
       list(range(0, len(seq), chunk_size)) + [len(seq)]
   ):
     yield seq[start:end]
