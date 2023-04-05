@@ -6,6 +6,7 @@ Note that this file is run under both py2 and py3 in tests.
 import csv
 import dataclasses
 import os
+import shutil
 import subprocess
 
 from google.colab import _serverextension
@@ -15,6 +16,8 @@ try:
   import psutil
 except ImportError:
   psutil = None
+
+_NVIDIA_SMI_PRESENT = None
 
 # Track whether user has used the GPU in the current session.
 _GPU_EVER_USED = False
@@ -40,9 +43,27 @@ def get_gpu_stats():
   Returns:
     A list of GpuInfo.
   """
+  global _NVIDIA_SMI_PRESENT
   global _GPU_EVER_USED
 
-  usages = []
+  if _NVIDIA_SMI_PRESENT is None:
+    _NVIDIA_SMI_PRESENT = shutil.which('nvidia-smi') is not None
+
+  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
+    return [
+        GpuInfo(
+            name='Tesla T4',
+            memoryUsedBytes=123,
+            memoryTotalBytes=456,
+            gpuUtilization=0.1,
+            memoryUtilization=0.2,
+            everUsed=True,
+        )
+    ]
+
+  if not _NVIDIA_SMI_PRESENT:
+    return []
+
   try:
     ns = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
         '/usr/bin/timeout',
@@ -60,43 +81,31 @@ def get_gpu_stats():
     # If timeout or nvidia-smi don't exist or the call errors, don't report on
     # any GPUs.
     # TODO(b/139691280): Add internal GPU memory monitoring. Install nvidia-smi.
-    pass
-  else:
-    try:
-      lines = ns.splitlines()
-      lines.sort(key=lambda l: int(l.split(',', 1)[0]))
-      for row in csv.reader(lines):
-        memory_used = int(row[2]) * 1024 * 1024
-        _GPU_EVER_USED |= memory_used > 0
-        usages.append(
-            GpuInfo(
-                name=row[1].strip(),
-                memoryUsedBytes=memory_used,
-                memoryTotalBytes=int(row[3]) * 1024 * 1024,
-                gpuUtilization=int(row[4]) / 100,
-                memoryUtilization=int(row[5]) / 100,
-                everUsed=memory_used > 0,
-            )
-        )
-    except:  # pylint: disable=bare-except
-      # Certain versions of nvidia-smi may not return the expected values. In
-      # this case we don't report on any GPUs, even if we succeeded parsing for
-      # some.
-      usages = []
+    return []
 
-  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
-    usages = [
-        GpuInfo(
-            name='Tesla T4',
-            memoryUsedBytes=123,
-            memoryTotalBytes=456,
-            gpuUtilization=0.1,
-            memoryUtilization=0.2,
-            everUsed=True,
-        )
-    ]
-
-  return usages
+  try:
+    usages = []
+    lines = ns.splitlines()
+    lines.sort(key=lambda l: int(l.split(',', 1)[0]))
+    for row in csv.reader(lines):
+      memory_used = int(row[2]) * 1024 * 1024
+      _GPU_EVER_USED |= memory_used > 0
+      usages.append(
+          GpuInfo(
+              name=row[1].strip(),
+              memoryUsedBytes=memory_used,
+              memoryTotalBytes=int(row[3]) * 1024 * 1024,
+              gpuUtilization=int(row[4]) / 100,
+              memoryUtilization=int(row[5]) / 100,
+              everUsed=memory_used > 0,
+          )
+      )
+    return usages
+  except:  # pylint: disable=bare-except
+    # Certain versions of nvidia-smi may not return the expected values. In
+    # this case we don't report on any GPUs, even if we succeeded parsing for
+    # some.
+    return []
 
 
 def get_ram_usage(kernel_manager):
