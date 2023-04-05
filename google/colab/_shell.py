@@ -26,11 +26,13 @@ from google.colab import _system_commands
 from ipykernel import jsonutil
 from ipykernel import zmqshell
 from IPython.core import alias
+from IPython.core import compilerop
 from IPython.core import inputsplitter
 from IPython.core import interactiveshell
 from IPython.core import oinspect
 from IPython.core.events import available_events
 from IPython.core.events import EventManager
+from IPython.utils import ipstruct
 from IPython.utils import PyColorize
 from ipython_genutils import py3compat
 
@@ -51,6 +53,16 @@ def _show_pip_warning():
 
 class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
+
+  def init_instance_attrs(self):
+    self.more = False
+    self.compile = compilerop.CachingCompiler()
+    self.meta = ipstruct.Struct()
+    self.tempfiles = []
+    self.tempdirs = []
+    self.starting_dir = os.getcwd()
+    self.indent_current_nsp = 0
+    self._post_execute = {}
 
   def init_events(self):
     self.events = EventManager(self, available_events)

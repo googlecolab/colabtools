@@ -128,8 +128,17 @@ def get_ram_usage(kernel_manager):
     # is better performed in the frontend presentation layer. 2) was only a
     # requirement for the split (KMC/K) container, a feature that was dropped
     # (cl/470476143).
+    def get_pid(kernel):
+      # TODO(b/264409633): Eliminate this method after migration to
+      # jupyter-client 7.x is complete.
+      try:
+        pid = kernel.provisioner.pid
+      except:  # pylint: disable=bare-except
+        pid = kernel.kernel.pid
+      return str(pid)
+
     pids_to_kernel_ids = {
-        str(kernel_manager.get_kernel(kernel_id).kernel.pid): kernel_id
+        get_pid(kernel_manager.get_kernel(kernel_id)): kernel_id
         for kernel_id in kernel_manager.list_kernel_ids()
     }
 
