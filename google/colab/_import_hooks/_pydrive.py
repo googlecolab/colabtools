@@ -13,7 +13,7 @@
 # limitations under the License.
 """Import hook to allow credentials provided by Colab."""
 
-import imp
+import imp  # pylint: disable=deprecated-module
 import logging
 import os
 import sys

@@ -16,10 +16,9 @@
 import re
 import textwrap
 
-from IPython.utils import coloransi
 from google.colab import _ipython as ipython
 from google.colab._import_hooks._cv2 import DisabledFunctionError
-
+from IPython.utils import coloransi
 
 _GREEN = coloransi.TermColors.Green
 _RED = coloransi.TermColors.Red
@@ -159,18 +158,14 @@ class _CustomErrorHandlers:
       }
       return msg, details
 
-    msg = textwrap.dedent(
-        """\
+    msg = textwrap.dedent("""\
         {sep}{green}
         NOTE: If your import is failing due to a missing package, you can
         manually install dependencies using either !pip or !apt.
 
         To view examples of installing some common dependencies, click the
         "Open Examples" button below.
-        {sep}{normal}\n""".format(
-            sep=_SEP, green=_GREEN, normal=_NORMAL
-        )
-    )
+        {sep}{normal}\n""".format(sep=_SEP, green=_GREEN, normal=_NORMAL))
 
     details = {
         'actions': [

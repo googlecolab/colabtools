@@ -20,11 +20,11 @@ import html
 import json
 import string
 import uuid
-import IPython
 
 from google.colab import output
 from google.colab.html import _provide
 from google.colab.html import _resources
+import IPython
 
 _MSG_CHUNK_SIZE = 1 * 1024 * 1024
 
@@ -84,17 +84,13 @@ def _call_js_function(js_function, *args):
         ),
         ignore_result=True,
     )
-  return output.eval_js(
-      """
+  return output.eval_js("""
     (function() {{
       const msg = JSON.parse(window["{name}"]);
       delete window["{name}"];
       return ({js_function})(...msg);
     }})();
-  """.format(
-          name=name, js_function=js_function
-      )
-  )
+  """.format(name=name, js_function=js_function))
 
 
 def _proxy(guid, msg):
@@ -126,8 +122,7 @@ def _utils_url():
 
 # note: no whitespace outside the script tag, as this can affect the way the
 # HTML renders.
-_element_template = string.Template(
-    """\
+_element_template = string.Template("""\
 $deps<$tag id="$guid">$children</$tag><script>
   (function() {
     async function init() {
@@ -148,8 +143,7 @@ $deps<$tag id="$guid">$children</$tag><script>
     }
     window.google.colab.output.pauseOutputUntil(init());
   })();
-</script>"""
-)
+</script>""")
 
 
 class Element:

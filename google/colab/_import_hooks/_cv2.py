@@ -14,7 +14,7 @@
 """Import hook to disable cv.imshow() and cv2.imshow() within Colab."""
 
 import functools
-import imp
+import imp  # pylint: disable=deprecated-module
 import logging
 import os
 import sys

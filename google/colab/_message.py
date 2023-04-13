@@ -15,10 +15,9 @@
 
 import time
 
-import zmq
-
 from google.colab import _ipython as ipython
 from google.colab import errors
+import zmq
 
 _NOT_READY = object()
 

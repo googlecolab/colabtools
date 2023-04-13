@@ -26,11 +26,11 @@ import sys
 import termios
 import time
 
-from IPython.core import magic_arguments
-from IPython.utils import text
 from google.colab import _ipython
 from google.colab import _message
 from google.colab.output import _tags
+from IPython.core import magic_arguments
+from IPython.utils import text
 
 # Linux read(2) limits to 0x7ffff000 so stay under that for clarity.
 _PTY_READ_MAX_BYTES_FOR_TEST = 2**20  # 1MB

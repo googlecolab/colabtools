@@ -138,8 +138,8 @@ def _mount(
   already_mounted = _os.path.isdir(_os.path.join(mountpoint, 'My Drive'))
   if not force_remount and already_mounted:
     print(
-        'Drive already mounted at {mnt}; to attempt to forcibly remount, '
-        'call drive.mount("{mnt}", force_remount=True).'.format(mnt=mountpoint)
+        f'Drive already mounted at {mountpoint}; to attempt to forcibly '
+        f'remount, call drive.mount("{mountpoint}", force_remount=True).'
     )
     return
 
@@ -155,7 +155,7 @@ def _mount(
     _os.makedirs(config_dir)
   except OSError:
     if not _os.path.isdir(config_dir):
-      raise ValueError('{} must be a directory if present'.format(config_dir))
+      raise ValueError(f'{config_dir} must be a directory if present')  # pylint: disable=raise-missing-from
 
   # Launch an intermediate bash to manage DriveFS' I/O (b/141747058#comment6).
   prompt = 'root@{}-{}: '.format(_socket.gethostname(), _uuid.uuid4().hex)
@@ -171,20 +171,18 @@ def _mount(
       logfile=logfile,
       env={'HOME': home, 'FUSE_DEV_NAME': dev, 'PATH': path},
   )
-  d.sendline('unset HISTFILE; export PS1="{}"'.format(prompt))
+  d.sendline(f'unset HISTFILE; export PS1="{prompt}"')
   d.expect(prompt)  # The new prompt.
   drive_dir = _os.path.join(root_dir, 'opt/google/drive')
   # Robustify to previously-running copies of drive. Don't only [pkill -9]
   # because that leaves enough cruft behind in the mount table that future
   # operations fail with "Transport endpoint is not connected".
   d.sendline(
-      'umount -f {mnt} || umount {mnt}; pkill -9 -x drive'.format(
-          mnt=mountpoint
-      )
+      f'umount -f {mountpoint} || umount {mountpoint}; pkill -9 -x drive'
   )
   # Wait for above to be received, using the next prompt.
   d.expect(prompt)
-  d.sendline('pkill -9 -f {d}/directoryprefetcher_binary'.format(d=drive_dir))
+  d.sendline(f'pkill -9 -f {drive_dir}/directoryprefetcher_binary')
   d.expect(prompt)
   # Only check the mountpoint after potentially unmounting/pkill'ing above.
   try:
@@ -216,9 +214,7 @@ def _mount(
   )
   drive_exited = 'drive EXITED'
   metadata_auth_arg = (
-      '--metadata_server_auth_uri={metadata_server}/computeMetadata/v1 '.format(
-          metadata_server=metadata_server_addr
-      )
+      f'--metadata_server_auth_uri={metadata_server_addr}/computeMetadata/v1 '
   )
 
   d.sendline(
@@ -274,7 +270,7 @@ def _mount(
       d.kill(_signal.SIGKILL)
       extra_reason = ''
       if 0 == _subprocess.call(
-          'grep -q "{}" "{}"'.format(timeout_pattern, dfs_log), shell=True
+          f'grep -q "{timeout_pattern}" "{dfs_log}"', shell=True
       ):
         extra_reason = (
             ': timeout during initial read of root folder; for more info: '
@@ -317,7 +313,7 @@ def _mount(
   d.sendline('exit')
   assert d.wait() == 0
   _output.clear(wait=True, output_tags='dfs-auth-dance')
-  print('Mounted at {}'.format(mountpoint))
+  print(f'Mounted at {mountpoint}')
 
 
 mount._DEBUG = False  # pylint:disable=protected-access

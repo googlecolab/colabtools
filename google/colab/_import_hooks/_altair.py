@@ -13,7 +13,7 @@
 # limitations under the License.
 """Import hook for ensuring that Altair's Colab renderer is registered."""
 
-import imp
+import imp  # pylint: disable=deprecated-module
 import logging
 import os
 import sys
