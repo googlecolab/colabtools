@@ -14,6 +14,25 @@ _DATETIME_DTYPES = (np.dtype('datetime64[ns]'),)  # a.k.a. "<M8[ns]"
 _EXPECTED_DTYPES = _CATEGORICAL_DTYPES + _DATETIME_DTYPES
 _CATEGORICAL_LARGE_SIZE_THRESHOLD = 8  # Facet-friendly size limit.
 
+_DATAFRAME_REGISTRY = None
+
+
+def get_registered_df(df_varname):
+  """Gets a dataframe that has been previously registered.
+
+  Args:
+    df_varname: (str) A string-based key denoting the dataframe.
+
+  Returns:
+    (pd.DataFrame) A dataframe.
+
+  Raises:
+    KeyError: when the specified dataframe has not been registered.
+  """
+  if _DATAFRAME_REGISTRY is None:
+    raise KeyError(f'Dataframe "{df_varname}" is not registered')
+  return _DATAFRAME_REGISTRY[df_varname]
+
 
 def find_charts(
     df, max_chart_instances=None, max_rows=_MAX_ROWS, random_state=0
@@ -34,63 +53,68 @@ def find_charts(
     (iterable<alt.Chart>) A sequence of chart objects.
   """
   # Lazy import to avoid loading altair and transitive deps on kernel init.
-  from google.colab import _quickchart_lib  # pylint: disable=g-import-not-at-top
+  from google.colab import _quickchart_helpers  # pylint: disable=g-import-not-at-top
+
+  global _DATAFRAME_REGISTRY
+  if _DATAFRAME_REGISTRY is None:
+    _DATAFRAME_REGISTRY = _quickchart_helpers.DataframeRegistry()
 
   if len(df) > max_rows:
     df = df.sample(n=max_rows, random_state=random_state).sort_index()
   dtype_groups = _classify_dtypes(df)
   numeric_cols = dtype_groups['numeric']
   categorical_cols = dtype_groups['categorical']
-  charts = []
+  chart_sections = []
 
   if numeric_cols:
-    charts += [
-        _quickchart_lib.histograms(
-            df, numeric_cols[:max_chart_instances], title='Distributions'
+    selected_numeric_cols = numeric_cols[:max_chart_instances]
+    chart_sections += [
+        _quickchart_helpers.histograms_section(
+            df, selected_numeric_cols, _DATAFRAME_REGISTRY
         ),
-        _quickchart_lib.value_plots(
-            df, numeric_cols[:max_chart_instances], title='Values'
-        ),
-    ]
-  if categorical_cols:
-    charts += [
-        _quickchart_lib.categorical_histograms(
-            df,
-            categorical_cols[:max_chart_instances],
-            title='Categorical distributions',
+        _quickchart_helpers.value_plots_section(
+            df, selected_numeric_cols, _DATAFRAME_REGISTRY
         ),
     ]
 
-  if len(numeric_cols) > 2:
-    charts += [
-        _quickchart_lib.linked_scatter_plots(
+  if categorical_cols:
+    selected_categorical_cols = categorical_cols[:max_chart_instances]
+    chart_sections += [
+        _quickchart_helpers.categorical_histograms_section(
+            df, selected_categorical_cols, _DATAFRAME_REGISTRY
+        ),
+    ]
+
+  if len(numeric_cols) >= 2:
+    chart_sections += [
+        _quickchart_helpers.linked_scatter_section(
             df,
             _select_first_k_pairs(numeric_cols, k=max_chart_instances),
-            title='2-d distributions',
-        )
+            _DATAFRAME_REGISTRY,
+        ),
     ]
 
-  if len(categorical_cols) > 2:
-    charts += [
-        _quickchart_lib.heatmaps(
+  if len(categorical_cols) >= 2:
+    chart_sections += [
+        _quickchart_helpers.heatmaps_section(
             df,
             _select_first_k_pairs(categorical_cols, k=max_chart_instances),
-            title='Heatmaps',
-        )
+            _DATAFRAME_REGISTRY,
+        ),
     ]
 
   if categorical_cols and numeric_cols:
-    charts += [
-        _quickchart_lib.swarm_plots(
+    chart_sections += [
+        _quickchart_helpers.swarm_plots_section(
             df,
             _select_faceted_numeric_cols(
                 numeric_cols, categorical_cols, k=max_chart_instances
             ),
-            title='Swarm plots',
-        )
+            _DATAFRAME_REGISTRY,
+        ),
     ]
 
-  return charts
+  return chart_sections
 
 
 def _select_first_k_pairs(colnames, k=None):
@@ -108,7 +132,6 @@ def _select_first_k_pairs(colnames, k=None):
   # Lazy import to avoid loading on kernel init.
   # TODO(b/275732775): switch back to itertools.pairwise when possible.
   import more_itertools  # pylint: disable=g-import-not-at-top
-
   return itertools.islice(more_itertools.pairwise(colnames), k)
 
 
