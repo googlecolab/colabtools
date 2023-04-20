@@ -2,6 +2,7 @@
 
 import inspect
 import textwrap
+import uuid as _uuid
 
 from google.colab import _quickchart_lib
 import IPython.display
@@ -57,7 +58,7 @@ class SectionTitle:
     IPython.display.display(self)
 
   def _repr_html_(self):
-    return '<h4>{title}</h4>'.format(title=self.title)
+    return f'<h4 class="colab-quickchart-section-title">{self.title}</h4>'
 
 
 class DataframeRegistry:
@@ -99,10 +100,16 @@ class ChartWithCode:
     self._args = args
     self._kwargs = kwargs
 
+    self._chart_id = f'chart-{str(_uuid.uuid4())}'
     self._chart = plot_func(df, *args, **kwargs)
 
+  @property
+  def chart_id(self):
+    return self._chart_id
+
   def display(self):
-    self._chart.display()
+    """Displays the chart within a notebook context."""
+    IPython.display.display(self)
 
   def get_code(self):
     """Gets the code and associated dependencies + context for a given chart."""
@@ -129,6 +136,41 @@ class ChartWithCode:
     chart_src += '\n'
     chart_src += plot_invocation
     return chart_src
+
+  def _repr_html_(self):
+    """Gets the HTML representation of the chart."""
+
+    chart_html = self._chart._repr_mimebundle_()['text/html']  # pylint:disable = protected-access
+    script_start = chart_html.find('<script')
+    return f"""\
+      <div class="colab-quickchart-chart-with-code" id="{self._chart_id}">
+        {chart_html[:script_start]}
+      </div>
+      {chart_html[script_start:]}
+      <script type="text/javascript">
+        (() => {{
+          const chartElement = document.getElementById("{self._chart_id}");
+          async function getCodeForChartHandler(event) {{
+            const chartCodeResponse =  await google.colab.kernel.invokeFunction(
+                'getCodeForChart', ["{self._chart_id}"], {{}});
+            const responseJson = chartCodeResponse.data['application/json'];
+            await google.colab.notebook.addCell(responseJson.code, 'code');
+          }}
+          chartElement.onclick = getCodeForChartHandler;
+        }})();
+      </script>
+      <style>
+        .colab-quickchart-chart-with-code  {{
+            display: block;
+            float: left;
+            border: 1px solid transparent;
+        }}
+
+        .colab-quickchart-chart-with-code:hover {{
+            cursor: pointer;
+            border: 1px solid #aaa;
+        }}
+      </style>"""
 
   def __repr__(self):
     return self.get_code()

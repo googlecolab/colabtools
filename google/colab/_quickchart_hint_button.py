@@ -13,11 +13,17 @@
 # limitations under the License.
 """Formatter used to display a data table conversion button next to dataframes."""
 
+import logging
+import uuid as _uuid
+import weakref as _weakref
+
 from google.colab import _interactive_table_hint_button
 from google.colab import _quickchart
 from google.colab import output
 import IPython as _IPython
 
+
+_output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
 
 _ICON_SVG = """
@@ -59,8 +65,54 @@ _HINT_BUTTON_CSS = """
       filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
       fill: #FFFFFF;
     }
+
+    .colab-quickchart-section-title {
+        clear: both;
+    }
   </style>
 """
+
+
+class DataframeCache(object):
+  """Cache of dataframes that may be requested for output visualization.
+
+  Purposely uses weakref to allow memory to be freed for dataframes which are no
+  longer referenced elsewhere, rather than accumulating all dataframes seen so
+  far.
+  """
+
+  def __init__(self):
+    """Constructor."""
+    # Cache of non-interactive dfs that still have live references and could be
+    # printed as interactive dfs.
+    self._noninteractive_df_refs = _weakref.WeakValueDictionary()
+    # Single entry cache that stores a shallow copy of the last printed df.
+    self._last_noninteractive_df = {}
+
+  def __getitem__(self, key):
+    """Gets a dataframe by the given key if it still exists."""
+    if key in self._last_noninteractive_df:
+      return self._last_noninteractive_df.pop(key)
+    elif key in self._noninteractive_df_refs:
+      return self._noninteractive_df_refs.pop(key)
+    raise KeyError('Dataframe key "%s" was not found' % key)
+
+  def __setitem__(self, key, df):
+    """Adds the given dataframe to the cache."""
+    self._noninteractive_df_refs[key] = df
+
+    # Ensure our last value cache only contains one item.
+    self._last_noninteractive_df.clear()
+    self._last_noninteractive_df[key] = df.copy(deep=False)
+
+  def keys(self):
+    return list(self._noninteractive_df_refs.keys()) + list(
+        self._last_noninteractive_df.keys()
+    )
+
+
+_df_cache = DataframeCache()
+_chart_cache = {}
 
 
 def generate_charts(df_key):
@@ -69,28 +121,43 @@ def generate_charts(df_key):
   Args:
     df_key: (str) The dataframe key (element id).
   """
-  # pylint: disable=protected-access
-  df = _interactive_table_hint_button._get_dataframe(df_key)
-  if df is None:
+  try:
+    df = _df_cache[df_key]
+  except KeyError:
+    print(
+        'Error: Runtime no longer has a reference to this dataframe, please'
+        ' re-run this cell and try again.'
+    )
     return
-  for chart in _quickchart.find_charts(
+
+  for chart_section in _quickchart.find_charts(
       df, max_chart_instances=_MAX_CHART_INSTANCES
   ):
-    chart.display()
+    for chart in chart_section.charts:
+      _chart_cache[chart.chart_id] = chart
+    chart_section.display()
 
 
-_output_callbacks = {}
+def _get_code_for_chart(chart_key):
+  if chart_key in _chart_cache:
+    chart_code = _chart_cache[chart_key].get_code()
+    return _IPython.display.JSON(dict(code=chart_code))
+  else:
+    logging.error('Did not find quickchart key %s in chart cache', chart_key)
+    return f'Could not find code for chart {chart_key}'
 
 
-def _df_formatter_with_hint_buttons(dataframe):
+output.register_callback('getCodeForChart', _get_code_for_chart)
+
+
+def _df_formatter_with_hint_buttons(df):
   """Alternate df formatter with buttons for interactive and quickchart."""
   # pylint: disable=protected-access
+  df_key = 'df-' + str(_uuid.uuid4())
+  _df_cache[df_key] = df
   interactive_html = (
-      _interactive_table_hint_button._df_formatter_with_interactive_hint(
-          dataframe
-      )
+      _interactive_table_hint_button._df_formatter_with_interactive_hint(df)
   )
-  key = _interactive_table_hint_button._get_last_dataframe_key()
 
   callback_name = 'generateCharts'
   if callback_name not in _output_callbacks:
@@ -98,7 +165,7 @@ def _df_formatter_with_hint_buttons(dataframe):
         callback_name, generate_charts
     )
 
-  quickchart_html = _get_html(key)
+  quickchart_html = _get_html(df_key)
   style_index = interactive_html.find('<style>')
   return (
       interactive_html[:style_index]
@@ -109,12 +176,14 @@ def _df_formatter_with_hint_buttons(dataframe):
 
 def _get_html(key):
   return """
-    <button class="colab-df-quickchart" onclick="quickchart('{key}')"
-            title="Generate charts."
-            style="display:none;">
-      {icon}
-    </button>
-   {css}
+    <div id="{key}">
+      <button class="colab-df-quickchart" onclick="quickchart('{key}')"
+              title="Generate charts."
+              style="display:none;">
+        {icon}
+      </button>
+    </div>
+    {css}
     <script>
       const quickchartButtonEl =
         document.querySelector('#{key} button.colab-df-quickchart');
@@ -124,9 +193,9 @@ def _get_html(key):
       async function quickchart(key) {{
         const containerElement = document.querySelector('#{key}');
         const charts = await google.colab.kernel.invokeFunction(
-            'generateCharts', [key], {{}})
+            'generateCharts', [key], {{}});
       }}
-    </script>    
+    </script>
   """.format(
       css=_HINT_BUTTON_CSS,
       icon=_ICON_SVG,

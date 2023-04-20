@@ -50,7 +50,7 @@ def find_charts(
       exceed the `max_rows` threshold.
 
   Returns:
-    (iterable<alt.Chart>) A sequence of chart objects.
+    (iterable<ChartSection>) A sequence of chart sections.
   """
   # Lazy import to avoid loading altair and transitive deps on kernel init.
   from google.colab import _quickchart_helpers  # pylint: disable=g-import-not-at-top
