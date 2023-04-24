@@ -120,12 +120,10 @@ def get_ram_usage(kernel_manager):
     # is better performed in the frontend presentation layer. 2) was only a
     # requirement for the split (KMC/K) container, a feature that was dropped
     # (cl/470476143).
-    pids_to_kernel_ids = dict(
-        [
-            (str(kernel_manager.get_kernel(kernel_id).kernel.pid), kernel_id)
-            for kernel_id in kernel_manager.list_kernel_ids()
-        ]
-    )
+    pids_to_kernel_ids = {
+        str(kernel_manager.get_kernel(kernel_id).kernel.pid): kernel_id
+        for kernel_id in kernel_manager.list_kernel_ids()
+    }
 
   if 'TEST_TMPDIR' in os.environ:
     result = {'usage': 1 << 30, 'limit': 5 << 30}
