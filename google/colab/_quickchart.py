@@ -1,9 +1,8 @@
 """Automated chart generation for data frames."""
+import collections
 import itertools
 import logging
-
 import numpy as np
-
 
 _MAX_ROWS = 5000  # Limit of underlying vega-lite schema.
 _CATEGORICAL_DTYPES = (
@@ -183,7 +182,9 @@ def _classify_dtypes(
   cat_cols = []
   datetime_cols = []
   for colname, colname_dtype in zip(dtypes.colname, dtypes.colname_dtype):
-    if colname_dtype in categorical_dtypes:
+    if (colname_dtype in categorical_dtypes) and df[colname].apply(
+        lambda x: isinstance(x, collections.abc.Hashable)
+    ).min():
       cat_cols.append(colname)
     elif colname_dtype in datetime_dtypes:
       datetime_cols.append(colname)
