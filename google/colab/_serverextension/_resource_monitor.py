@@ -1,11 +1,10 @@
-"""Methods for tracking resource consumption of Colab kernels.
-
-Note that this file is run under both py2 and py3 in tests.
-"""
+"""Methods for tracking resource consumption of Colab kernels."""
 
 import csv
 import dataclasses
+import functools
 import os
+import shutil
 import subprocess
 
 from google.colab import _serverextension
@@ -18,6 +17,11 @@ except ImportError:
 
 # Track whether user has used the GPU in the current session.
 _GPU_EVER_USED = False
+
+
+@functools.cache
+def _nvidia_smi_path():
+  return shutil.which('nvidia-smi')
 
 
 @dataclasses.dataclass
@@ -40,6 +44,22 @@ def get_gpu_stats():
   Returns:
     A list of GpuInfo.
   """
+  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
+    return [
+        GpuInfo(
+            name='Tesla T4',
+            memoryUsedBytes=123,
+            memoryTotalBytes=456,
+            gpuUtilization=0.1,
+            memoryUtilization=0.2,
+            everUsed=True,
+        )
+    ]
+
+  nvidia_smi = _nvidia_smi_path()
+  if not nvidia_smi:
+    return []
+
   global _GPU_EVER_USED
 
   usages = []
@@ -48,7 +68,7 @@ def get_gpu_stats():
         '/usr/bin/timeout',
         '-sKILL',
         '1s',
-        'nvidia-smi',
+        nvidia_smi,
         # Note that the `nvidia-smi`'s sampling period of the utilization
         # metrics is sub-second. Sampling this function at a larger period may
         # miss periods of activity or inactivity.
@@ -83,18 +103,6 @@ def get_gpu_stats():
       # this case we don't report on any GPUs, even if we succeeded parsing for
       # some.
       usages = []
-
-  if 'COLAB_FAKE_GPU_RESOURCES' in os.environ:
-    usages = [
-        GpuInfo(
-            name='Tesla T4',
-            memoryUsedBytes=123,
-            memoryTotalBytes=456,
-            gpuUtilization=0.1,
-            memoryUtilization=0.2,
-            everUsed=True,
-        )
-    ]
 
   return usages
 
