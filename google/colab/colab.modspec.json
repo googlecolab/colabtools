@@ -1,0 +1,14 @@
+[{
+    "name": "google.colab",
+    "type": "PACKAGE",
+    "importable_package_attributes": [
+      "auth",
+      "data_table",
+      "drive",
+      "errors",
+      "files",
+      "runtime",
+      "snippets",
+      "syntax"
+    ]
+  }]
