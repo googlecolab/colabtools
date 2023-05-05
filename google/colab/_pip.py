@@ -25,7 +25,9 @@ def is_pip_install_command(cmd, *args, **kwargs):  # pylint: disable=unused-argu
 
 def _extract_installed_packages(pip_output):
   """Extract the list of successfully installed packages from pip output."""
-  regex = re.compile("^Successfully installed (.*)$", re.MULTILINE)
+  regex = re.compile(
+      r"^(?:\x1b\[0m)?\s*Successfully installed (.*)$", re.MULTILINE
+  )
   results = regex.findall(pip_output)
   return itertools.chain(*map(str.split, results))
 
