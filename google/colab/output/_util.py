@@ -15,6 +15,7 @@
 
 import json
 import sys
+import warnings
 # pytype: disable=import-error
 from IPython import display
 
@@ -95,6 +96,11 @@ def serve_kernel_port_as_iframe(
 def serve_kernel_port_as_window(port, path='/', anchor_text=None):
   """Displays a link in the output to open a browser tab to a port on the kernel.
 
+  DEPRECATED; Browser security updates have broken this feature. Use
+  `serve_kernel_port_as_iframe` instead. See
+  https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/.
+
+
   This allows viewing URLs hosted on the kernel in new browser tabs.
 
   The URL will only be valid for the current user while the notebook is open in
@@ -105,6 +111,12 @@ def serve_kernel_port_as_window(port, path='/', anchor_text=None):
     path: The path to be navigated to.
     anchor_text: Text content of the anchor link.
   """
+  warnings.warn(
+      'This has been deprecated due to changes in browser security. Use'
+      ' `serve_kernel_port_as_iframe` instead.',
+      DeprecationWarning,
+  )
+
   if not anchor_text:
     anchor_text = 'https://localhost:{port}{path}'.format(port=port, path=path)
 
