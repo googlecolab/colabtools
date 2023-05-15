@@ -9,12 +9,6 @@ import subprocess
 
 from google.colab import _serverextension
 
-try:
-  # pylint: disable=g-import-not-at-top
-  import psutil
-except ImportError:
-  psutil = None
-
 # Track whether user has used the GPU in the current session.
 _GPU_EVER_USED = False
 
@@ -188,12 +182,7 @@ def get_disk_usage(path=None):
 
   if not path:
     path = '/'
-  usage = 0
-  limit = 0
-  if psutil is not None:
-    disk_usage = psutil.disk_usage(path)
-    usage = disk_usage.used
-    limit = disk_usage.total
+  limit, usage, _ = shutil.disk_usage(path)
   return {'usage': usage, 'limit': limit}
 
 

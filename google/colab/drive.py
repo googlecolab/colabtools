@@ -25,7 +25,6 @@ from google.colab import _message
 from google.colab import output as _output
 
 import pexpect.popen_spawn as _popen_spawn
-import psutil as _psutil
 
 __all__ = ['flush_and_unmount', 'mount']
 
@@ -279,9 +278,7 @@ def _mount(
       raise ValueError('mount failed' + extra_reason)
     elif case == 4:
       # Terminate the DriveFS binary before killing bash.
-      for p in _psutil.process_iter():
-        if p.name() == 'drive':
-          p.kill()
+      _subprocess.call(['/usr/bin/pkill', '^drive$'])
       # Now kill bash.
       d.kill(_signal.SIGKILL)
       raise ValueError(
