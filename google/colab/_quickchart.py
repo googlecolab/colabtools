@@ -45,8 +45,8 @@ def find_charts(
     max_rows: (int) The maximum number of rows to sample from the dataframe; if
       more than `max_rows` are available, the dataframe is sampled, truncated,
       and re-sorted according to the dataframe's original index.
-    random_state: (int) The random state to use when downsampling datframes that
-      exceed the `max_rows` threshold.
+    random_state: (int) The random state to use when downsampling dataframes
+      that exceed the `max_rows` threshold.
 
   Returns:
     (iterable<ChartSection>) A sequence of chart sections.

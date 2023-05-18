@@ -65,10 +65,6 @@ _HINT_BUTTON_CSS = """
       filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
       fill: #FFFFFF;
     }
-
-    .colab-quickchart-section-title {
-        clear: both;
-    }
   </style>
 """
 

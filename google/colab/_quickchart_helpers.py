@@ -58,7 +58,13 @@ class SectionTitle:
     IPython.display.display(self)
 
   def _repr_html_(self):
-    return f'<h4 class="colab-quickchart-section-title">{self.title}</h4>'
+    return textwrap.dedent(f"""\
+        <h4 class="colab-quickchart-section-title">{self.title}</h4>
+        <style>
+          .colab-quickchart-section-title {{
+              clear: both;
+          }}
+        </style>""")
 
 
 class DataframeRegistry:

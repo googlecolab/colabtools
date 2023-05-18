@@ -22,6 +22,7 @@ from google.colab import _shell_customizations
 from google.colab import _system_commands
 from google.colab import _tensorflow_magics
 from google.colab import auth
+from google.colab import autoviz
 from google.colab import data_table
 from google.colab import drive
 from google.colab import files
@@ -32,6 +33,7 @@ from google.colab import widgets
 
 __all__ = [
     'auth',
+    'autoviz',
     'data_table',
     'drive',
     'files',
