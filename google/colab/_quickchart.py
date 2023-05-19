@@ -59,6 +59,10 @@ def find_charts(
     _DATAFRAME_REGISTRY = _quickchart_helpers.DataframeRegistry()
 
   if len(df) > max_rows:
+    print(
+        f'Warning: dataframe has {len(df)} rows, subsampling to {max_rows} '
+        'due to altair plotting limitation'
+    )
     df = df.sample(n=max_rows, random_state=random_state).sort_index()
   dtype_groups = _classify_dtypes(df)
   numeric_cols = dtype_groups['numeric']
