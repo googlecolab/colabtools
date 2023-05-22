@@ -14,7 +14,7 @@
 """Colab automatic visualization libraries and utilities."""
 from google.colab import _quickchart
 
-__all__ = ['quickchart']
+__all__ = ['quickchart', 'get_registered_df']
 
 
 def quickchart(df):
@@ -28,3 +28,6 @@ def quickchart(df):
   """
   for chart_section in _quickchart.find_charts(df):
     chart_section.display()
+
+
+get_registered_df = _quickchart.get_registered_df

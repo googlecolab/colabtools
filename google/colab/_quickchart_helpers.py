@@ -134,8 +134,8 @@ class ChartWithCode:
 
     chart_src = textwrap.dedent("""\
         import altair as alt
-        from google.colab import _quickchart
-        {df_varname} = _quickchart.get_registered_df('{df_varname}')
+        from google.colab import autoviz
+        {df_varname} = autoviz.get_registered_df('{df_varname}')
         """.format(df_varname=self._df_varname))
     chart_src += '\n'
     chart_src += plot_func_src
