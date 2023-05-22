@@ -50,6 +50,38 @@ def _is_service_account_key(key_json_text):
   return True
 
 
+def _set_gcloud_project(project_id, clear_output):
+  context_manager = _output.temporary if clear_output else _noop
+  with context_manager():
+    gcloud_project_command = [
+        'gcloud',
+        'config',
+        'set',
+        'project',
+        project_id,
+    ]
+    _subprocess.run(
+        gcloud_project_command,
+        universal_newlines=True,
+        stderr=_subprocess.STDOUT,
+        check=_CHECK_GCLOUD_AUTH_ERRORS,
+    )
+
+
+def _set_no_service_account_env_for_project(project_id):
+  # Set the current project (!gcloud ... commands will use it by default)
+  _set_gcloud_project(project_id, clear_output=True)
+
+  # Also set the same environment variables as under Cloud Shell
+  _os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
+  _os.environ['GOOGLE_CLOUD_QUOTA_PROJECT'] = project_id
+
+  # Notes:
+  # - GOOGLE_CLOUD_QUOTA_PROJECT is used in google.auth.default()
+  #   for the GCE metadata service
+  # - Python client libraries will now use this quota project by default
+
+
 class _CredentialType(_enum.Enum):
   """Enum class for selecting the type of credential that is expected."""
 
@@ -206,7 +238,7 @@ def _setup_tpu_auth():
 
 
 # pylint:disable=line-too-long
-def authenticate_user(clear_output=True):
+def authenticate_user(clear_output=True, project_id=None):
   """Ensures that the given user is authenticated.
 
   This will override any pre-existing service account credentials.
@@ -219,6 +251,9 @@ def authenticate_user(clear_output=True):
     clear_output: (optional, default: True) If True, clear any output related to
       the authorization process if it completes successfully. Any errors will
       remain (for debugging purposes).
+    project_id: (optional, default: None) If set, will define the Google Cloud
+      project to be used by default (for gcloud commands and Application Default
+      Credentials).
 
   Returns:
     None.
@@ -233,6 +268,8 @@ def authenticate_user(clear_output=True):
       and colab_tpu_addr
       and not use_auth_ephem
   )
+  if project_id is not None:
+    _set_no_service_account_env_for_project(project_id)
   if _os.path.exists('/var/colab/mp'):
     raise NotImplementedError(__name__ + ' is unsupported in this environment.')
   if _check_adc(_CredentialType.USER):
@@ -291,20 +328,7 @@ def _activate_service_account_key(key_content, clear_output):
     raise _errors.AuthorizationError(
         'Could not get cloud project id from credentials'
     )
-  with context_manager():
-    gcloud_project_command = [
-        'gcloud',
-        'config',
-        'set',
-        'project',
-        project_id,
-    ]
-    _subprocess.run(
-        gcloud_project_command,
-        universal_newlines=True,
-        stderr=_subprocess.STDOUT,
-        check=_CHECK_GCLOUD_AUTH_ERRORS,
-    )
+  _set_gcloud_project(project_id, clear_output)
 
 
 def authenticate_service_account(clear_output=True):
