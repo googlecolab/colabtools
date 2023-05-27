@@ -26,7 +26,6 @@ from google.colab import _system_commands
 from ipykernel import jsonutil
 from ipykernel import zmqshell
 from IPython.core import alias
-from IPython.core import compilerop
 from IPython.core import inputsplitter
 from IPython.core import interactiveshell
 from IPython.core import oinspect
@@ -52,16 +51,6 @@ def _show_pip_warning():
 
 class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
-
-  def init_instance_attrs(self):
-    """Initializes instance attrs.
-
-    Since https://github.com/ipython/ipykernel/pull/597 introduces filename
-    changes for source files which we parse to get execution count, we use the
-    original CachingCompiler instead of the custom XCachingCompiler.
-    """
-    super().init_instance_attrs()
-    self.compile = compilerop.CachingCompiler()
 
   def init_events(self):
     self.events = EventManager(self, available_events)
