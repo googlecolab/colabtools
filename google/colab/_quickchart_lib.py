@@ -33,7 +33,7 @@ def heatmap(df, x_colname, y_colname):
 
 
 # Incorporated from altair example gallery:
-#   https://altair-viz.github.io/gallery/stripplot.html
+#   https://altair-viz.github.io/gallery/strip_plot_jitter.html
 def swarm_plot(df, value_colname, facet_colname, height=150, width=150):
   value_min, value_max = df[value_colname].min(), df[value_colname].max()
   num_facets = len(df[facet_colname].unique())
