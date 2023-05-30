@@ -14,6 +14,7 @@
 """Formatter used to display a data table conversion button next to dataframes."""
 
 import logging
+import textwrap
 import uuid as _uuid
 import weakref as _weakref
 
@@ -26,15 +27,15 @@ import IPython as _IPython
 _output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
 
-_ICON_SVG = """
+_ICON_SVG = textwrap.dedent("""
   <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
        width="24px">
       <g>
           <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
       </g>
-  </svg>"""
+  </svg>""")
 
-_HINT_BUTTON_CSS = """
+_HINT_BUTTON_CSS = textwrap.dedent("""
   <style>
     .colab-df-quickchart {
       background-color: #E8F0FE;
@@ -66,7 +67,7 @@ _HINT_BUTTON_CSS = """
       fill: #FFFFFF;
     }
   </style>
-"""
+""")
 
 
 class DataframeCache(object):
@@ -111,7 +112,7 @@ _df_cache = DataframeCache()
 _chart_cache = {}
 
 
-def generate_charts(df_key):
+def _generate_charts(df_key):
   """Generates and displays a set of charts from the specified dataframe.
 
   Args:
@@ -144,59 +145,75 @@ def _get_code_for_chart(chart_key):
 
 
 output.register_callback('getCodeForChart', _get_code_for_chart)
+output.register_callback('generateCharts', _generate_charts)
+
+
+def register_df_and_get_html(df):
+  df_key = f'df-{str(_uuid.uuid4())}'
+  _df_cache[df_key] = df
+  quickchart_button_html = _get_html(df_key)
+  quickchart_button_js = _get_js(df_key)
+  return quickchart_button_html, quickchart_button_js
 
 
 def _df_formatter_with_hint_buttons(df):
   """Alternate df formatter with buttons for interactive and quickchart."""
-  # pylint: disable=protected-access
-  df_key = 'df-' + str(_uuid.uuid4())
-  _df_cache[df_key] = df
-  interactive_html = (
-      _interactive_table_hint_button._df_formatter_with_interactive_hint(df)
+  quickchart_button_html, quickchart_button_js = register_df_and_get_html(df)
+  interactive_table_button_html = (
+      _interactive_table_hint_button._df_formatter_with_interactive_hint(df)  # pylint: disable=protected-access
   )
+  style_index = interactive_table_button_html.find('<style>')
+  return textwrap.dedent(f"""
+      {interactive_table_button_html[:style_index]}
+      {quickchart_button_html}
+      <script>
+        {quickchart_button_js}
+        displayQuickchartButton(document);
+      </script>
+      {interactive_table_button_html[style_index:]}""")
 
-  callback_name = 'generateCharts'
-  if callback_name not in _output_callbacks:
-    _output_callbacks[callback_name] = output.register_callback(
-        callback_name, generate_charts
-    )
 
-  quickchart_html = _get_html(df_key)
-  style_index = interactive_html.find('<style>')
-  return (
-      interactive_html[:style_index]
-      + quickchart_html
-      + interactive_html[style_index:]
-  )
+def _get_js(key):
+  """Gets the post-DOM insertion JS for the quickchart button.
+
+  Note: this js section is intended to be invoked upon adding the button html
+  to the DOM tree, while the _get_html() js <script> section is for callbacks
+  that are invoked at some later point.
+
+  Args:
+    key: (str) Dataframe lookup key.
+
+  Returns:
+    (str) Javascript code as text.
+  """
+  return textwrap.dedent(f"""
+    function displayQuickchartButton(domScope) {{
+      let quickchartButtonEl =
+        domScope.querySelector('#{key} button.colab-df-quickchart');
+      quickchartButtonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
+    }}
+  """)
 
 
 def _get_html(key):
-  return """
+  return textwrap.dedent(f"""
     <div id="{key}">
       <button class="colab-df-quickchart" onclick="quickchart('{key}')"
               title="Generate charts."
               style="display:none;">
-        {icon}
+        {_ICON_SVG}
       </button>
     </div>
-    {css}
+    {_HINT_BUTTON_CSS}
     <script>
-      const quickchartButtonEl =
-        document.querySelector('#{key} button.colab-df-quickchart');
-      quickchartButtonEl.style.display =
-        google.colab.kernel.accessAllowed ? 'block' : 'none';
-
       async function quickchart(key) {{
-        const containerElement = document.querySelector('#{key}');
+        const containerElement = document.querySelector('#' + key);
         const charts = await google.colab.kernel.invokeFunction(
             'generateCharts', [key], {{}});
       }}
     </script>
-  """.format(
-      css=_HINT_BUTTON_CSS,
-      icon=_ICON_SVG,
-      key=key,
-  )
+  """)
 
 
 _original_formatters = {}

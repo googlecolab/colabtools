@@ -27,6 +27,7 @@ import traceback as _traceback
 import warnings as _warnings
 
 from google.colab import _interactive_table_helper
+from google.colab import _quickchart_hint_button
 import IPython as _IPython
 from IPython import display as _display
 
@@ -39,7 +40,6 @@ with _warnings.catch_warnings():
 
 # pylint: enable=g-import-not-at-top
 
-
 __all__ = [
     'DataTable',
     'enable_dataframe_formatter',
@@ -48,7 +48,8 @@ __all__ = [
     'unload_ipython_extension',
 ]
 
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/99dac6621f6ae8c4/data_table.js'
+# For details on updating gviz js, refer to: <internal>/gviz/update_data_table
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/881c4a0d49046431/data_table.js'
 
 _DATA_TABLE_HELP_URL = (
     'https://colab.research.google.com/notebooks/data_table.ipynb'
@@ -141,7 +142,6 @@ class DataTable(_display.DisplayObject):
          shrink down to the minimum of this value and the width needed for the
          content.
     """
-
     def _default(value, default):
       return default if value is None else value
 
@@ -241,11 +241,13 @@ class DataTable(_display.DisplayObject):
           'width': '1px',
           'className': 'index_column',
       }] * self._dataframe.index.nlevels
-
+    quickchart_button_html, quickchart_button_js = (
+        _quickchart_hint_button.register_df_and_get_html(dataframe)
+    )
     return """
       import "{gviz_url}";
 
-      window.createDataTable({{
+      const table = window.createDataTable({{
         data: {data},
         columns: {columns},
         columnOptions: {column_options},
@@ -254,6 +256,16 @@ class DataTable(_display.DisplayObject):
         suppressOutputScrolling: {suppress_output_scrolling},
         minimumWidth: {min_width},
       }});
+      
+      function appendQuickchartButton(parentElement) {{
+        let quickchartButtonContainerElement = document.createElement('div');
+        quickchartButtonContainerElement.innerHTML = `{quickchart_button_html}`;
+        parentElement.appendChild(quickchartButtonContainerElement);
+        {quickchart_button_js}
+        displayQuickchartButton(parentElement);
+      }}
+
+      appendQuickchartButton(table);
     """.format(
         gviz_url=_GVIZ_JS,
         data=formatted_data['data'],
@@ -264,9 +276,9 @@ class DataTable(_display.DisplayObject):
         suppress_output_scrolling=_json.dumps(
             _DEFAULT_SUPPRESS_OUTPUT_SCROLLING
         ),
-        min_width=('"' + self._min_width + '"')
-        if self._min_width
-        else 'undefined',
+        min_width=f'"{self._min_width}"' if self._min_width else 'undefined',
+        quickchart_button_html=quickchart_button_html,
+        quickchart_button_js=quickchart_button_js,
     )
 
 

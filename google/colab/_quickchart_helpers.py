@@ -22,14 +22,8 @@ def _chunked(seq, chunk_size):
   Yields:
     (sequence<sequence<T>>) A sequence of chunks.
   """
-  # Lazy import to avoid loading on kernel init.
-  # TODO(b/275732775): switch back to itertools.pairwise when possible.
-  import more_itertools  # pylint: disable=g-import-not-at-top
-
-  for start, end in more_itertools.pairwise(
-      list(range(0, len(seq), chunk_size)) + [len(seq)]
-  ):
-    yield seq[start:end]
+  for i in range(0, len(seq), chunk_size):
+    yield seq[i : i + chunk_size]
 
 
 class ChartSection:
