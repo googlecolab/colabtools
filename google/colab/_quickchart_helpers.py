@@ -29,9 +29,14 @@ def _chunked(seq, chunk_size):
 class ChartSection:
   """Grouping of charts and other displayable objects."""
 
-  def __init__(self, charts, displayables):
+  def __init__(self, section_type, charts, displayables):
+    self._section_type = section_type
     self._charts = charts
     self._displayables = displayables
+
+  @property
+  def section_type(self):
+    return self._section_type
 
   @property
   def charts(self):
@@ -176,6 +181,16 @@ class ChartWithCode:
     return self.get_code()
 
 
+class ChartSectionType:
+  HISTOGRAM = 'histogram'
+  VALUE_PLOT = 'value_plot'
+  HEATMAP = 'heatmap'
+  LINKED_SCATTER = 'linked_scatter'
+  CATEGORICAL_HISTOGRAM = 'categorical_histogram'
+  SWARM_PLOT = 'swarm_plot'
+  TIME_SERIES_LINE_PLOT = 'time_series_line_plot'
+
+
 def histograms_section(df, colnames, df_registry):
   """Generates a section of histograms.
 
@@ -188,7 +203,13 @@ def histograms_section(df, colnames, df_registry):
     (ChartSection) A chart section containing histograms.
   """
   return _chart_section(
-      df, _quickchart_lib.histogram, colnames, {}, df_registry, 'Distributions'
+      ChartSectionType.HISTOGRAM,
+      df,
+      _quickchart_lib.histogram,
+      colnames,
+      {},
+      df_registry,
+      'Distributions',
   )
 
 
@@ -204,7 +225,13 @@ def value_plots_section(df, colnames, df_registry):
     (ChartSection) A chart section containing value plots.
   """
   return _chart_section(
-      df, _quickchart_lib.value_plot, colnames, {}, df_registry, 'Values'
+      ChartSectionType.VALUE_PLOT,
+      df,
+      _quickchart_lib.value_plot,
+      colnames,
+      {},
+      df_registry,
+      'Values',
   )
 
 
@@ -220,6 +247,7 @@ def categorical_histograms_section(df, colnames, df_registry):
     (ChartSection) A chart section containing categorical histograms.
   """
   return _chart_section(
+      ChartSectionType.CATEGORICAL_HISTOGRAM,
       df,
       _quickchart_lib.categorical_histogram,
       colnames,
@@ -242,7 +270,13 @@ def heatmaps_section(df, colname_pairs, df_registry):
     (ChartSection) A chart section containing heatmaps.
   """
   return _chart_section(
-      df, _quickchart_lib.heatmap, colname_pairs, {}, df_registry, 'Heatmaps'
+      ChartSectionType.HEATMAP,
+      df,
+      _quickchart_lib.heatmap,
+      colname_pairs,
+      {},
+      df_registry,
+      'Heatmaps',
   )
 
 
@@ -259,6 +293,7 @@ def linked_scatter_section(df, colname_pairs, df_registry):
     (ChartSection) A chart section containing linked scatter plots.
   """
   return _chart_section(
+      ChartSectionType.LINKED_SCATTER,
       df,
       _quickchart_lib.linked_scatter_plots,
       [[list(colname_pairs)]],
@@ -281,6 +316,7 @@ def swarm_plots_section(df, colname_pairs, df_registry):
     (ChartSection) A chart section containing swarm plots.
   """
   return _chart_section(
+      ChartSectionType.SWARM_PLOT,
       df,
       _quickchart_lib.swarm_plot,
       colname_pairs,
@@ -290,10 +326,37 @@ def swarm_plots_section(df, colname_pairs, df_registry):
   )
 
 
-def _chart_section(df, plot_func, args_per_chart, kwargs, df_registry, title):
+def time_series_line_plots_section(df, colname_pairs, df_registry):
+  """Generates a section of time series line plots.
+
+  Args:
+    df: (pd.DataFrame) A dataframe.
+    colname_pairs: (iterable<str, str>) Sequence of (time-like colname, series
+      colname) pairs to plot; if series colname is None, only a single series is
+      plotted.
+    df_registry: (DataframeRegistry) Registry to use for dataframe lookups.
+
+  Returns:
+    (ChartSection) A chart section containing time series line plots.
+  """
+  return _chart_section(
+      ChartSectionType.TIME_SERIES_LINE_PLOT,
+      df,
+      _quickchart_lib.time_series_multiline,
+      colname_pairs,
+      {},
+      df_registry,
+      'Time series',
+  )
+
+
+def _chart_section(
+    section_type, df, plot_func, args_per_chart, kwargs, df_registry, title
+):
   """Generates a chart section.
 
   Args:
+    section_type: (str) Chart section type.
     df: (pd.DataFrame) A dataframe.
     plot_func: (Function) Rendering function mapping (df, *args, **kwargs) =>
       <IPython displayble>
@@ -313,5 +376,7 @@ def _chart_section(df, plot_func, args_per_chart, kwargs, df_registry, title):
       for args in args_per_chart
   ]
   return ChartSection(
-      charts=charts, displayables=([SectionTitle(title)] + charts)
+      section_type=section_type,
+      charts=charts,
+      displayables=([SectionTitle(title)] + charts),
   )

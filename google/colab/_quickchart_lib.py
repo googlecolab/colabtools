@@ -81,3 +81,15 @@ def linked_scatter_plots(
              .properties(
                  selection=interval, width=width, height=height))
   return alt.hconcat(*[scatter.encode(x=x, y=y) for x, y in colname_pairs])
+
+
+def time_series_multiline(
+    df, timelike_colname, value_colname='count()', series_colname=None,
+    color='steelblue', width=300, height=100):
+  return (alt.Chart(df).mark_line()
+          .encode(
+              x=timelike_colname + ':T',
+              y=value_colname + ':Q',
+              color=(alt.value(color) if not series_colname
+                     else series_colname + ':N'))
+          .properties(width=width, height=height))
