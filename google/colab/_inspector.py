@@ -60,15 +60,6 @@ _APPROVED_REPRS = (
 
 _UNAVAILABLE_MODULE_NAME = '<unknown>'
 
-# Bool variable to experiment with repr method
-_rich_repr_enabled = False
-
-
-def _enable_rich_reprs(value: bool):
-  """Enable _rich_repr_enabled for experimentation."""
-  global _rich_repr_enabled
-  _rich_repr_enabled = value
-
 
 def _getdoc(obj):
   """Custom wrapper for inspect.getdoc.
@@ -285,10 +276,7 @@ def _safe_repr(obj, depth=0, visited=None):
         and module_name.startswith('pandas.')
         and type_name == 'Series'
     ):
-      if _rich_repr_enabled:
-        return _series_rich_repr(obj, depth)
-
-      return f'{type_name} with shape {shape} and dtype {obj.dtype}'
+      return _series_rich_repr(obj, depth)
 
     if (
         isinstance(shape, tuple)
