@@ -6,7 +6,17 @@ import uuid as _uuid
 
 from google.colab import _quickchart_lib
 import IPython.display
+import matplotlib as mpl
 import numpy as np
+
+
+_MPL_STYLE_OPTIONS = (
+    ('axes.labelpad', 1.0),
+    ('axes.linewidth', 0.4),
+    ('font.size', 8),
+    ('legend.fontsize', 8),
+    ('legend.title_fontsize', 8),
+)
 
 
 def _chunked(seq, chunk_size):
@@ -24,6 +34,16 @@ def _chunked(seq, chunk_size):
   """
   for i in range(0, len(seq), chunk_size):
     yield seq[i : i + chunk_size]
+
+
+class ChartSectionType:
+  HISTOGRAM = 'histogram'
+  VALUE_PLOT = 'value_plot'
+  HEATMAP = 'heatmap'
+  LINKED_SCATTER = 'linked_scatter'
+  CATEGORICAL_HISTOGRAM = 'categorical_histogram'
+  FACETED_DISTRIBUTION = 'faceted_distribution'
+  TIME_SERIES_LINE_PLOT = 'time_series_line_plot'
 
 
 class ChartSection:
@@ -106,7 +126,8 @@ class ChartWithCode:
     self._kwargs = kwargs
 
     self._chart_id = f'chart-{str(_uuid.uuid4())}'
-    self._chart = plot_func(df, *args, **kwargs)
+    with mpl.rc_context(dict(_MPL_STYLE_OPTIONS)):
+      self._chart = plot_func(df, *args, **kwargs)
 
   @property
   def chart_id(self):
@@ -132,7 +153,7 @@ class ChartWithCode:
     )
 
     chart_src = textwrap.dedent("""\
-        import altair as alt
+        import numpy as np
         from google.colab import autoviz
         {df_varname} = autoviz.get_registered_df('{df_varname}')
         """.format(df_varname=self._df_varname))
@@ -179,16 +200,6 @@ class ChartWithCode:
 
   def __repr__(self):
     return self.get_code()
-
-
-class ChartSectionType:
-  HISTOGRAM = 'histogram'
-  VALUE_PLOT = 'value_plot'
-  HEATMAP = 'heatmap'
-  LINKED_SCATTER = 'linked_scatter'
-  CATEGORICAL_HISTOGRAM = 'categorical_histogram'
-  SWARM_PLOT = 'swarm_plot'
-  TIME_SERIES_LINE_PLOT = 'time_series_line_plot'
 
 
 def histograms_section(df, colnames, df_registry):
@@ -276,7 +287,7 @@ def heatmaps_section(df, colname_pairs, df_registry):
       colname_pairs,
       {},
       df_registry,
-      'Heatmaps',
+      '2-d categorical distributions',
   )
 
 
@@ -295,7 +306,7 @@ def linked_scatter_section(df, colname_pairs, df_registry):
   return _chart_section(
       ChartSectionType.LINKED_SCATTER,
       df,
-      _quickchart_lib.linked_scatter_plots,
+      _quickchart_lib.scatter_plots,
       [[list(colname_pairs)]],
       {},
       df_registry,
@@ -303,8 +314,8 @@ def linked_scatter_section(df, colname_pairs, df_registry):
   )
 
 
-def swarm_plots_section(df, colname_pairs, df_registry):
-  """Generates a section of swarm plots.
+def faceted_distributions_section(df, colname_pairs, df_registry):
+  """Generates a section of faceted distribution plots.
 
   Args:
     df: (pd.DataFrame) A dataframe.
@@ -313,16 +324,16 @@ def swarm_plots_section(df, colname_pairs, df_registry):
     df_registry: (DataframeRegistry) Registry to use for dataframe lookups.
 
   Returns:
-    (ChartSection) A chart section containing swarm plots.
+    (ChartSection) A chart section.
   """
   return _chart_section(
-      ChartSectionType.SWARM_PLOT,
+      ChartSectionType.FACETED_DISTRIBUTION,
       df,
-      _quickchart_lib.swarm_plot,
+      _quickchart_lib.violin_plot,
       colname_pairs,
       {},
       df_registry,
-      'Swarm plots',
+      'Faceted distributions',
   )
 
 

@@ -89,10 +89,10 @@ def find_charts(
   if numeric_cols:
     selected_numeric_cols = numeric_cols[:max_chart_instances]
     chart_sections += [
-        _quickchart_helpers.histograms_section(
+        _quickchart_helpers.value_plots_section(
             df, selected_numeric_cols, _DATAFRAME_REGISTRY
         ),
-        _quickchart_helpers.value_plots_section(
+        _quickchart_helpers.histograms_section(
             df, selected_numeric_cols, _DATAFRAME_REGISTRY
         ),
     ]
@@ -125,7 +125,7 @@ def find_charts(
 
   if categorical_cols and numeric_cols:
     chart_sections += [
-        _quickchart_helpers.swarm_plots_section(
+        _quickchart_helpers.faceted_distributions_section(
             df,
             _select_faceted_numeric_cols(
                 numeric_cols, categorical_cols, k=max_chart_instances

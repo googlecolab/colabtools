@@ -13,8 +13,9 @@
 # limitations under the License.
 """Colab automatic visualization libraries and utilities."""
 from google.colab import _quickchart
+from google.colab import _quickchart_lib
 
-__all__ = ['quickchart', 'get_registered_df']
+__all__ = ['quickchart', 'get_registered_df', 'MplChart']
 
 
 def quickchart(df):
@@ -31,3 +32,5 @@ def quickchart(df):
 
 
 get_registered_df = _quickchart.get_registered_df
+
+MplChart = _quickchart_lib.MplChart
