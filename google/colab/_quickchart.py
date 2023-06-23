@@ -3,9 +3,6 @@ import itertools
 import logging
 import numpy as np
 
-# Limit of underlying vega-lite schema.
-# https://altair-viz.github.io/user_guide/large_datasets.html
-_MAX_ROWS = 5000
 
 _CATEGORICAL_DTYPES = (
     np.dtype('object'),
@@ -47,8 +44,6 @@ def get_registered_df(df_varname):
 def find_charts(
     df,
     max_chart_instances=None,
-    max_rows=_MAX_ROWS,
-    random_state=0,
 ):
   """Finds charts compatible with dtypes of the given data frame.
 
@@ -56,11 +51,6 @@ def find_charts(
     df: (pd.DataFrame) A dataframe.
     max_chart_instances: (int) For a single chart type, the max number instances
       to generate.
-    max_rows: (int) The maximum number of rows to sample from the dataframe; if
-      more than `max_rows` are available, the dataframe is sampled, truncated,
-      and re-sorted according to the dataframe's original index.
-    random_state: (int) The random state to use when downsampling dataframes
-      that exceed the `max_rows` threshold.
 
   Returns:
     (iterable<ChartSection>) A sequence of chart sections.
@@ -72,12 +62,6 @@ def find_charts(
   if _DATAFRAME_REGISTRY is None:
     _DATAFRAME_REGISTRY = _quickchart_helpers.DataframeRegistry()
 
-  if len(df) > max_rows:
-    print(
-        f'Warning: dataframe has {len(df)} rows, subsampling to {max_rows} '
-        'due to altair plotting limitation'
-    )
-    df = df.sample(n=max_rows, random_state=random_state).sort_index()
   df = _coerce_datetime_columns(df)
   dtype_groups = _classify_dtypes(df)
   numeric_cols = dtype_groups['numeric']

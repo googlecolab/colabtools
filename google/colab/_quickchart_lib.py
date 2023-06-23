@@ -114,11 +114,11 @@ def swarm_plot(df, value_colname, facet_colname, col_width=.3, height=2, mpl_pal
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def violin_plot(df, value_colname, facet_colname, col_width=.3, col_length=3):
+def violin_plot(df, value_colname, facet_colname, col_width=.3, col_length=3, **kwargs):
   from matplotlib import pyplot as plt
   import seaborn as sns
   plt.figure(figsize=(col_length, col_width * len(df[facet_colname].unique())))
-  sns.violinplot(df, x=value_colname, y=facet_colname, inner='stick')
+  sns.violinplot(df, x=value_colname, y=facet_colname, **kwargs)
   sns.despine(top=True, right=True, bottom=True, left=True)
   return autoviz.MplChart.from_current_mpl_state()
 

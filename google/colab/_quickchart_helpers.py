@@ -17,6 +17,7 @@ _MPL_STYLE_OPTIONS = (
     ('legend.fontsize', 8),
     ('legend.title_fontsize', 8),
 )
+_VIOLIN_PLOT_STICK_MAX_ROWS = 500
 
 
 def _chunked(seq, chunk_size):
@@ -331,7 +332,7 @@ def faceted_distributions_section(df, colname_pairs, df_registry):
       df,
       _quickchart_lib.violin_plot,
       colname_pairs,
-      {},
+      {'inner': 'stick' if len(df) < _VIOLIN_PLOT_STICK_MAX_ROWS else 'box'},
       df_registry,
       'Faceted distributions',
   )
