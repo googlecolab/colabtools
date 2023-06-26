@@ -112,7 +112,7 @@ _df_cache = DataframeCache()
 _chart_cache = {}
 
 
-def _generate_charts(df_key):
+def _suggest_charts(df_key):
   """Generates and displays a set of charts from the specified dataframe.
 
   Args:
@@ -145,7 +145,7 @@ def _get_code_for_chart(chart_key):
 
 
 output.register_callback('getCodeForChart', _get_code_for_chart)
-output.register_callback('generateCharts', _generate_charts)
+output.register_callback('suggestCharts', _suggest_charts)
 
 
 def register_df_and_get_html(df):
@@ -200,7 +200,7 @@ def _get_html(key):
   return textwrap.dedent(f"""
     <div id="{key}">
       <button class="colab-df-quickchart" onclick="quickchart('{key}')"
-              title="Generate charts."
+              title="Suggest charts."
               style="display:none;">
         {_ICON_SVG}
       </button>
@@ -210,7 +210,7 @@ def _get_html(key):
       async function quickchart(key) {{
         const containerElement = document.querySelector('#' + key);
         const charts = await google.colab.kernel.invokeFunction(
-            'generateCharts', [key], {{}});
+            'suggestCharts', [key], {{}});
       }}
     </script>
   """)
