@@ -33,7 +33,7 @@ class MplChart:
   def _repr_html_(self):
     return self.chart_html
 
-  def _repr_mimebundle_(self):
+  def _repr_mimebundle_(self, include=None, exclude=None):  # pylint:disable=unused-argument
     return {'text/html': self._repr_html_()}
 
   def display(self):
