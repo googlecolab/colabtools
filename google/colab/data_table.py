@@ -264,6 +264,8 @@ class DataTable(_display.DisplayObject):
         {quickchart_button_js}
         displayQuickchartButton(parentElement);
       }}
+
+      appendQuickchartButton(table);
     """.format(
         gviz_url=_GVIZ_JS,
         data=formatted_data['data'],
