@@ -69,6 +69,8 @@ def upload():
   uploaded_files = _upload_files(multiple=True)
   # Mapping from original filename to filename as saved locally.
   local_filenames = dict()
+  uploaded_files_with_updated_names = dict()
+
   for filename, data in uploaded_files.items():
     local_filename = local_filenames.get(filename)
     if not local_filename:
@@ -81,7 +83,8 @@ def upload():
       )
     with open(local_filename, 'ab') as f:
       f.write(data)
-  return uploaded_files
+    uploaded_files_with_updated_names[local_filename] = data
+  return uploaded_files_with_updated_names
 
 
 def _upload_file(filepath):
