@@ -79,7 +79,7 @@ def categorical_histogram(df, colname, figsize=(2, 1.2), mpl_palette_name='Dark2
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def heatmap(df, x_colname, y_colname, figsize=(2, 2)):
+def heatmap(df, x_colname, y_colname, figsize=(2, 2), mpl_palette_name='viridis'):
   from matplotlib import pyplot as plt
   import seaborn as sns
   import pandas as pd
@@ -88,7 +88,7 @@ def heatmap(df, x_colname, y_colname, figsize=(2, 2)):
       x_label: grp[y_colname].value_counts()
       for x_label, grp in df.groupby(x_colname)
   })
-  sns.heatmap(df_2dhist, cmap=sns.cubehelix_palette(start=.5, rot=-.8))
+  sns.heatmap(df_2dhist, cmap=mpl_palette_name)
   plt.xlabel(x_colname)
   plt.ylabel(y_colname)
   return autoviz.MplChart.from_current_mpl_state()
@@ -114,11 +114,11 @@ def swarm_plot(df, value_colname, facet_colname, col_width=.3, height=2, mpl_pal
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def violin_plot(df, value_colname, facet_colname, col_width=.3, col_length=3, **kwargs):
+def violin_plot(df, value_colname, facet_colname, col_width=.3, col_length=3, mpl_palette_name='Dark2', **kwargs):
   from matplotlib import pyplot as plt
   import seaborn as sns
   plt.figure(figsize=(col_length, col_width * len(df[facet_colname].unique())))
-  sns.violinplot(df, x=value_colname, y=facet_colname, **kwargs)
+  sns.violinplot(df, x=value_colname, y=facet_colname, palette=mpl_palette_name, **kwargs)
   sns.despine(top=True, right=True, bottom=True, left=True)
   return autoviz.MplChart.from_current_mpl_state()
 
@@ -148,10 +148,11 @@ def scatter_plots(df, colname_pairs, scatter_plot_size=2.5, size=8, alpha=.6):
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def time_series_multiline(df, timelike_colname, value_colname, series_colname, figsize=(2.5, 1.3)):
+def time_series_multiline(df, timelike_colname, value_colname, series_colname, figsize=(2.5, 1.3), mpl_palette_name='Dark2'):
   from matplotlib import pyplot as plt
   import seaborn as sns
-  def _plot_series(series, series_name):
+  palette = list(sns.palettes.mpl_palette(mpl_palette_name))
+  def _plot_series(series, series_name, series_index=0):
     if value_colname == 'count()':
       counted = (series[timelike_colname]
                  .value_counts()
@@ -163,13 +164,13 @@ def time_series_multiline(df, timelike_colname, value_colname, series_colname, f
     else:
       xs = series[timelike_colname]
       ys = series[value_colname]
-    plt.plot(xs, ys, label=series_name)
+    plt.plot(xs, ys, label=series_name, color=palette[series_index % len(palette)])
 
   fig, ax = plt.subplots(figsize=figsize, layout='constrained')
   df = df.sort_values(timelike_colname, ascending=True)
   if series_colname:
-    for series_name, series in df.groupby(series_colname):
-      _plot_series(series, series_name)
+    for i, (series_name, series) in enumerate(df.groupby(series_colname)):
+      _plot_series(series, series_name, i)
     fig.legend(title=series_colname, bbox_to_anchor=(1, 1), loc='upper left')
   else:
     _plot_series(df, '')
