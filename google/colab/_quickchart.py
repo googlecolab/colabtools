@@ -24,8 +24,8 @@ _CATEGORICAL_LARGE_SIZE_THRESHOLD = 8  # Facet-friendly size limit.
 _DATAFRAME_REGISTRY = None
 
 
-def get_registered_df(df_varname):
-  """Gets a dataframe that has been previously registered.
+def get_df(df_varname):
+  """Gets a dataframe that has been previously stored.
 
   Args:
     df_varname: (str) A string-based key denoting the dataframe.
@@ -34,10 +34,10 @@ def get_registered_df(df_varname):
     (pd.DataFrame) A dataframe.
 
   Raises:
-    KeyError: when the specified dataframe has not been registered.
+    KeyError: when the specified dataframe has not been stored.
   """
   if _DATAFRAME_REGISTRY is None:
-    raise KeyError(f'Dataframe "{df_varname}" is not registered')
+    raise KeyError(f'Dataframe "{df_varname}" is not available')
   return _DATAFRAME_REGISTRY[df_varname]
 
 

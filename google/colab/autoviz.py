@@ -15,7 +15,7 @@
 from google.colab import _quickchart
 from google.colab import _quickchart_lib
 
-__all__ = ['quickchart', 'get_registered_df', 'MplChart']
+__all__ = ['quickchart', 'get_df', 'MplChart']
 
 
 def quickchart(df):
@@ -31,6 +31,6 @@ def quickchart(df):
     chart_section.display()
 
 
-get_registered_df = _quickchart.get_registered_df
+get_df = _quickchart.get_df
 
 MplChart = _quickchart_lib.MplChart

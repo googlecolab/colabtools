@@ -156,7 +156,7 @@ class ChartWithCode:
     chart_src = textwrap.dedent("""\
         import numpy as np
         from google.colab import autoviz
-        {df_varname} = autoviz.get_registered_df('{df_varname}')
+        {df_varname} = autoviz.get_df('{df_varname}')
         """.format(df_varname=self._df_varname))
     chart_src += '\n'
     chart_src += plot_func_src
