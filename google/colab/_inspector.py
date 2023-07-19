@@ -56,6 +56,7 @@ _APPROVED_REPRS = (
     'numpy.int32',
     'numpy.int64',
     'numpy.int8',
+    'numpy.longdouble',
 )
 
 _UNAVAILABLE_MODULE_NAME = '<unknown>'
