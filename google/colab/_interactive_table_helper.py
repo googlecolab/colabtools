@@ -158,7 +158,7 @@ def _to_js(
       x = str(x)
     elif x.dtype.kind == 'b':
       x = bool(x)
-    elif type(x).__name__.startswith('float'):
+    elif type(x).__name__.startswith(('float', 'longdouble')):
       if hasattr(x, 'is_integer') and x.is_integer():
         x = int(x)
       else:
