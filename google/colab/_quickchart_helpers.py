@@ -37,6 +37,39 @@ def _chunked(seq, chunk_size):
     yield seq[i : i + chunk_size]
 
 
+def _to_datetime(df, timelike_colnames):
+  """Attempts to convert time-like columns to datetime dtype columns.
+
+  Args:
+    df: (pd.DataFrame) A dataframe.
+    timelike_colnames: (list<str>) Column names to convert to datetime dtype.
+
+  Returns:
+    (pd.DataFrame) A dataframe copy with zero or more time-like columns having
+    been converted to datetime columns.
+  """
+  # Lazy import to avoid loading pandas and transitive deps on kernel init.
+  import pandas as pd  # pylint: disable=g-import-not-at-top
+
+  df = df.copy()  # Avoid in-place modification of user's dataframe.
+
+  def as_datetime(series):
+    # Support numeric-valued year.
+    if series.name == 'year' and series.dtype.kind == 'i':
+      return pd.to_datetime(series.astype('str'))
+    # Support seconds since unix epoch.
+    if 'timestamp' in series.name and series.dtype.kind == 'f':
+      return pd.to_datetime(series, unit='s')
+    return pd.to_datetime(series)
+
+  for c in timelike_colnames:
+    try:  # Just keep going if any particular column fails to convert.
+      df[c] = as_datetime(df[c])
+    except Exception:  # pylint: disable=broad-except
+      continue
+  return df
+
+
 class ChartSectionType:
   HISTOGRAM = 'histogram'
   VALUE_PLOT = 'value_plot'
@@ -90,28 +123,28 @@ class SectionTitle:
 class DataframeRegistry:
   """Dataframe registry for charts-with-code that may be displayed."""
 
-  def __init__(self):
-    self._df_chart_registry = {}
+  def __init__(self, namespace):
+    self._namespace = namespace
+    self._next_df_index = 0
 
-  def register_df_varname(self, df):
-    """Registers a given dataframe.
+  def _get_next_placeholder_varname(self):
+    def _get_varname():
+      return f'_df_{self._next_df_index}'
 
-    Equivalent dataframes (as determined by hash value) will receive the same
-    name on repeated requests.
+    # It's possible there's an existing user-defined varname.
+    while _get_varname() in self._namespace:
+      self._next_df_index += 1
+    return _get_varname()
 
-    Args:
-      df: (pd.DataFrame) A dataframe.
+  def get_or_register_varname(self, df):
+    """Gets or adds a varname for the df."""
+    for varname, var in self._namespace.items():
+      if df is var and not varname.startswith('_'):
+        return varname
 
-    Returns:
-      (str) A unique^* variable name for the dataframe.
-      (^* modulo unlikely hash collisions)
-    """
-    df_name = f'df_{abs(hash(df.values.tobytes()))}'
-    self._df_chart_registry[df_name] = df
-    return df_name
-
-  def __getitem__(self, df_varname):
-    return self._df_chart_registry[df_varname]
+    varname = self._get_next_placeholder_varname()
+    self._namespace[varname] = df
+    return varname
 
 
 class ChartWithCode:
@@ -120,7 +153,7 @@ class ChartWithCode:
   def __init__(self, df, plot_func, args, kwargs, df_registry):
     self._df = df
     self._df_registry = df_registry
-    self._df_varname = self._df_registry.register_df_varname(df)
+    self._df_varname = None
 
     self._plot_func = plot_func
     self._args = args
@@ -140,6 +173,8 @@ class ChartWithCode:
 
   def get_code(self):
     """Gets the code and associated dependencies + context for a given chart."""
+    if self._df_varname is None:
+      self._df_varname = self._df_registry.get_or_register_varname(self._df)
 
     plot_func_src = inspect.getsource(self._plot_func)
     plot_invocation = textwrap.dedent(
@@ -156,8 +191,7 @@ class ChartWithCode:
     chart_src = textwrap.dedent("""\
         import numpy as np
         from google.colab import autoviz
-        {df_varname} = autoviz.get_df('{df_varname}')
-        """.format(df_varname=self._df_varname))
+        """)
     chart_src += '\n'
     chart_src += plot_func_src
     chart_src += '\n'

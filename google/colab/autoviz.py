@@ -31,6 +31,23 @@ def quickchart(df):
     chart_section.display()
 
 
-get_df = _quickchart.get_df
+def get_df(df_varname):  # pylint:disable=unused-argument
+  """Gets a dataframe that has been previously stored.
+
+  Args:
+    df_varname: (str) A string-based key denoting the dataframe.
+
+  Returns:
+    (pd.DataFrame) A dataframe.
+
+  Raises:
+    ValueError: when invoked since a different approach naming/accessing dfs is
+    now in use.
+  """
+  raise ValueError(
+      'autoviz.get_df was removed; please re-insert the code for your chart to '
+      'see updated code.'
+  )
+
 
 MplChart = _quickchart_lib.MplChart

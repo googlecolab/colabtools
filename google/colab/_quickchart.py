@@ -1,6 +1,8 @@
 """Automated chart generation for data frames."""
 import itertools
 import logging
+
+import IPython
 import numpy as np
 
 
@@ -24,23 +26,6 @@ _CATEGORICAL_LARGE_SIZE_THRESHOLD = 8  # Facet-friendly size limit.
 _DATAFRAME_REGISTRY = None
 
 
-def get_df(df_varname):
-  """Gets a dataframe that has been previously stored.
-
-  Args:
-    df_varname: (str) A string-based key denoting the dataframe.
-
-  Returns:
-    (pd.DataFrame) A dataframe.
-
-  Raises:
-    KeyError: when the specified dataframe has not been stored.
-  """
-  if _DATAFRAME_REGISTRY is None:
-    raise KeyError(f'Dataframe "{df_varname}" is not available')
-  return _DATAFRAME_REGISTRY[df_varname]
-
-
 def find_charts(
     df,
     max_chart_instances=None,
@@ -58,16 +43,23 @@ def find_charts(
   # Lazy import to avoid loading altair and transitive deps on kernel init.
   from google.colab import _quickchart_helpers  # pylint: disable=g-import-not-at-top
 
-  global _DATAFRAME_REGISTRY
-  if _DATAFRAME_REGISTRY is None:
-    _DATAFRAME_REGISTRY = _quickchart_helpers.DataframeRegistry()
+  def _ensure_dataframe_registry():
+    global _DATAFRAME_REGISTRY
+    if _DATAFRAME_REGISTRY is None:
+      if IPython.get_ipython():
+        variable_namespace = IPython.get_ipython().user_ns
+      else:  # Fallback to placeholder namespace in testing environment.
+        variable_namespace = {}
+      _DATAFRAME_REGISTRY = _quickchart_helpers.DataframeRegistry(
+          variable_namespace
+      )
 
-  df = _coerce_datetime_columns(df)
+  _ensure_dataframe_registry()
+
   dtype_groups = _classify_dtypes(df)
   numeric_cols = dtype_groups['numeric']
   categorical_cols = dtype_groups['categorical']
-  timelike_cols = dtype_groups['timelike']
-  datetime_cols = dtype_groups['datetime']
+  time_cols = dtype_groups['datetime'] + dtype_groups['timelike']
   chart_sections = []
 
   if numeric_cols:
@@ -118,13 +110,12 @@ def find_charts(
         ),
     ]
 
-  if timelike_cols or datetime_cols:
+  if time_cols:
     chart_sections.append(
         _quickchart_helpers.time_series_line_plots_section(
             df,
             _select_time_series_cols(
-                timelike_cols=timelike_cols,
-                datetime_cols=datetime_cols,
+                time_cols=time_cols,
                 numeric_cols=numeric_cols,
                 categorical_cols=categorical_cols,
                 k=max_chart_instances,
@@ -168,14 +159,11 @@ def _select_faceted_numeric_cols(numeric_cols, categorical_cols, k=None):
   return itertools.islice(itertools.product(numeric_cols, categorical_cols), k)
 
 
-def _select_time_series_cols(
-    timelike_cols, datetime_cols, numeric_cols, categorical_cols, k=None
-):
+def _select_time_series_cols(time_cols, numeric_cols, categorical_cols, k=None):
   """Selects combinations of colnames that can be plotted as time series.
 
   Args:
-    timelike_cols: (iter<str>) Available time-like columns.
-    datetime_cols: (iter<str>) Available datetime columns.
+    time_cols: (iter<str>) Available time-like columns.
     numeric_cols: (iter<str>) Available numeric columns.
     categorical_cols: (iter<str>) Available categorical columns.
     k: (int) The number of combinations to select.
@@ -184,7 +172,6 @@ def _select_time_series_cols(
     (iter<(str, str, str)>) Prioritized sequence of (time, value, series)
     colname combinations.
   """
-  time_cols = datetime_cols + timelike_cols
   numeric_cols = [c for c in numeric_cols if c not in time_cols]
   numeric_aggregates = ['count()']
   if not categorical_cols:
@@ -195,46 +182,6 @@ def _select_time_series_cols(
       ),
       k,
   )
-
-
-def _coerce_datetime_columns(df):
-  """Attempts to coerce time-related columns to datetime dtype.
-
-  Args:
-    df: (pd.DataFrame) A dataframe.
-
-  Returns:
-    (pd.DataFrame) A dataframe, possibly with one or more columns having a
-    modified dtype relative to the input dtypes.
-  """
-  # Lazy import to avoid loading pandas and transitive deps on kernel init.
-  import pandas as pd  # pylint: disable=g-import-not-at-top
-
-  def maybe_datetime(series):
-    return any(
-        [
-            series.name.lower().startswith(p) or series.name.lower().endswith(p)
-            for p in _DATETIME_COLNAME_PATTERNS
-        ]
-    ) or any([series.name.lower() == c for c in _DATETIME_COLNAMES])
-
-  def as_datetime(series):
-    # Support numeric-valued year.
-    if series.name == 'year' and series.dtype.kind == 'i':
-      return pd.to_datetime(series.astype('str'))
-    # Support seconds since unix epoch.
-    if 'timestamp' in series.name and series.dtype.kind == 'f':
-      return pd.to_datetime(series, unit='s')
-    return pd.to_datetime(series)
-
-  df = df.copy()
-  for c in df.columns:
-    if maybe_datetime(df[c]):
-      try:  # Just keep going if any particular column fails to convert.
-        df[c] = as_datetime(df[c])
-      except Exception:  # pylint: disable=broad-except
-        continue
-  return df
 
 
 def _classify_dtypes(
@@ -301,8 +248,17 @@ def _classify_dtypes(
     else:
       large_cat_cols.append(colname)
 
-  for colname in numeric_cols:
-    if _is_monotonically_increasing((df[colname])):
+  for colname in df.columns:
+    if (
+        any(
+            [
+                colname.lower().startswith(p) or colname.lower().endswith(p)
+                for p in _DATETIME_COLNAME_PATTERNS
+            ]
+        )
+        or any([colname.lower() == c for c in _DATETIME_COLNAMES])
+        or _is_monotonically_increasing_numeric(df[colname])
+    ):
       timelike_cols.append(colname)
 
   return {
@@ -316,8 +272,10 @@ def _classify_dtypes(
   }
 
 
-def _is_monotonically_increasing(series):
-  return np.all(np.array(series)[:-1] <= np.array(series)[1:])
+def _is_monotonically_increasing_numeric(series):
+  return np.issubdtype(series.dtype.base, np.number) and np.all(
+      np.array(series)[:-1] <= np.array(series)[1:]
+  )
 
 
 def _get_axis_bounds(series, padding_percent=0.05, zero_rtol=1e-3):

@@ -100,7 +100,7 @@ class DataframeCache(object):
 
     # Ensure our last value cache only contains one item.
     self._last_noninteractive_df.clear()
-    self._last_noninteractive_df[key] = df.copy(deep=False)
+    self._last_noninteractive_df[key] = df
 
   def keys(self):
     return list(self._noninteractive_df_refs.keys()) + list(
