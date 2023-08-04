@@ -57,8 +57,12 @@ class autoviz:  # pylint:disable=invalid-name
 # pylint:disable=missing-function-docstring
 
 
-def histogram(df, colname, num_bins=20, figsize=(2, 1)):
+# NOTE: All functions below must have a `figscale` keyword arg.
+
+
+def histogram(df, colname, num_bins=20, figscale=1):
   from matplotlib import pyplot as plt
+  figsize = (8 * figscale, 4 * figscale)
   _, ax = plt.subplots(figsize=figsize)
   plt.hist(df[colname], bins=num_bins, histtype='stepfilled')
   plt.ylabel('count')
@@ -68,9 +72,10 @@ def histogram(df, colname, num_bins=20, figsize=(2, 1)):
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def categorical_histogram(df, colname, figsize=(2, 1.2), mpl_palette_name='Dark2'):
+def categorical_histogram(df, colname, figscale=1, mpl_palette_name='Dark2'):
   from matplotlib import pyplot as plt
   import seaborn as sns
+  figsize = (8 * figscale, 4.8 * figscale)
   _, ax = plt.subplots(figsize=figsize)
   bars = df[colname].value_counts()
   plt.barh(bars.index, bars.values, color=sns.palettes.mpl_palette(mpl_palette_name))
@@ -79,10 +84,11 @@ def categorical_histogram(df, colname, figsize=(2, 1.2), mpl_palette_name='Dark2
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def heatmap(df, x_colname, y_colname, figsize=(2, 2), mpl_palette_name='viridis'):
+def heatmap(df, x_colname, y_colname, figscale=1, mpl_palette_name='viridis'):
   from matplotlib import pyplot as plt
   import seaborn as sns
   import pandas as pd
+  figsize = (8 * figscale, 8 * figscale)
   plt.subplots(figsize=figsize)
   df_2dhist = pd.DataFrame({
       x_label: grp[y_colname].value_counts()
@@ -94,12 +100,13 @@ def heatmap(df, x_colname, y_colname, figsize=(2, 2), mpl_palette_name='viridis'
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def swarm_plot(df, value_colname, facet_colname, col_width=.3, height=2, mpl_palette_name='Dark2', jitter_domain_width=8):
+def swarm_plot(df, value_colname, facet_colname, figscale=1, mpl_palette_name='Dark2', jitter_domain_width=8):
   from matplotlib import pyplot as plt
   import seaborn as sns
   palette = sns.palettes.mpl_palette(mpl_palette_name)
   facet_values = list(sorted(df[facet_colname].unique()))
-  _, ax = plt.subplots(figsize=(col_width * len(facet_values), height))
+  figsize = (1.2 * figscale * len(facet_values), 8 * figscale)
+  _, ax = plt.subplots(figsize=figsize)
   ax.spines[['top', 'right']].set_visible(False)
   xtick_locs = [jitter_domain_width*i for i in range(len(facet_values))]
   for i, facet_value in enumerate(facet_values):
@@ -114,17 +121,19 @@ def swarm_plot(df, value_colname, facet_colname, col_width=.3, height=2, mpl_pal
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def violin_plot(df, value_colname, facet_colname, col_width=.3, col_length=3, mpl_palette_name='Dark2', **kwargs):
+def violin_plot(df, value_colname, facet_colname, figscale=1, mpl_palette_name='Dark2', **kwargs):
   from matplotlib import pyplot as plt
   import seaborn as sns
-  plt.figure(figsize=(col_length, col_width * len(df[facet_colname].unique())))
+  figsize = (12 * figscale, 1.2 * figscale * len(df[facet_colname].unique()))
+  plt.figure(figsize=figsize)
   sns.violinplot(df, x=value_colname, y=facet_colname, palette=mpl_palette_name, **kwargs)
   sns.despine(top=True, right=True, bottom=True, left=True)
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def value_plot(df, y, sort_ascending=False, figsize=(2, 1)):
+def value_plot(df, y, sort_ascending=False, figscale=1):
   from matplotlib import pyplot as plt
+  figsize = (8 * figscale, 4 * figscale)
   if sort_ascending:
     df = df.sort_values(y).reset_index(drop=True)
   _, ax = plt.subplots(figsize=figsize)
@@ -135,12 +144,15 @@ def value_plot(df, y, sort_ascending=False, figsize=(2, 1)):
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def scatter_plots(df, colname_pairs, scatter_plot_size=2.5, size=8, alpha=.6):
+def scatter_plots(df, colname_pairs, figscale=1, alpha=.6):
   from matplotlib import pyplot as plt
-  plt.figure(figsize=(len(colname_pairs) * scatter_plot_size, scatter_plot_size))
+  figsize = (len(colname_pairs) * 10 * figscale, 10 * figscale)
+  plt.figure(figsize=figsize)
   for plot_i, (x_colname, y_colname) in enumerate(colname_pairs, start=1):
     ax = plt.subplot(1, len(colname_pairs), plot_i)
-    ax.scatter(df[x_colname], df[y_colname], s=size, alpha=alpha)
+    # Note: `32*figscale` may be too large; scaling by # of datapoints may be
+    # wiser.
+    ax.scatter(df[x_colname], df[y_colname], s=(32 * figscale), alpha=alpha)
     plt.xlabel(x_colname)
     plt.ylabel(y_colname)
     ax.spines[['top', 'right',]].set_visible(False)
@@ -148,9 +160,10 @@ def scatter_plots(df, colname_pairs, scatter_plot_size=2.5, size=8, alpha=.6):
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def time_series_multiline(df, timelike_colname, value_colname, series_colname, figsize=(2.5, 1.3), mpl_palette_name='Dark2'):
+def time_series_multiline(df, timelike_colname, value_colname, series_colname, figscale=1, mpl_palette_name='Dark2'):
   from matplotlib import pyplot as plt
   import seaborn as sns
+  figsize = (10 * figscale, 5.2 * figscale)
   palette = list(sns.palettes.mpl_palette(mpl_palette_name))
   def _plot_series(series, series_name, series_index=0):
     if value_colname == 'count()':

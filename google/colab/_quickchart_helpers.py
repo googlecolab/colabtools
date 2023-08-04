@@ -161,7 +161,11 @@ class ChartWithCode:
 
     self._chart_id = f'chart-{str(_uuid.uuid4())}'
     with mpl.rc_context(dict(_MPL_STYLE_OPTIONS)):
-      self._chart = plot_func(df, *args, **kwargs)
+      # We want the charts to be small when there are many of them, but larger
+      # when a user inserts a single chart. We set `figscale` here so that it
+      # isn't remembered if a user clicks on a chart.
+      figscale = 0.25
+      self._chart = plot_func(df, figscale=figscale, *args, **kwargs)
 
   @property
   def chart_id(self):
