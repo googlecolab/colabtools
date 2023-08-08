@@ -1,15 +1,34 @@
 """API to access user secrets."""
 
-from google.colab._message import blocking_request as BlockingRequest
+from google.colab import _message
 
 
-def Get(*args):
+class NotebookAccessError(Exception):
+  """Exception thrown then the current notebook doesn't have access to the requested secret."""
+
+  def __init__(self, key):
+    super().__init__(f'Notebook does not have access to secret {key}')
+
+
+def Get(key):
   """Fetchets the value for specified secret keys.
 
   Args:
-    *args: identifiers for the secret to fetch.
+    key: Identifier of the secret to fetch.
 
   Returns:
     Stored secret
+
+  Raises:
+    NotebookAccessError: If the notebook does not have access to the requested
+    secret.
   """
-  return BlockingRequest('GetSecret', request={'keys': args}, timeout_sec=None)
+  resp = _message.blocking_request(
+      'GetSecret', request={'key': key}, timeout_sec=None
+  )
+  access = resp.get('access', False)
+  if not access:
+    # TODO(b/294619193): Open the user secrets pane so that they can grant
+    # access.
+    raise NotebookAccessError(key)
+  return resp.get('payload', '')
