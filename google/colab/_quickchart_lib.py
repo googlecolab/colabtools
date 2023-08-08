@@ -62,12 +62,8 @@ class autoviz:  # pylint:disable=invalid-name
 
 def histogram(df, colname, num_bins=20, figscale=1):
   from matplotlib import pyplot as plt
-  figsize = (8 * figscale, 4 * figscale)
-  _, ax = plt.subplots(figsize=figsize)
-  plt.hist(df[colname], bins=num_bins, histtype='stepfilled')
-  plt.ylabel('count')
-  plt.title(colname)
-  ax.spines[['top', 'right',]].set_visible(False)
+  df[colname].plot(kind='hist', bins=num_bins, title=colname, figsize=(8*figscale, 4*figscale))
+  plt.gca().spines[['top', 'right',]].set_visible(False)
   plt.tight_layout()
   return autoviz.MplChart.from_current_mpl_state()
 
@@ -75,12 +71,8 @@ def histogram(df, colname, num_bins=20, figscale=1):
 def categorical_histogram(df, colname, figscale=1, mpl_palette_name='Dark2'):
   from matplotlib import pyplot as plt
   import seaborn as sns
-  figsize = (8 * figscale, 4.8 * figscale)
-  _, ax = plt.subplots(figsize=figsize)
-  bars = df[colname].value_counts()
-  plt.barh(bars.index, bars.values, color=sns.palettes.mpl_palette(mpl_palette_name))
-  plt.title(colname)
-  ax.spines[['top', 'right',]].set_visible(False)
+  df.groupby(colname).size().plot(kind='barh', color=sns.palettes.mpl_palette(mpl_palette_name), figsize=(8*figscale, 4.8*figscale))
+  plt.gca().spines[['top', 'right',]].set_visible(False)
   return autoviz.MplChart.from_current_mpl_state()
 
 
@@ -88,8 +80,7 @@ def heatmap(df, x_colname, y_colname, figscale=1, mpl_palette_name='viridis'):
   from matplotlib import pyplot as plt
   import seaborn as sns
   import pandas as pd
-  figsize = (8 * figscale, 8 * figscale)
-  plt.subplots(figsize=figsize)
+  plt.subplots(figsize=(8 * figscale, 8 * figscale))
   df_2dhist = pd.DataFrame({
       x_label: grp[y_colname].value_counts()
       for x_label, grp in df.groupby(x_colname)
@@ -131,30 +122,20 @@ def violin_plot(df, value_colname, facet_colname, figscale=1, mpl_palette_name='
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def value_plot(df, y, sort_ascending=False, figscale=1):
+def value_plot(df, y, figscale=1):
   from matplotlib import pyplot as plt
-  figsize = (8 * figscale, 4 * figscale)
-  if sort_ascending:
-    df = df.sort_values(y).reset_index(drop=True)
-  _, ax = plt.subplots(figsize=figsize)
-  df[y].plot(kind='line')
-  plt.title(y)
-  ax.spines[['top', 'right',]].set_visible(False)
+  df[y].plot(kind='line', figsize=(8 * figscale, 4 * figscale), title=y)
+  plt.gca().spines[['top', 'right']].set_visible(False)
   plt.tight_layout()
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def scatter_plots(df, colname_pairs, figscale=1, alpha=.6):
+def scatter_plots(df, colname_pairs, figscale=1, alpha=.8):
   from matplotlib import pyplot as plt
-  figsize = (len(colname_pairs) * 10 * figscale, 10 * figscale)
-  plt.figure(figsize=figsize)
+  plt.figure(figsize=(len(colname_pairs) * 10 * figscale, 10 * figscale))
   for plot_i, (x_colname, y_colname) in enumerate(colname_pairs, start=1):
     ax = plt.subplot(1, len(colname_pairs), plot_i)
-    # Note: `32*figscale` may be too large; scaling by # of datapoints may be
-    # wiser.
-    ax.scatter(df[x_colname], df[y_colname], s=(32 * figscale), alpha=alpha)
-    plt.xlabel(x_colname)
-    plt.ylabel(y_colname)
+    df.plot(kind='scatter', x=x_colname, y=y_colname, s=(32 * figscale), alpha=alpha, ax=ax)
     ax.spines[['top', 'right',]].set_visible(False)
   plt.tight_layout()
   return autoviz.MplChart.from_current_mpl_state()
