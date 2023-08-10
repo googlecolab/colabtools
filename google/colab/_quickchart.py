@@ -207,6 +207,7 @@ def _classify_dtypes(
   """
   # Lazy import to avoid loading pandas and transitive deps on kernel init.
   import pandas as pd  # pylint: disable=g-import-not-at-top
+  from pandas.api.types import is_numeric_dtype  # pylint: disable=g-import-not-at-top
 
   dtypes = (
       pd.DataFrame(df.dtypes, columns=['colname_dtype'])
@@ -231,7 +232,7 @@ def _classify_dtypes(
         colname_dtype.kind in datetime_dtype_kinds
     ):
       datetime_cols.append(colname)
-    elif np.issubdtype(colname_dtype, np.number):
+    elif is_numeric_dtype(colname_dtype):
       numeric_cols.append(colname)
     else:
       filtered_cols.append(colname)
@@ -273,6 +274,10 @@ def _classify_dtypes(
 
 
 def _is_monotonically_increasing_numeric(series):
+  # Pandas extension dtypes do not extend numpy's dtype and will fail if passed
+  # into issubdtype.
+  if not isinstance(series.dtype, np.dtype):
+    return False
   return np.issubdtype(series.dtype.base, np.number) and np.all(
       np.array(series)[:-1] <= np.array(series)[1:]
   )
