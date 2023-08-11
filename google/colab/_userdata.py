@@ -10,7 +10,7 @@ class NotebookAccessError(Exception):
     super().__init__(f'Notebook does not have access to secret {key}')
 
 
-def Get(key):
+def get(key):
   """Fetchets the value for specified secret keys.
 
   Args:
