@@ -18,6 +18,7 @@ import textwrap
 import uuid as _uuid
 import weakref as _weakref
 
+from google.colab import _generate_with_variable
 from google.colab import _interactive_table_hint_button
 from google.colab import _quickchart
 from google.colab import output
@@ -26,6 +27,7 @@ import IPython as _IPython
 
 _output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
+_ENABLE_GENERATE = False
 
 _ICON_SVG = textwrap.dedent("""
   <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
@@ -163,9 +165,13 @@ def _df_formatter_with_hint_buttons(df):
       _interactive_table_hint_button._df_formatter_with_interactive_hint(df)  # pylint: disable=protected-access
   )
   style_index = interactive_table_button_html.find('<style>')
+  generate_html = ''
+  if _ENABLE_GENERATE:
+    generate_html = _generate_with_variable.get_html(df)
   return textwrap.dedent(f"""
       {interactive_table_button_html[:style_index]}
       {quickchart_button_html}
+      {generate_html}
       <script>
         {quickchart_button_js}
         displayQuickchartButton(document);
