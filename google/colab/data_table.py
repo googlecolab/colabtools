@@ -28,6 +28,8 @@ import warnings as _warnings
 
 from google.colab import _interactive_table_helper
 from google.colab import _quickchart_hint_button
+from google.colab import autoviz as _autoviz
+from google.colab import widgets as _widgets
 import IPython as _IPython
 from IPython import display as _display
 
@@ -46,6 +48,7 @@ __all__ = [
     'disable_dataframe_formatter',
     'load_ipython_extension',
     'unload_ipython_extension',
+    'display_dataframe',
 ]
 
 # For details on updating gviz js, refer to: <internal>/gviz/update_data_table
@@ -280,6 +283,30 @@ class DataTable(_display.DisplayObject):
         quickchart_button_html=quickchart_button_html,
         quickchart_button_js=quickchart_button_js,
     )
+
+
+def display_dataframe(df):
+  """Display a dataframe as a table, possibly with additional information.
+
+  This function is *not* intended to have a stable output: over time, the
+  details of what is displayed will change. Currently, this also includes
+  summary information and a selection of automatically generated charts.
+
+  Args:
+    df: a pd.DataFrame to be displayed
+
+  Returns:
+    None
+  """
+  t = _widgets.TabBar(['Data', 'Charts', 'Summary'])
+  with t.output_to('Data'):
+    _display.display(DataTable(df, include_index=False))
+  with t.output_to('Charts', select=False):
+    _autoviz.quickchart(df)
+  with t.output_to('Summary', select=False):
+    s = df.describe(datetime_is_numeric=True, include='all').fillna('').T
+    _display.display(DataTable(s))
+  return
 
 
 class _JavascriptModuleFormatter(_IPython.core.formatters.BaseFormatter):
