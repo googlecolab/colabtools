@@ -153,73 +153,39 @@ output.register_callback('suggestCharts', _suggest_charts)
 def register_df_and_get_html(df):
   df_key = f'df-{str(_uuid.uuid4())}'
   _df_cache[df_key] = df
-  quickchart_button_html = _get_html(df_key)
-  quickchart_button_js = _get_js(df_key)
-  return quickchart_button_html, quickchart_button_js
+  return f"""
+<div id="{df_key}">
+  <button class="colab-df-quickchart" onclick="quickchart('{df_key}')"
+            title="Suggest charts."
+            style="display:none;">
+    {_ICON_SVG}
+  </button>
+  {_HINT_BUTTON_CSS}
+  <script>
+    async function quickchart(key) {{
+      const charts = await google.colab.kernel.invokeFunction(
+          'suggestCharts', [key], {{}});
+    }}
+    (() => {{
+      let quickchartButtonEl =
+        document.querySelector('#{df_key} button');
+      quickchartButtonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
+    }})();
+  </script>
+</div>"""
 
 
 def _df_formatter_with_hint_buttons(df):
   """Alternate df formatter with buttons for interactive and quickchart."""
-  quickchart_button_html, quickchart_button_js = register_df_and_get_html(df)
-  interactive_table_button_html = (
-      _interactive_table_hint_button._df_formatter_with_interactive_hint(df)  # pylint: disable=protected-access
-  )
-  style_index = interactive_table_button_html.find('<style>')
-  generate_html = ''
+  buttons = [register_df_and_get_html(df)]
   if _ENABLE_GENERATE:
-    generate_html = _generate_with_variable.get_html(df)
-  return textwrap.dedent(f"""
-      {interactive_table_button_html[:style_index]}
-      {quickchart_button_html}
-      {generate_html}
-      <script>
-        {quickchart_button_js}
-        displayQuickchartButton(document);
-      </script>
-      {interactive_table_button_html[style_index:]}""")
-
-
-def _get_js(key):
-  """Gets the post-DOM insertion JS for the quickchart button.
-
-  Note: this js section is intended to be invoked upon adding the button html
-  to the DOM tree, while the _get_html() js <script> section is for callbacks
-  that are invoked at some later point.
-
-  Args:
-    key: (str) Dataframe lookup key.
-
-  Returns:
-    (str) Javascript code as text.
-  """
-  return textwrap.dedent(f"""
-    function displayQuickchartButton(domScope) {{
-      let quickchartButtonEl =
-        domScope.querySelector('#{key} button.colab-df-quickchart');
-      quickchartButtonEl.style.display =
-        google.colab.kernel.accessAllowed ? 'block' : 'none';
-    }}
-  """)
-
-
-def _get_html(key):
-  return textwrap.dedent(f"""
-    <div id="{key}">
-      <button class="colab-df-quickchart" onclick="quickchart('{key}')"
-              title="Suggest charts."
-              style="display:none;">
-        {_ICON_SVG}
-      </button>
-    </div>
-    {_HINT_BUTTON_CSS}
-    <script>
-      async function quickchart(key) {{
-        const containerElement = document.querySelector('#' + key);
-        const charts = await google.colab.kernel.invokeFunction(
-            'suggestCharts', [key], {{}});
-      }}
-    </script>
-  """)
+    buttons.append(_generate_with_variable.get_html(df))
+  # pylint: disable=protected-access
+  html = _interactive_table_hint_button._df_formatter_with_interactive_hint(
+      df, buttons
+  )
+  return textwrap.dedent(html)
 
 
 _original_formatters = {}

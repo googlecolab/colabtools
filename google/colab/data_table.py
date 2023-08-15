@@ -244,8 +244,8 @@ class DataTable(_display.DisplayObject):
           'width': '1px',
           'className': 'index_column',
       }] * self._dataframe.index.nlevels
-    quickchart_button_html, quickchart_button_js = (
-        _quickchart_hint_button.register_df_and_get_html(dataframe)
+    quickchart_button_html = _quickchart_hint_button.register_df_and_get_html(
+        dataframe
     )
     return """
       import "{gviz_url}";
@@ -259,13 +259,11 @@ class DataTable(_display.DisplayObject):
         suppressOutputScrolling: {suppress_output_scrolling},
         minimumWidth: {min_width},
       }});
-      
+
       function appendQuickchartButton(parentElement) {{
         let quickchartButtonContainerElement = document.createElement('div');
         quickchartButtonContainerElement.innerHTML = `{quickchart_button_html}`;
         parentElement.appendChild(quickchartButtonContainerElement);
-        {quickchart_button_js}
-        displayQuickchartButton(parentElement);
       }}
 
       appendQuickchartButton(table);
@@ -281,7 +279,6 @@ class DataTable(_display.DisplayObject):
         ),
         min_width=f'"{self._min_width}"' if self._min_width else 'undefined',
         quickchart_button_html=quickchart_button_html,
-        quickchart_button_js=quickchart_button_js,
     )
 
 

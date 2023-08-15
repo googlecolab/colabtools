@@ -30,7 +30,6 @@ _HINT_BUTTON_CSS = """
   <style>
     .colab-df-container {
       display:flex;
-      flex-wrap:wrap;
       gap: 12px;
     }
 
@@ -50,6 +49,10 @@ _HINT_BUTTON_CSS = """
       background-color: #E2EBFA;
       box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
       fill: #174EA6;
+    }
+
+    .colab-df-buttons div {
+      margin-bottom: 4px;
     }
 
     [theme=dark] .colab-df-convert {
@@ -101,7 +104,7 @@ def _get_last_dataframe_key():
 _output_callbacks = {}
 
 
-def _df_formatter_with_interactive_hint(dataframe):
+def _df_formatter_with_interactive_hint(dataframe, buttons=None):
   """Alternate df formatter that includes a button to convert to interactive."""
   key = 'df-' + str(_uuid.uuid4())
   _noninteractive_df_refs[key] = dataframe
@@ -115,53 +118,67 @@ def _df_formatter_with_interactive_hint(dataframe):
     _output_callbacks[convert_func] = _output.register_callback(
         convert_func, _convert_to_interactive
     )
-  return _get_html(dataframe, key)
+  if not buttons:
+    buttons = []
+  buttons.insert(0, _get_button_html(key))
+  return _get_html(dataframe, key, buttons)
 
 
-def _get_html(dataframe, key):
-  # pylint: disable=protected-access
+def _get_button_html(key):
   return """
-  <div id="{key}">
-    <div class="colab-df-container">
-      {df_html}
-      <button class="colab-df-convert" onclick="convertToInteractive('{key}')"
-              title="Convert this dataframe to an interactive table."
-              style="display:none;">
-        {icon}
-      </button>
-      {css}
-      <script>
-        const buttonEl =
-          document.querySelector('#{key} button.colab-df-convert');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
+  <div class="colab-df-container">
+    <button class="colab-df-convert" onclick="convertToInteractive('{key}')"
+            title="Convert this dataframe to an interactive table."
+            style="display:none;">
+      {icon}
+    </button>
+    {css}
+    <script>
+      const buttonEl =
+        document.querySelector('#{key} button.colab-df-convert');
+      buttonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
 
-        async function convertToInteractive(key) {{
-          const element = document.querySelector('#{key}');
-          const dataTable =
-            await google.colab.kernel.invokeFunction('convertToInteractive',
-                                                     [key], {{}});
-          if (!dataTable) return;
+      async function convertToInteractive(key) {{
+        const element = document.querySelector('#{key}');
+        const dataTable =
+          await google.colab.kernel.invokeFunction('convertToInteractive',
+                                                    [key], {{}});
+        if (!dataTable) return;
 
-          const docLinkHtml = 'Like what you see? Visit the ' +
-            '<a target="_blank" href={data_table_url}>data table notebook</a>'
-            + ' to learn more about interactive tables.';
-          element.innerHTML = '';
-          dataTable['output_type'] = 'display_data';
-          await google.colab.output.renderOutput(dataTable, element);
-          const docLink = document.createElement('div');
-          docLink.innerHTML = docLinkHtml;
-          element.appendChild(docLink);
-        }}
-      </script>
-    </div>
+        const docLinkHtml = 'Like what you see? Visit the ' +
+          '<a target="_blank" href={data_table_url}>data table notebook</a>'
+          + ' to learn more about interactive tables.';
+        element.innerHTML = '';
+        dataTable['output_type'] = 'display_data';
+        await google.colab.output.renderOutput(dataTable, element);
+        const docLink = document.createElement('div');
+        docLink.innerHTML = docLinkHtml;
+        element.appendChild(docLink);
+      }}
+    </script>
   </div>
   """.format(
       css=_HINT_BUTTON_CSS,
-      data_table_url=_data_table._DATA_TABLE_HELP_URL,
-      df_html=dataframe._repr_html_(),
+      data_table_url=_data_table._DATA_TABLE_HELP_URL,  # pylint: disable=protected-access
       icon=_ICON_SVG,
       key=key,
+  )
+
+
+def _get_html(dataframe, key, buttons):
+  buttons_str = '\n'.join(buttons)
+  return """
+  <div id="{key}" class="colab-df-container">
+    {df_html}
+    <div class="colab-df-buttons">
+      {buttons_str}
+    </div>
+  </div>
+  """.format(
+      key=key,
+      df_html=dataframe._repr_html_(),  # pylint: disable=protected-access
+      buttons_str=buttons_str,
   )
 
 

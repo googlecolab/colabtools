@@ -30,12 +30,6 @@ def get_html(dataframe) -> str:
   return """
   <div id="{button_id}">
     <style>
-      .colab-df-container {{
-        display:flex;
-        flex-wrap:wrap;
-        gap: 12px;
-      }}
-
       .colab-df-generate {{
         background-color: #E8F0FE;
         border: none;
@@ -66,25 +60,23 @@ def get_html(dataframe) -> str:
         fill: #FFFFFF;
       }}
     </style>
-    <div class="colab-df-container">
-      <button class="colab-df-generate" onclick="generateWithVariable('{variable_name}')"
-              title="Generate code using this dataframe."
-              style="display:none;">
-        {icon}
-      </button>
-      <script>
-       (() => {{
-        const buttonEl =
-          document.querySelector('#{button_id} button.colab-df-generate');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
+    <button class="colab-df-generate" onclick="generateWithVariable('{variable_name}')"
+            title="Generate code using this dataframe."
+            style="display:none;">
+      {icon}
+    </button>
+    <script>
+      (() => {{
+      const buttonEl =
+        document.querySelector('#{button_id} button.colab-df-generate');
+      buttonEl.style.display =
+        google.colab.kernel.accessAllowed ? 'block' : 'none';
 
-        buttonEl.onclick = () => {{
-          google.colab.notebook.generateWithVariable('{variable_name}');
-        }}
-       }})();
-      </script>
-    </div>
+      buttonEl.onclick = () => {{
+        google.colab.notebook.generateWithVariable('{variable_name}');
+      }}
+      }})();
+    </script>
   </div>
   """.format(
       icon=_ICON_SVG,
