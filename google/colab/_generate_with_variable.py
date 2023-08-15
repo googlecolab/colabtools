@@ -25,7 +25,7 @@ def get_html(dataframe) -> str:
   if not variable_name:
     return ""
 
-  button_id = str(uuid.uuid4())
+  button_id = "id_" + str(uuid.uuid4())
 
   return """
   <div id="{button_id}">
@@ -78,7 +78,7 @@ def get_html(dataframe) -> str:
           document.querySelector('#{button_id} button.colab-df-generate');
         buttonEl.style.display =
           google.colab.kernel.accessAllowed ? 'block' : 'none';
-          
+
         buttonEl.onclick = () => {{
           google.colab.notebook.generateWithVariable('{variable_name}');
         }}
