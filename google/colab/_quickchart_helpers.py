@@ -164,7 +164,7 @@ class ChartWithCode:
       # We want the charts to be small when there are many of them, but larger
       # when a user inserts a single chart. We set `figscale` here so that it
       # isn't remembered if a user clicks on a chart.
-      figscale = 0.25
+      figscale = 0.5
       self._chart = plot_func(df, figscale=figscale, *args, **kwargs)
 
   @property

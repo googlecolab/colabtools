@@ -132,7 +132,7 @@ def value_plot(df, y, figscale=1):
 
 def scatter_plots(df, colname_pairs, figscale=1, alpha=.8):
   from matplotlib import pyplot as plt
-  plt.figure(figsize=(len(colname_pairs) * 10 * figscale, 10 * figscale))
+  plt.figure(figsize=(len(colname_pairs) * 6 * figscale, 6 * figscale))
   for plot_i, (x_colname, y_colname) in enumerate(colname_pairs, start=1):
     ax = plt.subplot(1, len(colname_pairs), plot_i)
     df.plot(kind='scatter', x=x_colname, y=y_colname, s=(32 * figscale), alpha=alpha, ax=ax)
