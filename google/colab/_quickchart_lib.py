@@ -19,10 +19,18 @@ class MplChart:
 
   @classmethod
   def from_current_mpl_state(cls):
+    """Creates a PNG-based chart from the current matplotlib state."""
     from matplotlib import pyplot as plt
 
     f = io.BytesIO()
-    plt.savefig(f, bbox_inches='tight')
+    plt.savefig(
+        f,
+        bbox_inches='tight',
+        # TODO(b/210783561): Remove when internal version is updated.
+        transparent=False,
+        edgecolor='white',
+        facecolor='white',
+    )
     plt.close()
     f.seek(0)
     png_data = f.read()
