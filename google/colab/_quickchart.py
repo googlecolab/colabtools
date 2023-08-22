@@ -249,17 +249,17 @@ def _classify_dtypes(
     else:
       large_cat_cols.append(colname)
 
+  def _matches_datetime_pattern(colname):
+    colname = str(colname).lower()
+    return any(
+        colname.startswith(p) or colname.endswith(p)
+        for p in _DATETIME_COLNAME_PATTERNS
+    ) or any(colname == c for c in _DATETIME_COLNAMES)
+
   for colname in df.columns:
-    if (
-        any(
-            [
-                colname.lower().startswith(p) or colname.lower().endswith(p)
-                for p in _DATETIME_COLNAME_PATTERNS
-            ]
-        )
-        or any([colname.lower() == c for c in _DATETIME_COLNAMES])
-        or _is_monotonically_increasing_numeric(df[colname])
-    ):
+    if _matches_datetime_pattern(
+        colname
+    ) or _is_monotonically_increasing_numeric(df[colname]):
       timelike_cols.append(colname)
 
   return {
