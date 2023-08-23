@@ -28,6 +28,7 @@ import IPython as _IPython
 _output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
 _ENABLE_GENERATE = False
+_QUICKCHART_BUTTON_MIN_ROW_COUNT = 5  # Min # rows to enable quickchart button.
 
 _ICON_SVG = textwrap.dedent("""
   <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
@@ -105,8 +106,10 @@ class DataframeCache(object):
     self._last_noninteractive_df[key] = df
 
   def keys(self):
-    return list(self._noninteractive_df_refs.keys()) + list(
-        self._last_noninteractive_df.keys()
+    return list(
+        set(self._noninteractive_df_refs.keys()).union(
+            set(self._last_noninteractive_df.keys())
+        )
     )
 
 
@@ -124,7 +127,7 @@ def _suggest_charts(df_key):
     df = _df_cache[df_key]
   except KeyError:
     print(
-        'Error: Runtime no longer has a reference to this dataframe, please'
+        'WARNING: Runtime no longer has a reference to this dataframe, please'
         ' re-run this cell and try again.'
     )
     return
@@ -178,7 +181,9 @@ def register_df_and_get_html(df):
 
 def _df_formatter_with_hint_buttons(df):
   """Alternate df formatter with buttons for interactive and quickchart."""
-  buttons = [register_df_and_get_html(df)]
+  buttons = []
+  if len(df) >= _QUICKCHART_BUTTON_MIN_ROW_COUNT:
+    buttons.append(register_df_and_get_html(df))
   if _ENABLE_GENERATE:
     buttons.append(_generate_with_variable.get_html(df))
   # pylint: disable=protected-access
