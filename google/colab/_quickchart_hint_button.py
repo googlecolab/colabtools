@@ -28,7 +28,7 @@ import IPython as _IPython
 _output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
 _ENABLE_GENERATE = False
-_QUICKCHART_BUTTON_MIN_ROW_COUNT = 5  # Min # rows to enable quickchart button.
+_QUICKCHART_BUTTON_MIN_ROW_COUNT = 2  # Min # rows to enable quickchart button.
 
 _ICON_SVG = textwrap.dedent("""
   <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
