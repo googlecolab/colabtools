@@ -41,33 +41,91 @@ _ICON_SVG = textwrap.dedent("""
 _HINT_BUTTON_CSS = textwrap.dedent("""
   <style>
     .colab-df-quickchart {
-      background-color: #E8F0FE;
+        --bg-color: #E8F0FE;
+        --fill-color: #1967D2;
+        --hover-bg-color: #E2EBFA;
+        --hover-fill-color: #174EA6;
+        --disabled-fill-color: #AAA;
+        --disabled-bg-color: #DDD;
+    }
+
+    [theme=dark] .colab-df-quickchart {
+        --bg-color: #3B4455;
+        --fill-color: #D2E3FC;
+        --hover-bg-color: #434B5C;
+        --hover-fill-color: #FFFFFF;
+        --disabled-bg-color: #3B4455;
+        --disabled-fill-color: #666;
+    }
+
+    .colab-df-quickchart {
+      background-color: var(--bg-color);
       border: none;
       border-radius: 50%;
       cursor: pointer;
       display: none;
-      fill: #1967D2;
+      fill: var(--fill-color);
       height: 32px;
-      padding: 0 0 0 0;
+      padding: 0;
       width: 32px;
     }
 
     .colab-df-quickchart:hover {
-      background-color: #E2EBFA;
-      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-      fill: #174EA6;
+      background-color: var(--hover-bg-color);
+      box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+      fill: var(--button-hover-fill-color);
     }
 
-    [theme=dark] .colab-df-quickchart {
-      background-color: #3B4455;
-      fill: #D2E3FC;
+    .colab-df-quickchart-complete:disabled,
+    .colab-df-quickchart-complete:disabled:hover {
+      background-color: var(--disabled-bg-color);
+      fill: var(--disabled-fill-color);
+      box-shadow: none;
     }
 
-    [theme=dark] .colab-df-quickchart:hover {
-      background-color: #434B5C;
-      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
-      fill: #FFFFFF;
+    .colab-df-spinner {
+      border: 2px solid var(--fill-color);
+      border-color: transparent;
+      border-bottom-color: var(--fill-color);
+      animation:
+        spin 1s steps(1) infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        border-color: transparent;
+        border-bottom-color: var(--fill-color);
+        border-left-color: var(--fill-color);
+      }
+      20% {
+        border-color: transparent;
+        border-left-color: var(--fill-color);
+        border-top-color: var(--fill-color);
+      }
+      30% {
+        border-color: transparent;
+        border-left-color: var(--fill-color);
+        border-top-color: var(--fill-color);
+        border-right-color: var(--fill-color);
+      }
+      40% {
+        border-color: transparent;
+        border-right-color: var(--fill-color);
+        border-top-color: var(--fill-color);
+      }
+      60% {
+        border-color: transparent;
+        border-right-color: var(--fill-color);
+      }
+      80% {
+        border-color: transparent;
+        border-right-color: var(--fill-color);
+        border-bottom-color: var(--fill-color);
+      }
+      90% {
+        border-color: transparent;
+        border-bottom-color: var(--fill-color);
+      }
     }
   </style>
 """)
@@ -166,8 +224,18 @@ def register_df_and_get_html(df):
   {_HINT_BUTTON_CSS}
   <script>
     async function quickchart(key) {{
-      const charts = await google.colab.kernel.invokeFunction(
-          'suggestCharts', [key], {{}});
+      const quickchartButtonEl =
+        document.querySelector('#' + key + ' button');
+      quickchartButtonEl.disabled = true;  // To prevent multiple clicks.
+      quickchartButtonEl.classList.add('colab-df-spinner');
+      try {{
+        const charts = await google.colab.kernel.invokeFunction(
+            'suggestCharts', [key], {{}});
+      }} catch (error) {{
+        console.error('Error during call to suggestCharts:', error);
+      }}
+      quickchartButtonEl.classList.remove('colab-df-spinner');
+      quickchartButtonEl.classList.add('colab-df-quickchart-complete');
     }}
     (() => {{
       let quickchartButtonEl =
