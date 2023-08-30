@@ -71,13 +71,13 @@ def _to_datetime(df, timelike_colnames):
 
 
 class ChartSectionType:
-  HISTOGRAM = 'histogram'
-  VALUE_PLOT = 'value_plot'
-  HEATMAP = 'heatmap'
-  LINKED_SCATTER = 'linked_scatter'
   CATEGORICAL_HISTOGRAM = 'categorical_histogram'
   FACETED_DISTRIBUTION = 'faceted_distribution'
+  HEATMAP = 'heatmap'
+  HISTOGRAM = 'histogram'
+  LINKED_SCATTER = 'linked_scatter'
   TIME_SERIES_LINE_PLOT = 'time_series_line_plot'
+  VALUE_PLOT = 'value_plot'
 
 
 class ChartSection:
