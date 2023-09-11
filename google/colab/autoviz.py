@@ -50,4 +50,8 @@ def get_df(df_varname):  # pylint:disable=unused-argument
   )
 
 
+def get_registered_df(df_varname):
+  return get_df(df_varname)
+
+
 MplChart = _quickchart_lib.MplChart
