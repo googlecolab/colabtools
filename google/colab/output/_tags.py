@@ -45,10 +45,7 @@ def _add_or_remove_tags(tags_to_add=(), tags_to_remove=()):
   }
 
   if ipython.in_ipython():
-    if IPython.version_info[0] > 2:
-      display.publish_display_data({}, metadata=metadata)
-    else:
-      display.publish_display_data('display', {}, metadata=metadata)
+    display.publish_display_data({}, metadata=metadata)
 
   return output_tags
 
