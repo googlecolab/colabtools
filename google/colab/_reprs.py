@@ -101,3 +101,83 @@ def disable_df_style_formatter():
   formatters[key].for_type_by_name(
       'pandas.io.formats.style', 'Styler', _original_df_formatters.pop(key)
   )
+
+_original_dataframe_metadata_formatters = {}
+
+
+def enable_dataframe_metadata_repr():
+  """Enables dataframe metadata."""
+  key = _INTRINSIC_MIME_TYPE
+  if key not in _original_dataframe_metadata_formatters:
+    _register_intrinsic_mimetype()
+
+    shell = IPython.get_ipython()
+    if not shell:
+      return
+
+    formatters = shell.display_formatter.formatters
+    _original_dataframe_metadata_formatters[key] = formatters[
+        key
+    ].for_type_by_name(
+        'pandas.core.frame', 'DataFrame', _dataframe_intrinsic_repr
+    )
+
+
+def disable_dataframe_metadata_repr():
+  """Enables dataframe metadata."""
+
+  key = _INTRINSIC_MIME_TYPE
+  if key in _original_dataframe_metadata_formatters:
+    formatters = IPython.get_ipython().display_formatter.formatters
+    # pop() handles the case of original_formatter = None.
+    formatters[key].pop('pandas.core.frame.DataFrame')
+    formatters[key].for_type_by_name(
+        'pandas.core.frame',
+        'DataFrame',
+        _original_dataframe_metadata_formatters.pop(key),
+    )
+
+
+def _dataframe_intrinsic_repr(dataframe):
+  """Annotates a dataframe repr with some metadata about the object."""
+  result = {
+      'type': 'dataframe',
+  }
+  if ip := IPython.get_ipython():
+    namespace = ip.user_ns
+    for varname, var in namespace.items():
+      if dataframe is var and not varname.startswith('_'):
+        result['variable_name'] = varname
+        break
+
+  if summary := _summarize_dataframe(dataframe):
+    result['summary'] = summary
+
+  return result
+
+
+_MAX_DATAFRAME_ROWS = 100000
+_MAX_DATAFRAME_COLS = 20
+
+
+def _summarize_dataframe(df):
+  """Summarizes a dataframe."""
+  try:
+    import pandas as pd
+
+    if len(df) > _MAX_DATAFRAME_ROWS or len(df.columns) > _MAX_DATAFRAME_COLS:
+      return None
+
+    return (
+        pd.DataFrame()
+        .assign(
+            name=df.columns.to_series(),
+            variance=df.var(),
+            nunique=df.nunique(),
+            dtype=df.dtypes,
+            example_value=df.iloc[:1].T,
+        )
+        .to_string()
+    )
+  except Exception:  # pylint: disable=broad-except
+    return None
