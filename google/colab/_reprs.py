@@ -172,7 +172,7 @@ def _summarize_dataframe(df):
         pd.DataFrame()
         .assign(
             name=df.columns.to_series(),
-            variance=df.var(),
+            variance=df.var(numeric_only=True),
             nunique=df.nunique(),
             dtype=df.dtypes,
             example_value=df.iloc[:1].T,
