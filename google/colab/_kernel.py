@@ -21,6 +21,7 @@ from IPython.utils.tokenutil import token_at_cursor
 import zmq
 
 
+# TODO: b/280822702 - Remove this code.
 def set_unlimited_hwm():
   ctx = zmq.Context.instance()
   ctx.sockopts = {zmq.RCVHWM: 0, zmq.SNDHWM: 0}
