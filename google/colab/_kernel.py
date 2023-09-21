@@ -16,25 +16,8 @@
 from google.colab import _shell
 from google.colab import _shell_customizations
 from ipykernel import ipkernel
-from ipykernel.jsonutil import json_clean
-from IPython.utils.tokenutil import token_at_cursor
-import zmq
-
-
-# TODO: b/280822702 - Remove this code.
-def set_unlimited_hwm():
-  ctx = zmq.Context.instance()
-  ctx.sockopts = {zmq.RCVHWM: 0, zmq.SNDHWM: 0}
-
-
-# ZMQ sockets should never silently drop messages. HWM means
-# 'high water mark' and is the number of messages after which
-# ZMQ will silently drop messages on PUB/SUB sockets.
-#
-# To adjust the default HWM of all IPython sockets, we set the sockopts field
-# of the zmq.sugar.context.Context object during IPython kernel startup.
-# (Socket options must be set prior to connection.)
-set_unlimited_hwm()
+from ipykernel import jsonutil
+from IPython.utils import tokenutil
 
 
 class Kernel(ipkernel.IPythonKernel):
@@ -44,7 +27,7 @@ class Kernel(ipkernel.IPythonKernel):
     return _shell.Shell
 
   def do_inspect(self, code, cursor_pos, detail_level=0):
-    name = token_at_cursor(code, cursor_pos)
+    name = tokenutil.token_at_cursor(code, cursor_pos)
     info = self.shell.object_inspect(name)
 
     data = {}
@@ -110,7 +93,7 @@ class Kernel(ipkernel.IPythonKernel):
             ),
             'matches_incomplete': matches_incomplete,
         }
-      matches = json_clean(matches)
+      matches = jsonutil.json_clean(matches)
     except BaseException as e:  # pylint: disable=broad-except
       # TODO(b/124400682): Return an error here and ensure it's threaded through
       # to the completion failure dialog.
@@ -127,7 +110,7 @@ class Kernel(ipkernel.IPythonKernel):
       reply_content = self.do_inspect(
           content['code'], content['cursor_pos'], content.get('detail_level', 0)
       )
-      reply_content = json_clean(reply_content)
+      reply_content = jsonutil.json_clean(reply_content)
     except BaseException as e:  # pylint: disable=broad-except
       # TODO(b/124400682): Consider returning an error here.
       self.log.info('Error caught during object inspection: %s', e)
