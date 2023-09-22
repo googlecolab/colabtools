@@ -145,10 +145,22 @@ def _dataframe_intrinsic_repr(dataframe):
   }
   if ip := IPython.get_ipython():
     namespace = ip.user_ns
+    found = False
     for varname, var in namespace.items():
       if dataframe is var and not varname.startswith('_'):
         result['variable_name'] = varname
+        found = True
         break
+    if not found:
+      last_line = ip.user_ns['In'][-1]
+      varname, dot, operator = last_line.partition('.')
+      if varname.isidentifier() and dot and operator.startswith('head('):
+        import pandas as pd
+
+        possible_df = ip.user_ns.get(varname)
+        if isinstance(possible_df, pd.DataFrame):
+          result['variable_name'] = varname
+          dataframe = possible_df
 
   if summary := _summarize_dataframe(dataframe):
     result['summary'] = summary
