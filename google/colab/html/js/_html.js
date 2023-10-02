@@ -4,8 +4,6 @@
 
 (function() {
 
-let el = undefined;
-
 function safeCopy(obj) {
   const result = {};
   for (const prop in obj) {
@@ -23,21 +21,21 @@ function safeCopy(obj) {
 
 const callbacks = new Map();
 
-function addPythonEventListener(type, callbackName) {
+function addPythonEventListener(element, type, callbackName) {
   const callback = (evt) => {
     google.colab.kernel.invokeFunction(callbackName, [safeCopy(evt)], {});
   };
   callbacks.set(callbackName, callback);
-  el.addEventListener(type, callback);
+  element.addEventListener(type, callback);
 }
 
-function addJsEventListener(type, callbackSrc) {
+function addJsEventListener(element, type, callbackSrc) {
   const fn = new Function('event', callbackSrc);
   const callback = (evt) => {
     fn(evt);
   };
   callbacks.set(callbackSrc, callback);
-  el.addEventListener(type, callback);
+  element.addEventListener(type, callback);
 }
 
 function dotAccess(target, accessor) {
@@ -54,6 +52,9 @@ function dotAccess(target, accessor) {
 
 async function initialize(config) {
   el = document.getElementById(config.guid);
+  if (!el) {
+    throw new Error(`No element found with id: ${guid}`);
+  }
   if (config.tag.includes('-')) {
     await customElements.whenDefined(config.tag);
   }
@@ -73,7 +74,7 @@ async function initialize(config) {
     const jsl = config.js_listeners;
     Object.keys(jsl).forEach((k) => {
       jsl[k].forEach((cb) => {
-        addJsEventListener(k, cb);
+        addJsEventListener(el, k, cb);
       });
     });
   }
@@ -81,18 +82,18 @@ async function initialize(config) {
     const pyl = config.py_listeners;
     Object.keys(pyl).forEach((k) => {
       pyl[k].forEach((cb) => {
-        addPythonEventListener(k, cb);
+        addPythonEventListener(el, k, cb);
       });
     });
   }
 }
 
 
-function processMessage(msg) {
+function processMessage(element, msg) {
   let obj;
   let name;
   if (['call', 'setProperty', 'getProperty'].includes(msg.method)) {
-    [obj, name] = dotAccess(el, msg.name);
+    [obj, name] = dotAccess(element, msg.name);
   }
   switch (msg.method) {
     case 'setProperty':
@@ -101,22 +102,22 @@ function processMessage(msg) {
     case 'getProperty':
       return obj[name];
     case 'setAttribute':
-      el.setAttribute(msg.name, msg.value);
+      element.setAttribute(msg.name, msg.value);
       return true;
     case 'getAttribute':
-      return el.getAttribute(msg.name);
+      return element.getAttribute(msg.name);
     case 'call':
       return obj[name](...msg.value);
     case 'addPythonEventListener':
-      addPythonEventListener(msg.name, msg.value);
+      addPythonEventListener(element, msg.name, msg.value);
       return true;
     case 'addJsEventListener':
-      addJsEventListener(msg.name, msg.value);
+      addJsEventListener(element, msg.name, msg.value);
       return true;
     case 'removeEventListener':
       if (callbacks.has(msg.value)) {
         const cb = callbacks.get(msg.value);
-        el.removeEventListener(msg.name, cb);
+        element.removeEventListener(msg.name, cb);
         callbacks.delete(msg.value);
         return true;
       } else {
@@ -133,12 +134,16 @@ function createElement(config) {
   window.google.colab.output.pauseOutputUntil(initialize(config));
   const guid = config.guid;
   const tag = config.tag;
+  const el = document.getElementById(guid);
+  if (!el) {
+    throw new Error(`No element found with id: ${guid}`);
+  }
   window.google.colab.html.elements[guid] = {
     call: async (msg) => {
       if (tag.includes('-')) {
         await customElements.whenDefined(tag);
       }
-      return processMessage(msg);
+      return processMessage(el, msg);
     }
   };
 }
