@@ -162,11 +162,12 @@ def _configure_term_settings(pty_fd):
 
 def _run_command(cmd, clear_streamed_output):
   """Calls the shell command, forwarding input received on the stdin_socket."""
-  locale_encoding = locale.getpreferredencoding()
-  if locale_encoding != _ENCODING:
-    raise NotImplementedError(
-        'A UTF-8 locale is required. Got {}'.format(locale_encoding)
-    )
+  if not sys.flags.utf8_mode:
+    locale_encoding = locale.getpreferredencoding()
+    if locale_encoding != _ENCODING:
+      raise NotImplementedError(
+          'A UTF-8 locale is required. Got {}'.format(locale_encoding)
+      )
 
   parent_pty, child_pty = pty.openpty()
   _configure_term_settings(child_pty)
