@@ -79,7 +79,7 @@ def find_charts(
 
   if len(numeric_cols) >= 2:
     chart_sections += [
-        _quickchart_helpers.linked_scatter_section(
+        _quickchart_helpers.scatter_section(
             df,
             _select_first_k_pairs(numeric_cols, k=max_chart_instances),
             _DATAFRAME_REGISTRY,

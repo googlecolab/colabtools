@@ -75,7 +75,7 @@ class ChartSectionType:
   FACETED_DISTRIBUTION = 'faceted_distribution'
   HEATMAP = 'heatmap'
   HISTOGRAM = 'histogram'
-  LINKED_SCATTER = 'linked_scatter'
+  SCATTER = 'scatter'
   TIME_SERIES_LINE_PLOT = 'time_series_line_plot'
   VALUE_PLOT = 'value_plot'
 
@@ -330,8 +330,8 @@ def heatmaps_section(df, colname_pairs, df_registry):
   )
 
 
-def linked_scatter_section(df, colname_pairs, df_registry):
-  """Generates a section of linked scatter plots.
+def scatter_section(df, colname_pairs, df_registry):
+  """Generates a section of scatter plots.
 
   Args:
     df: (pd.DataFrame) A dataframe.
@@ -340,13 +340,13 @@ def linked_scatter_section(df, colname_pairs, df_registry):
     df_registry: (DataframeRegistry) Registry to use for dataframe lookups.
 
   Returns:
-    (ChartSection) A chart section containing linked scatter plots.
+    (ChartSection) A chart section containing scatter plots.
   """
   return _chart_section(
-      ChartSectionType.LINKED_SCATTER,
+      ChartSectionType.SCATTER,
       df,
-      _quickchart_lib.scatter_plots,
-      [[list(colname_pairs)]],
+      _quickchart_lib.scatter_plot,
+      colname_pairs,
       {},
       df_registry,
       '2-d distributions',

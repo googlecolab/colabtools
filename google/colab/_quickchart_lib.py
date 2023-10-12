@@ -138,13 +138,11 @@ def value_plot(df, y, figscale=1):
   return autoviz.MplChart.from_current_mpl_state()
 
 
-def scatter_plots(df, colname_pairs, figscale=1, alpha=.8):
+def scatter_plot(df, x_colname, y_colname, figscale=1, alpha=.8):
   from matplotlib import pyplot as plt
-  plt.figure(figsize=(len(colname_pairs) * 6 * figscale, 6 * figscale))
-  for plot_i, (x_colname, y_colname) in enumerate(colname_pairs, start=1):
-    ax = plt.subplot(1, len(colname_pairs), plot_i)
-    df.plot(kind='scatter', x=x_colname, y=y_colname, s=(32 * figscale), alpha=alpha, ax=ax)
-    ax.spines[['top', 'right',]].set_visible(False)
+  plt.figure(figsize=(6 * figscale, 6 * figscale))
+  df.plot(kind='scatter', x=x_colname, y=y_colname, s=(32 * figscale), alpha=alpha)
+  plt.gca().spines[['top', 'right',]].set_visible(False)
   plt.tight_layout()
   return autoviz.MplChart.from_current_mpl_state()
 
