@@ -189,7 +189,7 @@ def _summarize_dataframe(df):
             dtype=df.dtypes,
             example_value=df.iloc[:1].T,
         )
-        .to_string()
+        .to_markdown()
     )
   except Exception:  # pylint: disable=broad-except
     return None
