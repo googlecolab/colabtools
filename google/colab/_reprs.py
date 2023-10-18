@@ -1,5 +1,6 @@
 """Rich representations of built-in types."""
 
+import json
 import warnings
 # pytype: disable=import-error
 import IPython
@@ -143,6 +144,7 @@ def _dataframe_intrinsic_repr(dataframe):
   result = {
       'type': 'dataframe',
   }
+  varname = ''
   if ip := IPython.get_ipython():
     namespace = ip.user_ns
     found = False
@@ -162,7 +164,7 @@ def _dataframe_intrinsic_repr(dataframe):
           result['variable_name'] = varname
           dataframe = possible_df
 
-  if summary := _summarize_dataframe(dataframe):
+  if summary := _summarize_dataframe(dataframe, varname):
     result['summary'] = summary
 
   return result
@@ -172,24 +174,21 @@ _MAX_DATAFRAME_ROWS = 100000
 _MAX_DATAFRAME_COLS = 20
 
 
-def _summarize_dataframe(df):
+def _summarize_dataframe(df, variable_name):
   """Summarizes a dataframe."""
   try:
-    import pandas as pd
+    from lida.components import summarizer
 
     if len(df) > _MAX_DATAFRAME_ROWS or len(df.columns) > _MAX_DATAFRAME_COLS:
       return None
 
-    return (
-        pd.DataFrame()
-        .assign(
-            name=df.columns.to_series(),
-            variance=df.var(numeric_only=True),
-            nunique=df.nunique(),
-            dtype=df.dtypes,
-            example_value=df.iloc[:1].T,
-        )
-        .to_string()
+    columns = summarizer.Summarizer().get_column_properties(df)
+    return json.dumps(
+        {
+            'name': variable_name,
+            'fields': columns,
+        },
+        indent=2,
     )
   except Exception:  # pylint: disable=broad-except
     return None
