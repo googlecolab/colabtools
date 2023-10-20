@@ -1,4 +1,5 @@
 """Automated chart generation for data frames."""
+import collections.abc
 import itertools
 import logging
 
@@ -260,9 +261,10 @@ def _classify_dtypes(
     ) or any(colname == c for c in _DATETIME_COLNAMES)
 
   for colname in df.columns:
-    if _matches_datetime_pattern(
-        colname
-    ) or _is_monotonically_increasing_numeric(df[colname]):
+    if (
+        _matches_datetime_pattern(colname)
+        or _is_monotonically_increasing_numeric(df[colname])
+    ) and _all_values_scalar(df[colname]):
       timelike_cols.append(colname)
 
   return {
@@ -284,6 +286,15 @@ def _is_monotonically_increasing_numeric(series):
   return np.issubdtype(series.dtype.base, np.number) and np.all(
       np.array(series)[:-1] <= np.array(series)[1:]
   )
+
+
+def _all_values_scalar(series):
+  def _is_non_scalar(x):
+    return isinstance(x, collections.abc.Iterable) and not isinstance(
+        x, (bytes, str)
+    )
+
+  return not any(_is_non_scalar(x) for x in series)
 
 
 def _get_axis_bounds(series, padding_percent=0.05, zero_rtol=1e-3):
