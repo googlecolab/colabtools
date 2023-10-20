@@ -154,7 +154,7 @@ def _dataframe_intrinsic_repr(dataframe):
         found = True
         break
     if not found:
-      last_line = ip.user_ns['In'][-1]
+      last_line = ip.user_ns['In'][-1].strip().rpartition('\n')[-1]
       varname, dot, operator = last_line.partition('.')
       if varname.isidentifier() and dot and operator.startswith('head('):
         import pandas as pd
