@@ -189,6 +189,9 @@ def _summarize_dataframe(df, variable_name):
             'fields': columns,
         },
         indent=2,
+        # This is used for serializing any types unknown to Python's json
+        # serialization.
+        default=str,
     )
   except Exception:  # pylint: disable=broad-except
     return None
