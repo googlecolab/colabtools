@@ -1,6 +1,5 @@
 """Supporting code for quickchart functionality."""
 
-import inspect
 import textwrap
 import uuid as _uuid
 
@@ -160,12 +159,7 @@ class ChartWithCode:
     self._kwargs = kwargs
 
     self._chart_id = f'chart-{str(_uuid.uuid4())}'
-    with mpl.rc_context(dict(_MPL_STYLE_OPTIONS)):
-      # We want the charts to be small when there are many of them, but larger
-      # when a user inserts a single chart. We set `figscale` here so that it
-      # isn't remembered if a user clicks on a chart.
-      figscale = 0.5
-      self._chart = plot_func(df, figscale=figscale, *args, **kwargs)
+    self._chart = None
 
   @property
   def chart_id(self):
@@ -180,30 +174,15 @@ class ChartWithCode:
     if self._df_varname is None:
       self._df_varname = self._df_registry.get_or_register_varname(self._df)
 
-    plot_func_src = inspect.getsource(self._plot_func)
-    plot_invocation = textwrap.dedent(
-        """\
-        chart = {plot_func}({df_varname}, *{args}, **{kwargs})
-        chart""".format(
-            plot_func=self._plot_func.__name__,
-            args=str(self._args),
-            kwargs=str(self._kwargs),
-            df_varname=self._df_varname,
-        )
-    )
-
-    chart_src = textwrap.dedent("""\
-        import numpy as np
-        from google.colab import autoviz
-        """)
-    chart_src += '\n'
-    chart_src += plot_func_src
-    chart_src += '\n'
-    chart_src += plot_invocation
-    return chart_src
+    return self._plot_func(self._df_varname, *self._args, **self._kwargs)
 
   def _repr_html_(self):
     """Gets the HTML representation of the chart."""
+    if self._chart is None:
+      with mpl.rc_context(dict(_MPL_STYLE_OPTIONS)):
+        exec_code = self._plot_func('df', *self._args, **self._kwargs)
+        exec(exec_code, {'df': self._df})  # pylint: disable=exec-used
+        self._chart = _quickchart_lib.autoviz.MplChart.from_current_mpl_state()
 
     chart_html = self._chart._repr_mimebundle_()['text/html']  # pylint:disable = protected-access
     script_start = chart_html.find('<script')
