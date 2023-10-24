@@ -185,12 +185,10 @@ class ChartWithCode:
         self._chart = _quickchart_lib.autoviz.MplChart.from_current_mpl_state()
 
     chart_html = self._chart._repr_mimebundle_()['text/html']  # pylint:disable = protected-access
-    script_start = chart_html.find('<script')
     return f"""\
       <div class="colab-quickchart-chart-with-code" id="{self._chart_id}">
-        {chart_html[:script_start]}
+        {chart_html}
       </div>
-      {chart_html[script_start:]}
       <script type="text/javascript">
         (() => {{
           const chartElement = document.getElementById("{self._chart_id}");
