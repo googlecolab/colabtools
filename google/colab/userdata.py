@@ -28,7 +28,5 @@ def get(key):
   )
   access = resp.get('access', False)
   if not access:
-    # TODO(b/294619193): Open the user secrets pane so that they can grant
-    # access.
     raise NotebookAccessError(key)
   return resp.get('payload', '')
