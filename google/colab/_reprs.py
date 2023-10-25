@@ -186,6 +186,7 @@ def _summarize_dataframe(df, variable_name):
     return json.dumps(
         {
             'name': variable_name,
+            'rows': len(df),
             'fields': columns,
         },
         indent=2,
