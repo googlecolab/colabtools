@@ -99,6 +99,13 @@ class ChartSection:
     for d in self._displayables:
       d.display()
 
+  def to_json(self):
+    charts = [chart.to_json() for chart in self._charts]
+    return {
+        'section_type': self._section_type,
+        'charts': charts,
+    }
+
 
 class SectionTitle:
   """Section title used for delineating chart sections."""
@@ -169,19 +176,30 @@ class ChartWithCode:
     """Displays the chart within a notebook context."""
     IPython.display.display(self)
 
-  def get_code(self):
-    """Gets the code and associated dependencies + context for a given chart."""
+  def to_json(self):
+    data = self.get_code_and_title()
+    return {
+        'code': data.code,
+        'title': data.title,
+    }
+
+  def get_code_and_title(self):
     if self._df_varname is None:
       self._df_varname = self._df_registry.get_or_register_varname(self._df)
 
     return self._plot_func(self._df_varname, *self._args, **self._kwargs)
 
+  def get_code(self):
+    """Gets the code and associated dependencies + context for a given chart."""
+
+    return self.get_code_and_title().code
+
   def _repr_html_(self):
     """Gets the HTML representation of the chart."""
     if self._chart is None:
       with mpl.rc_context(dict(_MPL_STYLE_OPTIONS)):
-        exec_code = self._plot_func('df', *self._args, **self._kwargs)
-        exec(exec_code, {'df': self._df})  # pylint: disable=exec-used
+        data = self._plot_func('df', *self._args, **self._kwargs)
+        exec(data.code, {'df': self._df})  # pylint: disable=exec-used
         self._chart = _quickchart_lib.autoviz.MplChart.from_current_mpl_state()
 
     chart_html = self._chart._repr_mimebundle_()['text/html']  # pylint:disable = protected-access

@@ -1,6 +1,7 @@
 """Library of charts for use by quickchart."""
 
 import base64
+import dataclasses
 import io
 
 import IPython.display
@@ -8,6 +9,12 @@ import IPython.display
 
 # Note: lazy imports throughout due to minimizing kernel init imports.
 # pylint:disable=g-import-not-at-top
+
+
+@dataclasses.dataclass
+class ChartData:
+  title: str
+  code: str
 
 
 class MplChart:
@@ -57,7 +64,7 @@ class autoviz:  # pylint:disable=invalid-name
   MplChart = MplChart  # pylint:disable=invalid-name
 
 
-def histogram(df_name: str, colname: str, num_bins=20):
+def histogram(df_name: str, colname: str, num_bins=20) -> ChartData:
   """Generates a histogram for the given data column.
 
   Args:
@@ -68,13 +75,13 @@ def histogram(df_name: str, colname: str, num_bins=20):
   Returns:
     Code to generate the plot.
   """
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 {df_name}[{colname!r}].plot(kind='hist', bins={num_bins}, title={colname!r})
-plt.gca().spines[['top', 'right',]].set_visible(False)
-plt.tight_layout()"""
+plt.gca().spines[['top', 'right',]].set_visible(False)"""
+  return ChartData(title=colname, code=code)
 
 
-def categorical_histogram(df_name, colname):
+def categorical_histogram(df_name, colname) -> ChartData:
   """Generates a single categorical histogram.
 
   Args:
@@ -84,13 +91,15 @@ def categorical_histogram(df_name, colname):
   Returns:
     Code to generate the plot.
   """
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 import seaborn as sns
 {df_name}.groupby({colname!r}).size().plot(kind='barh', color=sns.palettes.mpl_palette('Dark2'))
 plt.gca().spines[['top', 'right',]].set_visible(False)"""
 
+  return ChartData(title=colname, code=code)
 
-def heatmap(df_name: str, x_colname: str, y_colname: str):
+
+def heatmap(df_name: str, x_colname: str, y_colname: str) -> ChartData:
   """Generates a single heatmap.
 
   Args:
@@ -101,7 +110,7 @@ def heatmap(df_name: str, x_colname: str, y_colname: str):
   Returns:
     Code to generate the plot.
   """
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd
 plt.subplots(figsize=(8, 8))
@@ -111,12 +120,14 @@ df_2dhist = pd.DataFrame({{
 }})
 sns.heatmap(df_2dhist, cmap='viridis')
 plt.xlabel({x_colname!r})
-plt.ylabel({y_colname!r})"""
+_ = plt.ylabel({y_colname!r})"""
+
+  return ChartData(f'{x_colname} vs {y_colname}', code)
 
 
 def swarm_plot(
     df_name: str, value_colname: str, facet_colname: str, jitter_domain_width=8
-):
+) -> ChartData:
   """Generates a single swarm plot.
 
   Incorporated from altair example gallery:
@@ -132,7 +143,7 @@ def swarm_plot(
     Code to generate the plot.
   """
 
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 import numpy as np
 import seaborn as sns
 palette = sns.palettes.mpl_palette('Dark2')
@@ -148,12 +159,14 @@ for i, facet_value in enumerate(facet_values):
   ax.scatter(xtick_locs[i] + jitter, values, s=1.5, alpha=.8, color=color)
 ax.xaxis.set_ticks(xtick_locs, facet_values, rotation='vertical')
 plt.title({facet_colname!r})
-plt.ylabel({value_colname!r})"""
+_ = plt.ylabel({value_colname!r})"""
+
+  return ChartData(f'{facet_colname} vs {value_colname}', code)
 
 
 def violin_plot(
     df_name: str, value_colname: str, facet_colname: str, inner: str
-):
+) -> ChartData:
   """Generates a single violin plot.
 
   Args:
@@ -165,15 +178,17 @@ def violin_plot(
   Returns:
     Code to generate the plot.
   """
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 import seaborn as sns
 figsize = (12, 1.2 * len({df_name}[{facet_colname!r}].unique()))
 plt.figure(figsize=figsize)
 sns.violinplot({df_name}, x={value_colname!r}, y={facet_colname!r}, inner={inner!r}, palette='Dark2')
 sns.despine(top=True, right=True, bottom=True, left=True)"""
 
+  return ChartData(f'{facet_colname} vs {value_colname}', code)
 
-def value_plot(df_name: str, y: str):
+
+def value_plot(df_name: str, y: str) -> ChartData:
   """Generates a single value plot.
 
   Args:
@@ -184,13 +199,14 @@ def value_plot(df_name: str, y: str):
     Code to generate the plot.
   """
 
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 {df_name}[{y!r}].plot(kind='line', figsize=(8, 4), title={y!r})
-plt.gca().spines[['top', 'right']].set_visible(False)
-plt.tight_layout()"""
+plt.gca().spines[['top', 'right']].set_visible(False)"""
+
+  return ChartData(y, code)
 
 
-def scatter_plot(df_name: str, x_colname: str, y_colname: str):
+def scatter_plot(df_name: str, x_colname: str, y_colname: str) -> ChartData:
   """Generates a single scatter plot.
 
   Args:
@@ -202,16 +218,16 @@ def scatter_plot(df_name: str, x_colname: str, y_colname: str):
     Code to generate the plot.
   """
 
-  return f"""from matplotlib import pyplot as plt
-plt.figure(figsize=(6, 6))
+  code = f"""from matplotlib import pyplot as plt
 {df_name}.plot(kind='scatter', x={x_colname!r}, y={y_colname!r}, s=32, alpha=.8)
-plt.gca().spines[['top', 'right',]].set_visible(False)
-plt.tight_layout()"""
+plt.gca().spines[['top', 'right',]].set_visible(False)"""
+
+  return ChartData(f'{x_colname} vs {y_colname}', code)
 
 
 def time_series_multiline(
     df_name: str, timelike_colname: str, value_colname: str, series_colname: str
-):
+) -> ChartData:
   """Generates a single time series plot.
 
   Args:
@@ -241,7 +257,7 @@ def time_series_multiline(
   _plot_series(series, series_name, i)
   fig.legend(title={series_colname!r}, bbox_to_anchor=(1, 1), loc='upper left')"""
 
-  return f"""from matplotlib import pyplot as plt
+  code = f"""from matplotlib import pyplot as plt
 import seaborn as sns
 def _plot_series(series, series_name, series_index=0):
   from matplotlib import pyplot as plt
@@ -255,4 +271,6 @@ df_sorted = {df_name}.sort_values({timelike_colname!r}, ascending=True)
 {series_impl}
 sns.despine(fig=fig, ax=ax)
 plt.xlabel({timelike_colname!r})
-plt.ylabel({value_colname!r})"""
+_ = plt.ylabel({value_colname!r})"""
+
+  return ChartData(f'{timelike_colname} vs {value_colname}', code)
