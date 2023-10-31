@@ -183,6 +183,15 @@ def _summarize_dataframe(df, variable_name):
       return None
 
     columns = summarizer.Summarizer().get_column_properties(df)
+    # LIDA's summarizer will declare `type: date` for date-*like* columns,
+    # which leads to bad code predictions, which seem to assume `.dt` methods
+    # are available on those columns. We use a heuristic to "correct" this
+    # here.
+    for c in columns:
+      if c['properties']['dtype'] == 'date':
+        col = df[c['column']]
+        if not col.empty and col.dtype.kind == 'O' and isinstance(col[0], str):
+          c['properties']['dtype'] = 'object'
     return json.dumps(
         {
             'name': variable_name,
