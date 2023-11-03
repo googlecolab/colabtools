@@ -217,7 +217,7 @@ def register_df_and_get_html(df):
   return f"""
 <div id="{df_key}">
   <button class="colab-df-quickchart" onclick="quickchart('{df_key}')"
-            title="Suggest charts."
+            title="Suggest charts"
             style="display:none;">
     {_ICON_SVG}
   </button>
