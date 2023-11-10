@@ -224,7 +224,7 @@ def _monitor_process(parent_pty, epoll, p, cmd, update_stdin_widget):
   # characters.
   # In order to be consistent with IPython's treatment of non-UTF-8 output, make
   # use of the "replace" error handler within the decoder.
-  # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py.
+  # https://github.com/ipython/ipykernel/blob/main/ipykernel/iostream.py.
   decoder = codecs.getincrementaldecoder(_ENCODING)(errors='replace')
 
   num_interrupts = 0
