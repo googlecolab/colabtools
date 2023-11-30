@@ -94,69 +94,70 @@ def determine_charts(df, dataframe_registry, max_chart_instances=None):
   chart_sections = []
 
   if numeric_cols:
-    chart_sections.append(
-        _quickchart_helpers.histograms_section(
-            df, numeric_cols[:max_chart_instances], dataframe_registry
-        )
+    section = _quickchart_helpers.histograms_section(
+        df, numeric_cols[:max_chart_instances], dataframe_registry
     )
+    if section.charts:
+      chart_sections.append(section)
 
   if categorical_cols:
     selected_categorical_cols = categorical_cols[:max_chart_instances]
-    chart_sections += [
-        _quickchart_helpers.categorical_histograms_section(
-            df, selected_categorical_cols, dataframe_registry
-        ),
-    ]
+    section = _quickchart_helpers.categorical_histograms_section(
+        df, selected_categorical_cols, dataframe_registry
+    )
+    if section.charts:
+      chart_sections.append(section)
 
   if len(numeric_cols) >= 2:
-    chart_sections += [
-        _quickchart_helpers.scatter_section(
-            df,
-            _select_first_k_pairs(numeric_cols, k=max_chart_instances),
-            dataframe_registry,
-        ),
-    ]
+    section = _quickchart_helpers.scatter_section(
+        df,
+        _select_first_k_pairs(numeric_cols, k=max_chart_instances),
+        dataframe_registry,
+    )
+    if section.charts:
+      chart_sections.append(section)
 
   if time_cols:
-    chart_sections.append(
-        _quickchart_helpers.time_series_line_plots_section(
-            df,
-            _select_time_series_cols(
-                time_cols=time_cols,
-                numeric_cols=numeric_cols,
-                categorical_cols=categorical_cols,
-                k=max_chart_instances,
-            ),
-            dataframe_registry,
+    section = _quickchart_helpers.time_series_line_plots_section(
+        df,
+        _select_time_series_cols(
+            time_cols=time_cols,
+            numeric_cols=numeric_cols,
+            categorical_cols=categorical_cols,
+            k=max_chart_instances,
         ),
+        dataframe_registry,
     )
+    if section.charts:
+      chart_sections.append(section)
 
   if numeric_cols:
-    chart_sections.append(
-        _quickchart_helpers.value_plots_section(
-            df, numeric_cols[:max_chart_instances], dataframe_registry
-        )
+    section = _quickchart_helpers.value_plots_section(
+        df, numeric_cols[:max_chart_instances], dataframe_registry
     )
+    if section.charts:
+      chart_sections.append(section)
 
   if len(categorical_cols) >= 2:
-    chart_sections += [
-        _quickchart_helpers.heatmaps_section(
-            df,
-            _select_first_k_pairs(categorical_cols, k=max_chart_instances),
-            dataframe_registry,
-        ),
-    ]
+    section = _quickchart_helpers.heatmaps_section(
+        df,
+        _select_first_k_pairs(categorical_cols, k=max_chart_instances),
+        dataframe_registry,
+    )
+    if section.charts:
+      chart_sections.append(section)
 
   if categorical_cols and numeric_cols:
-    chart_sections += [
-        _quickchart_helpers.faceted_distributions_section(
-            df,
-            _select_faceted_numeric_cols(
-                numeric_cols, categorical_cols, k=max_chart_instances
-            ),
-            dataframe_registry,
+    section = _quickchart_helpers.faceted_distributions_section(
+        df,
+        _select_faceted_numeric_cols(
+            numeric_cols, categorical_cols, k=max_chart_instances
         ),
-    ]
+        dataframe_registry,
+    )
+    if section.charts:
+      chart_sections.append(section)
+
   return chart_sections
 
 
