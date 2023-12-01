@@ -61,6 +61,23 @@ def register_callback(function_name, callback):
   _functions[function_name] = callback
 
 
+def unregister_callback(function_name):
+  """Removes a function previously registered by register_callback.
+
+  Args:
+    function_name: string
+
+  Raises:
+    ValueError: if a callback is not currently registered to function_name.
+  """
+  try:
+    del _functions[function_name]
+  except KeyError as e:
+    raise ValueError(
+        f'Callback function not registered: {function_name}.'
+    ) from e
+
+
 def _invoke_function(function_name, json_args, json_kwargs):
   """Invokes callback with given function_name.
 
