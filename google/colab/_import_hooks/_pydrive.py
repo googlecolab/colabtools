@@ -63,6 +63,11 @@ class _PyDriveImportHook:
         pydrive_auth_module.GoogleAuth.LocalWebserverAuth = (
             PatchedLocalWebServerAuth
         )
+        logging.warning(
+            'pydrive is deprecated and no longer maintained. We'
+            ' recommend that you migrate your projects to pydrive2, the'
+            ' maintained fork of pydrive'
+        )
       except:  # pylint: disable=bare-except
         logging.exception('Error patching PyDrive')
 
