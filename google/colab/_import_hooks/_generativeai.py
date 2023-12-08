@@ -91,7 +91,7 @@ class _GenerativeAIImportHook:
                 self.set_status(int(result['error']['code']))
                 self.write(result['error']['message'])
                 return
-              self.write(result)
+              self.write(json.dumps(result))
             except Exception as e:  # pylint:disable=broad-except
               self.set_status(500)
               self.write(str(e))
