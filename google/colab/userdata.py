@@ -19,7 +19,7 @@ class SecretNotFoundError(errors.Error):
 
 
 def get(key):
-  """Fetchets the value for specified secret keys.
+  """Fetches the value for specified secret keys.
 
   Args:
     key: Identifier of the secret to fetch.
