@@ -6,7 +6,6 @@ import cv2
 from IPython import display
 import PIL
 
-
 class cv2_im:
     def show(a):
         """A replacement for cv2.imshow() for use in Jupyter notebooks.
