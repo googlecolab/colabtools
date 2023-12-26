@@ -65,10 +65,13 @@ class _GenerativeAIImportHook:
           body = repr(request.body.decode('utf-8')) if request.body else 'null'
           return output.eval_js("""
             (async () => {{
+              // The User-Agent header causes CORS errors in Firefox.
+              const headers = {headers};
+              delete headers["User-Agent"];
               const response = await fetch(new URL('{path}', 'https://generativelanguage.googleapis.com'), {{
                           method: '{method}',
-                          headers: {headers},
-                          body: {body}
+                          body: {body},
+                          headers,
                         }});
               const json = await response.json();
               return json;
