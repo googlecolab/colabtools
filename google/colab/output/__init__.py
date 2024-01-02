@@ -13,7 +13,7 @@
 # limitations under the License.
 """Colabs output package."""
 # pylint: disable=g-multiple-import
-from google.colab.output._area import redirect_to_element, to_default_area, to_footer_area, to_header_area
+from google.colab.output._area import no_vertical_scroll, redirect_to_element, to_default_area, to_footer_area, to_header_area
 from google.colab.output._js import eval_js, register_callback, unregister_callback
 from google.colab.output._tags import clear, temporary, use_tags
 from google.colab.output._util import serve_kernel_port_as_iframe, serve_kernel_port_as_window

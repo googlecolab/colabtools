@@ -65,3 +65,13 @@ def to_default_area():
   """Restores output to output into default area."""
   with redirect_to_element(_jsapi.output.getDefaultOutputArea()) as s:
     yield s
+
+
+def no_vertical_scroll():
+  """Never show a vertical scrollbar for the output.
+
+  The output cell will be as large as necessary to show all the output.
+  """
+  _jsapi.output.setIframeHeight(
+      -1, True, {'interactive': True, 'maxHeight': 99999}
+  )
