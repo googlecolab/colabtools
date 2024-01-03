@@ -1,15 +1,24 @@
 """Rich representations of built-in types."""
 
+import base64
+import html
+import io
 import json
+import types
 import warnings
+from google.colab import _inspector
 # pytype: disable=import-error
 import IPython
+from IPython.core import oinspect
+import numpy as np
+import PIL as pil
 # pylint: disable=g-import-not-at-top
 with warnings.catch_warnings():
   # Importing via IPython raises a spurious warning, but avoids a version
   # mismatch internally.
   warnings.simplefilter('ignore')
   from IPython.utils import traitlets
+
 
 _original_string_formatters = {}
 
@@ -205,3 +214,151 @@ def _summarize_dataframe(df, variable_name):
     )
   except Exception:  # pylint: disable=broad-except
     return None
+
+
+def _fullname(obj):
+  module = obj.__module__
+  if module == 'builtins' or module == '__main__':
+    return obj.__qualname__
+  return module + '.' + obj.__qualname__
+
+
+def _function_repr(obj):
+  """Renders a function repr."""
+  try:
+    name = _fullname(obj)
+
+    decl = _inspector.get_source_definition(obj)
+    init = getattr(obj, '__init__', None)
+    if not decl and init:
+      decl = _inspector.get_source_definition(init)
+
+    result = (
+        '<div style="max-width:800px; border: 1px solid'
+        ' var(--colab-border-color);">'
+    )
+    if not decl:
+      return
+
+    result += (
+        '<pre style="white-space: initial; background:'
+        ' var(--colab-secondary-surface-color); padding: 8px 12px;'
+        ' border-bottom: 1px solid var(--colab-border-color);">'
+        + f'<b>{html.escape(name)}</b><br/>'
+        + html.escape(decl)
+        + '</pre>'
+    )
+
+    filename = oinspect.find_file(obj) or ''
+    docs = _inspector.getdoc(obj) or '<no docstring>'
+    result += (
+        '<pre style="overflow-x: auto; padding: 8px 12px; max-height: 500px;">'
+    )
+    result += (
+        '<a class="filepath" style="display:none"'
+        f' href="#">{html.escape(filename)}</a>'
+    )
+    result += html.escape(docs) + '</pre>'
+    if filename and '<ipython-input' not in filename:
+      line = oinspect.find_source_lines(obj)
+      result += f"""
+      <script>
+      if (google.colab.kernel.accessAllowed && google.colab.files && google.colab.files.view) {{
+        for (const element of document.querySelectorAll('.filepath')) {{
+          element.style.display = 'block'
+          element.onclick = (event) => {{
+            event.preventDefault();
+            event.stopPropagation();
+            google.colab.files.view(element.textContent, {line});
+          }};
+        }}
+      }}
+      </script>
+      """
+    result += '</div>'
+    return result
+  except Exception:  # pylint: disable=broad-except
+    return None
+
+
+def enable_function_repr():
+  """Enables function and class reprs."""
+
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+
+  html_formatter = shell.display_formatter.formatters['text/html']
+  html_formatter.for_type(types.FunctionType, _function_repr)
+  html_formatter.for_type(types.MethodType, _function_repr)
+  html_formatter.for_type(type, _function_repr)
+
+
+def disable_function_repr():
+  """Disables function and class HTML repr."""
+
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+
+  html_formatter = shell.display_formatter.formatters['text/html']
+  html_formatter.pop(types.FunctionType)
+  html_formatter.pop(type)
+
+
+_MIN_IMG_DIMENSIONS = 10
+_MAX_IMG_DIMENSION = 1000
+
+
+def _image_repr(ndarray: np.ndarray):
+  """Renders an ndarray as HTML if it is image-like."""
+  try:
+    if not np.issubdtype(ndarray.dtype, np.uint8):
+      return
+
+    if not (ndarray.ndim == 2 or (ndarray.ndim == 3 and ndarray.shape[2] == 3)):
+      return
+
+    if (
+        ndarray.shape[0] < _MIN_IMG_DIMENSIONS
+        or ndarray.shape[0] > _MAX_IMG_DIMENSION
+    ):
+      return
+
+    if (
+        ndarray.shape[1] < _MIN_IMG_DIMENSIONS
+        or ndarray.shape[1] > _MAX_IMG_DIMENSION
+    ):
+      return
+
+    img = pil.Image.fromarray(ndarray)
+    buffered = io.BytesIO()
+    img.save(buffered, format='PNG')
+    encoded = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    uri = 'data:image/png;base64,' + encoded
+
+    result = f'<pre>ndarray shape: {ndarray.shape} dtype: {ndarray.dtype}</pre>'
+    result += f'<img src="{uri}" />'
+    return result
+  except Exception:  # pylint: disable=broad-except
+    return None
+
+
+def enable_ndarray_repr():
+  """Enables ndarray HTML repr."""
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+  html_formatter = shell.display_formatter.formatters['text/html']
+  html_formatter.for_type(np.ndarray, _image_repr)
+
+
+def disable_ndarray_repr():
+  """Disables ndarray HTML repr."""
+
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+
+  html_formatter = shell.display_formatter.formatters['text/html']
+  html_formatter.pop(np.ndarray)

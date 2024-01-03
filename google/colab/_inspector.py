@@ -62,7 +62,7 @@ _APPROVED_REPRS = (
 _UNAVAILABLE_MODULE_NAME = '<unknown>'
 
 
-def _getdoc(obj):
+def getdoc(obj):
   """Custom wrapper for inspect.getdoc.
 
   IPython.core.oinspect.getdoc wraps Python's inspect.getdoc to catch exceptions
@@ -579,7 +579,7 @@ class ColabInspector(oinspect.Inspector):
         out['source'] = source
     if 'source' not in out:
       formatter = formatter or (lambda x: x)
-      docstring = formatter(_getdoc(obj) or '<no docstring>')
+      docstring = formatter(getdoc(obj) or '<no docstring>')
       if docstring:
         out['docstring'] = docstring
 
@@ -603,10 +603,10 @@ class ColabInspector(oinspect.Inspector):
       # For classes with an __init__, we set init_definition and init_docstring.
       init = getattr(obj, '__init__', None)
       if init:
-        init_docstring = _getdoc(init)
+        init_docstring = getdoc(init)
         if init_docstring and init_docstring != _BASE_INIT_DOC:
           out['init_docstring'] = init_docstring
-        init_def = _get_source_definition(init)
+        init_def = get_source_definition(init)
         if not init_def:
           init_def = self._getdef(init, oname)
         if init_def:
@@ -619,14 +619,14 @@ class ColabInspector(oinspect.Inspector):
         if argspec:
           out['argspec'] = argspec
     elif callable(obj):
-      definition = _get_source_definition(obj)
+      definition = get_source_definition(obj)
       if not definition:
         definition = self._getdef(obj, oname)
       if definition:
         out['definition'] = definition
 
       if not oinspect.is_simple_callable(obj):
-        call_docstring = _getdoc(obj.__call__)
+        call_docstring = getdoc(obj.__call__)
         if call_docstring and call_docstring != _BASE_CALL_DOC:
           out['call_docstring'] = call_docstring
 
@@ -646,7 +646,7 @@ def _iscallable(obj):
   )
 
 
-def _get_source_definition(obj):
+def get_source_definition(obj):
   """Get a source representation of the function definition."""
   try:
     obj = _unwrap(obj)
