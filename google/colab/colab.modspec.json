@@ -3,14 +3,17 @@
   "type": "PACKAGE",
   "importable_package_attributes": [
     "auth",
+    "autoviz",
     "data_table",
     "drive",
     "errors",
     "files",
+    "html",
     "output",
     "runtime",
     "snippets",
     "syntax",
+    "userdata",
     "widgets"
   ]
 }]
