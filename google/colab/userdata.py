@@ -1,5 +1,7 @@
 """API to access user secrets."""
 
+import threading
+
 from google.colab import _message
 from google.colab import errors
 
@@ -17,9 +19,13 @@ class SecretNotFoundError(errors.Error):
   def __init__(self, key):
     super().__init__(f'Secret {key} does not exist.')
 
+_userdata_lock = threading.Lock()
+
 
 def get(key):
   """Fetches the value for specified secret keys.
+
+  This is safe to use from multiple threads.
 
   Args:
     key: Identifier of the secret to fetch.
@@ -32,9 +38,12 @@ def get(key):
     secret.
     SecretNotFoundError: If the requested secret is not found.
   """
-  resp = _message.blocking_request(
-      'GetSecret', request={'key': key}, timeout_sec=None
-  )
+  # blocking_request is not thread-safe, use a global lock to keep the function
+  # thread-safe.
+  with _userdata_lock:
+    resp = _message.blocking_request(
+        'GetSecret', request={'key': key}, timeout_sec=None
+    )
   if not resp.get('exists', False):
     raise SecretNotFoundError(key)
   if not resp.get('access', False):
