@@ -232,18 +232,31 @@ def _function_repr(obj):
     init = getattr(obj, '__init__', None)
     if not decl and init:
       decl = _inspector.get_source_definition(init)
+    if not decl:
+      return
 
     result = (
         '<div style="max-width:800px; border: 1px solid'
         ' var(--colab-border-color);">'
     )
-    if not decl:
-      return
+    result += """<style>
+      pre.function-repr-contents {
+        overflow-x: auto;
+        padding: 8px 12px;
+        max-height: 500px;
+      }
+
+      pre.function-repr-contents.function-repr-contents-collapsed {
+        cursor: pointer;
+        max-height: 100px;
+      }
+    </style>
+    """
 
     result += (
-        '<pre style="white-space: initial; background:'
-        ' var(--colab-secondary-surface-color); padding: 8px 12px;'
-        ' border-bottom: 1px solid var(--colab-border-color);">'
+        """<pre style="white-space: initial; background:
+         var(--colab-secondary-surface-color); padding: 8px 12px;
+         border-bottom: 1px solid var(--colab-border-color);">"""
         + f'<b>{html.escape(name)}</b><br/>'
         + html.escape(decl)
         + '</pre>'
@@ -252,12 +265,14 @@ def _function_repr(obj):
     filename = oinspect.find_file(obj) or ''
     docs = _inspector.getdoc(obj) or '<no docstring>'
     result += (
-        '<pre style="overflow-x: auto; padding: 8px 12px; max-height: 500px;">'
+        '<pre class="function-repr-contents function-repr-contents-collapsed"'
+        ' style="">'
     )
     result += (
         '<a class="filepath" style="display:none"'
         f' href="#">{html.escape(filename)}</a>'
     )
+
     result += html.escape(docs) + '</pre>'
     if filename and '<ipython-input' not in filename:
       line = oinspect.find_source_lines(obj)
@@ -272,6 +287,13 @@ def _function_repr(obj):
             google.colab.files.view(element.textContent, {line});
           }};
         }}
+      }}
+      for (const element of document.querySelectorAll('.function-repr-contents')) {{
+        element.onclick = (event) => {{
+          event.preventDefault();
+          event.stopPropagation();
+          element.classList.toggle('function-repr-contents-collapsed');
+        }};
       }}
       </script>
       """
