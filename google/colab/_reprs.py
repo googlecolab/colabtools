@@ -173,8 +173,11 @@ def _dataframe_intrinsic_repr(dataframe):
           result['variable_name'] = varname
           dataframe = possible_df
 
-  if summary := _summarize_dataframe(dataframe, varname):
-    result['summary'] = summary
+  try:
+    if summary := _summarize_dataframe(dataframe, varname):
+      result['summary'] = summary
+  except Exception as e:  # pylint: disable=broad-except
+    result['repr_error'] = str(e)
 
   return result
 
@@ -185,35 +188,32 @@ _MAX_DATAFRAME_COLS = 20
 
 def _summarize_dataframe(df, variable_name):
   """Summarizes a dataframe."""
-  try:
-    from lida.components import summarizer
+  from lida.components import summarizer
 
-    if len(df) > _MAX_DATAFRAME_ROWS or len(df.columns) > _MAX_DATAFRAME_COLS:
-      return None
-
-    columns = summarizer.Summarizer().get_column_properties(df)
-    # LIDA's summarizer will declare `type: date` for date-*like* columns,
-    # which leads to bad code predictions, which seem to assume `.dt` methods
-    # are available on those columns. We use a heuristic to "correct" this
-    # here.
-    for c in columns:
-      if c['properties']['dtype'] == 'date':
-        col = df[c['column']]
-        if not col.empty and col.dtype.kind == 'O' and isinstance(col[0], str):
-          c['properties']['dtype'] = 'object'
-    return json.dumps(
-        {
-            'name': variable_name,
-            'rows': len(df),
-            'fields': columns,
-        },
-        indent=2,
-        # This is used for serializing any types unknown to Python's json
-        # serialization.
-        default=str,
-    )
-  except Exception:  # pylint: disable=broad-except
+  if len(df) > _MAX_DATAFRAME_ROWS or len(df.columns) > _MAX_DATAFRAME_COLS:
     return None
+
+  columns = summarizer.Summarizer().get_column_properties(df)
+  # LIDA's summarizer will declare `type: date` for date-*like* columns,
+  # which leads to bad code predictions, which seem to assume `.dt` methods
+  # are available on those columns. We use a heuristic to "correct" this
+  # here.
+  for c in columns:
+    if c['properties']['dtype'] == 'date':
+      col = df[c['column']]
+      if not col.empty and col.dtype.kind == 'O' and isinstance(col[0], str):
+        c['properties']['dtype'] = 'object'
+  return json.dumps(
+      {
+          'name': variable_name,
+          'rows': len(df),
+          'fields': columns,
+      },
+      indent=2,
+      # This is used for serializing any types unknown to Python's json
+      # serialization.
+      default=str,
+  )
 
 
 def _fullname(obj):
