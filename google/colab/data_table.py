@@ -32,6 +32,8 @@ from google.colab import autoviz as _autoviz
 from google.colab import widgets as _widgets
 import IPython as _IPython
 from IPython import display as _display
+import packaging.version as _version
+
 
 # pylint: disable=g-import-not-at-top
 with _warnings.catch_warnings():
@@ -301,7 +303,15 @@ def display_dataframe(df):
   with t.output_to('Charts', select=False):
     _autoviz.quickchart(df)
   with t.output_to('Summary', select=False):
-    s = df.describe(datetime_is_numeric=True, include='all').fillna('').T
+    import pandas as _pd  # pylint: disable=g-import-not-at-top
+    # This arg is required in pandas 1.5, but removed in 2.0 and throws an
+    # error.
+    kwargs = (
+        {}
+        if _version.Version(_pd.__version__) >= _version.Version('2.0')
+        else {'datetime_is_numeric': True}
+    )
+    s = df.describe(include='all', **kwargs).fillna('')
     _display.display(DataTable(s))
   return
 
