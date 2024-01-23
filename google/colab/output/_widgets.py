@@ -16,7 +16,7 @@
 import IPython as _IPython
 
 _supported_widgets_versions = {
-    '5.0.0a': 'b3e629b1971e1542',
+    '5.0.0a': '2b70e893a8ba7c0f',
 }
 _default_version = '5.0.0a'
 _installed_url = None
