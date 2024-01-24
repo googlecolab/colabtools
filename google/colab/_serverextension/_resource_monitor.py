@@ -188,25 +188,36 @@ def get_disk_usage(path=None):
 
   Returns:
     A dict of the form {
+      label: str,
       usage: int,
       limit: int,
     }
   """
-  if 'TEST_TMPDIR' in os.environ:
-    return {'usage': 40 << 30, 'limit': 120 << 30}
 
   if not path:
     path = '/'
+
+  if 'TEST_TMPDIR' in os.environ:
+    if path == '/':
+      return {'label': 'kernel', 'usage': 40 << 30, 'limit': 120 << 30}
+    return {'label': path, 'usage': 80 << 30, 'limit': 240 << 30}
+
   usage = 0
   limit = 0
+  label = 'kernel'
+
+  if path != '/':
+    label = path
+
   if psutil is not None:
     disk_usage = psutil.disk_usage(path)
     usage = disk_usage.used
     limit = disk_usage.total
-  return {'usage': usage, 'limit': limit}
+
+  return {'label': label, 'usage': usage, 'limit': limit}
 
 
-def get_resource_stats(kernel_manager, disk_path=None):
+def get_resource_stats(kernel_manager, disk_paths=None):
   """Reports total disk usage.
 
   Why not return a proto message? Avoid a proto lib dep. It would add to our
@@ -215,7 +226,7 @@ def get_resource_stats(kernel_manager, disk_path=None):
   Args:
     kernel_manager: an IPython MultiKernelManager that owns child kernel
       processes.
-    disk_path: path at which disk to be measured is mounted.
+    disk_paths: list of paths at which disks to be measured is mounted.
 
   Returns:
     A dict representation of a colab.resourcestats.Resources proto. I.e.:
@@ -228,22 +239,15 @@ def get_resource_stats(kernel_manager, disk_path=None):
       }
   """
   ram = get_ram_usage(kernel_manager)
-  disk = get_disk_usage(disk_path)
+  if disk_paths is None:
+    disk_paths = ['/']
 
   stats = {
       'memory': {
           'totalBytes': ram['limit'],
           'freeBytes': ram['limit'] - ram['usage'],
       },
-      'disks': [
-          {
-              'filesystem': {
-                  'label': 'kernel',
-                  'totalBytes': disk['limit'],
-                  'usedBytes': disk['usage'],
-              }
-          }
-      ],
+      'disks': [_get_drive_stat(disk_path) for disk_path in disk_paths],
       'gpus': [dataclasses.asdict(gpu) for gpu in get_gpu_stats()],
   }
 
@@ -254,3 +258,31 @@ def get_resource_stats(kernel_manager, disk_path=None):
     ]
 
   return stats
+
+
+def _get_drive_stat(disk_path=None):
+  """Reports single disk usage.
+
+  Args:
+    disk_path: path at which disk to be measured is mounted.
+
+  Returns:
+    A dict representation of a colab.resourcestats.Disk.Filesystem proto.
+    I.e.:
+      {
+        'filesystem': {
+          'label': 'kernel',
+          [...]
+        }
+        [...]
+      }
+  """
+
+  disk = get_disk_usage(disk_path)
+  return {
+      'filesystem': {
+          'label': disk['label'],
+          'totalBytes': disk['limit'],
+          'usedBytes': disk['usage'],
+      }
+  }

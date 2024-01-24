@@ -36,7 +36,11 @@ class ResourceUsageHandler(handlers.APIHandler):
 
   @tornado.web.authenticated
   def get(self, *unused_args, **unused_kwargs):
-    stats = _resource_monitor.get_resource_stats(self._kernel_manager)
+    paths_str = os.getenv('COLAB_REPORT_USAGE_PATHS', '/')
+    paths_list = paths_str.split(':')
+    stats = _resource_monitor.get_resource_stats(
+        self._kernel_manager, paths_list
+    )
     self.set_header('Content-Type', 'application/json')
     self.finish(_XSSI_PREFIX + json.dumps(stats))
 
