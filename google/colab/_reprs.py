@@ -5,6 +5,7 @@ import html
 import io
 import json
 import types
+import uuid
 import warnings
 from google.colab import _inspector
 # pytype: disable=import-error
@@ -359,8 +360,45 @@ def _image_repr(ndarray: np.ndarray):
     encoded = base64.b64encode(buffered.getvalue()).decode('utf-8')
     uri = 'data:image/png;base64,' + encoded
 
-    result = f'<pre>ndarray shape: {ndarray.shape} dtype: {ndarray.dtype}</pre>'
-    result += f'<img src="{uri}" />'
+    result = """<style>
+      .ndarray_repr .ndarray_raw_data {
+        display: none;
+      }
+      .ndarray_repr.show_array .ndarray_raw_data {
+        display: block;
+      }
+      .ndarray_repr.show_array .ndarray_image_preview {
+        display: none;
+      }
+      </style>
+      """
+    html_id = f'id-{uuid.uuid4()}'
+    result += f'<div id="{html_id}" class="ndarray_repr">'
+
+    result += (
+        f'<pre>ndarray {ndarray.shape} <button style="padding: 0 2px;">show'
+        ' data</button></pre>'
+    )
+    result += f'<img src="{uri}" class="ndarray_image_preview" />'
+
+    result += (
+        f'<pre class="ndarray_raw_data">{html.escape(ndarray.__repr__())}</pre>'
+    )
+    result += '</div>'
+
+    result += f"""<script>
+      (() => {{
+      const titles = ['show data', 'hide data'];
+      let index = 0
+      document.querySelector('#{html_id} button').onclick = (e) => {{
+        document.querySelector('#{html_id}').classList.toggle('show_array');
+        index = (++index) % 2;
+        document.querySelector('#{html_id} button').textContent = titles[index];
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      }})();
+    </script>"""
     return result
   except Exception:  # pylint: disable=broad-except
     return None
