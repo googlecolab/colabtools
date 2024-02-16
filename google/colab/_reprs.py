@@ -189,31 +189,20 @@ _MAX_DATAFRAME_COLS = 20
 
 def _summarize_dataframe(df, variable_name):
   """Summarizes a dataframe."""
-  from lida.components import summarizer
+  from google.colab import _dataframe_summarizer
 
   if len(df) > _MAX_DATAFRAME_ROWS or len(df.columns) > _MAX_DATAFRAME_COLS:
     return None
 
-  columns = summarizer.Summarizer().get_column_properties(df)
-  # LIDA's summarizer will declare `type: date` for date-*like* columns,
-  # which leads to bad code predictions, which seem to assume `.dt` methods
-  # are available on those columns. We use a heuristic to "correct" this
-  # here.
-  for c in columns:
-    if c['properties']['dtype'] == 'date':
-      col = df[c['column']]
-      if not col.empty and col.dtype.kind == 'O' and isinstance(col[0], str):
-        c['properties']['dtype'] = 'object'
+  summary = _dataframe_summarizer.summarize_dataframe(df, variable_name)
   return json.dumps(
-      {
-          'name': variable_name,
-          'rows': len(df),
-          'fields': columns,
-      },
+      summary,
       indent=2,
       # This is used for serializing any types unknown to Python's json
       # serialization.
       default=str,
+      # NaN's are non-standard JSON and cannot be decoded by clients.
+      allow_nan=False,
   )
 
 
