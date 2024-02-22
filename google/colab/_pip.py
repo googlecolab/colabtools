@@ -9,6 +9,7 @@ import os
 import re
 import site
 import sys
+import uuid
 from IPython.core.display import _display_mimetype
 
 __all__ = ["is_pip_install_command", "print_previous_import_warning"]
@@ -106,7 +107,8 @@ def print_previous_import_warning(output):
             {
                 "pip_warning": {
                     "packages": packages,
-                }
+                },
+                "id": uuid.uuid4().hex,
             },
         ),
         raw=True,
