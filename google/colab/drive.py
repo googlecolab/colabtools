@@ -114,8 +114,12 @@ def _mount(
     readonly=False,
 ):
   """Internal helper to mount Google Drive."""
-  if _os.path.exists('/var/colab/mp'):
-    raise NotImplementedError(__name__ + ' is unsupported in this environment.')
+  if not _os.path.exists('/var/colab/hostname'):
+    raise NotImplementedError(
+        'Mounting drive is unsupported in this environment. Use PyDrive'
+        ' instead. See examples at'
+        ' https://colab.research.google.com/notebooks/io.ipynb#scrollTo=7taylj9wpsA2.'
+    )
 
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
