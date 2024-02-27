@@ -1,5 +1,6 @@
 """API to access user secrets."""
 
+import re as _re
 import threading
 
 from google.colab import _message
@@ -38,6 +39,10 @@ def get(key):
     secret.
     SecretNotFoundError: If the requested secret is not found.
   """
+  if not key or not isinstance(key, str):
+    raise ValueError('Please enter a valid secret name')
+  if _re.search(r'\s', key):
+    raise ValueError('Secret name cannot contain spaces or whitespace')
   # blocking_request is not thread-safe, use a global lock to keep the function
   # thread-safe.
   with _userdata_lock:
