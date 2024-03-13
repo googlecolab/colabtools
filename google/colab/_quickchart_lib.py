@@ -260,8 +260,6 @@ def time_series_multiline(
   code = f"""from matplotlib import pyplot as plt
 import seaborn as sns
 def _plot_series(series, series_name, series_index=0):
-  from matplotlib import pyplot as plt
-  import seaborn as sns
   palette = list(sns.palettes.mpl_palette('Dark2'))
   {plot_series_impl}
   plt.plot(xs, ys, label=series_name, color=palette[series_index % len(palette)])
