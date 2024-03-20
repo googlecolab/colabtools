@@ -4,6 +4,10 @@
     "type": "PACKAGE"
   },
   {
+    "name": "google.colab._message",
+    "type": "MODULE"
+  },
+  {
     "name": "google.colab.auth",
     "type": "MODULE"
   },
