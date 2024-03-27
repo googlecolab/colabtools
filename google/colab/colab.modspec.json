@@ -29,11 +29,11 @@
   },
   {
     "name": "google.colab.html",
-    "type": "MODULE"
+    "type": "PACKAGE"
   },
   {
     "name": "google.colab.output",
-    "type": "MODULE"
+    "type": "PACKAGE"
   },
   {
     "name": "google.colab.runtime",
@@ -53,6 +53,6 @@
   },
   {
     "name": "google.colab.widgets",
-    "type": "MODULE"
+    "type": "PACKAGE"
   }
 ]
