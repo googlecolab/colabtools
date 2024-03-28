@@ -18,6 +18,8 @@ except ImportError:
 # Track whether user has used the GPU in the current session.
 _GPU_EVER_USED = False
 
+_T4_TOTAL_MEMORY_BYTES = 16106127360
+
 
 @functools.cache
 def _nvidia_smi_path():
@@ -48,10 +50,10 @@ def get_gpu_stats():
     return [
         GpuInfo(
             name='Tesla T4',
-            memoryUsedBytes=123,
-            memoryTotalBytes=456,
+            memoryUsedBytes=0.35 * _T4_TOTAL_MEMORY_BYTES,
+            memoryTotalBytes=_T4_TOTAL_MEMORY_BYTES,
             gpuUtilization=0.1,
-            memoryUtilization=0.2,
+            memoryUtilization=0.35,
             everUsed=True,
         )
     ]
