@@ -23,7 +23,7 @@ DEPENDENCIES = (
     'ipykernel==5.5.6',
     'ipython==7.34.0',
     'notebook==6.5.5',
-    'pandas==2.0.3',
+    'pandas==1.5.3',
     'portpicker==1.5.2',
     'requests==2.31.0',
     'tornado==6.3.3',
