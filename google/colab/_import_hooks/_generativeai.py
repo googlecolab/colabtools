@@ -85,7 +85,22 @@ class _GenerativeAIImportHook:
           async def get(self):
             await self._handle_request()
 
+          async def head(self):
+            await self._handle_request()
+
           async def post(self):
+            await self._handle_request()
+
+          async def delete(self):
+            await self._handle_request()
+
+          async def patch(self):
+            await self._handle_request()
+
+          async def put(self):
+            await self._handle_request()
+
+          async def options(self):
             await self._handle_request()
 
           async def _handle_request(self):
