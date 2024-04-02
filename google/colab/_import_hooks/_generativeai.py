@@ -61,6 +61,8 @@ class _GenerativeAIImportHook:
 
         def fetch(request):
           path = request.path
+          if request.query:
+            path = f'{path}?{request.query}'
           method = request.method
           headers = json.dumps(dict(request.headers))
           body = repr(request.body.decode('utf-8')) if request.body else 'null'
