@@ -14,12 +14,15 @@ from IPython.core import oinspect
 import numpy as np
 import PIL as pil
 # pylint: disable=g-import-not-at-top
-with warnings.catch_warnings():
-  # Importing via IPython raises a spurious warning, but avoids a version
-  # mismatch internally.
-  warnings.simplefilter('ignore')
-  from IPython.utils import traitlets
-
+# TODO(b/210783561): Keep both imports as we migrate to IPython 7
+try:
+  with warnings.catch_warnings():
+    # Importing via IPython raises a spurious warning, but avoids a version
+    # mismatch internally.
+    warnings.simplefilter('ignore')
+    from IPython.utils import traitlets
+except ImportError:
+  import traitlets
 
 _original_string_formatters = {}
 

@@ -34,15 +34,18 @@ import IPython as _IPython
 from IPython import display as _display
 import packaging.version as _version
 
-
 # pylint: disable=g-import-not-at-top
-with _warnings.catch_warnings():
-  # Importing via IPython raises a spurious warning, but avoids a version
-  # mismatch internally.
-  _warnings.simplefilter('ignore')
-  from IPython.utils import traitlets as _traitlets
-
-# pylint: enable=g-import-not-at-top
+# TODO(b/210783561): Keep both imports as we migrate to IPython 7
+try:
+  with _warnings.catch_warnings():
+    # Importing via IPython raises a spurious warning, but avoids a version
+    # mismatch internally.
+    _warnings.simplefilter('ignore')
+    from IPython.utils import traitlets as _traitlets
+except ImportError:
+  # pytype: disable=import-error
+  import traitlets as _traitlets
+  # pytype: enable=import-error
 
 __all__ = [
     'DataTable',
