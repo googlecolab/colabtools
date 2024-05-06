@@ -72,7 +72,7 @@ def _summarize_columns(df: pd.DataFrame, n_samples: int = 3):
             properties["dtype"] = "string"
         except TypeError:
           properties["dtype"] = str(dtype)
-    elif pd.api.types.is_categorical_dtype(column):
+    elif isinstance(column, pd.CategoricalDtype):
       properties["dtype"] = "category"
     elif pd.api.types.is_datetime64_any_dtype(column):
       properties["dtype"] = "date"
