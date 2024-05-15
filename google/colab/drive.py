@@ -131,7 +131,9 @@ def _mount(
   )
   if ephemeral:
     _message.blocking_request(
-        'request_auth', request={'authType': 'dfs_ephemeral'}, timeout_sec=None
+        'request_auth',
+        request={'authType': 'dfs_ephemeral'},
+        timeout_sec=int(timeout_ms / 1000),
     )
 
   mountpoint = _os.path.expanduser(mountpoint)
