@@ -152,7 +152,7 @@ class _CustomErrorHandlers:
                   'action_text': 'Install {}'.format(module_name),
                   # Snippets for installing a custom library always end with
                   # an import of the library itself.
-                  'snippet_filter': 'import {}'.format(module_name),
+                  'snippet_filter': module_name,
               },
           ],
       }
