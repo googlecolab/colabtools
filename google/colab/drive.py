@@ -224,6 +224,7 @@ def _mount(
       (
           '( {d}/drive --features='
           + ','.join([
+              'crash_throttle_percentage:100',
               'fuse_max_background:1000',
               'max_read_qps:1000',
               'max_write_qps:1000',
