@@ -163,7 +163,7 @@ class InteractiveSheet:
       height: the height in pixels for the displayed sheet
     """
     IPython.display.display(
-        IPython.display.IFrame(self.embedded_url, height=height, width='75%')
+        IPython.display.IFrame(self.embedded_url, height=height, width='100%')
     )
 
 
