@@ -20,6 +20,17 @@ class SecretNotFoundError(errors.Error):
   def __init__(self, key):
     super().__init__(f'Secret {key} does not exist.')
 
+
+class TimeoutException(errors.Error):
+  """Exception thrown when requesting a secret times out."""
+
+  def __init__(self, key):
+    super().__init__(
+        f'Requesting secret {key} timed out. Secrets can only be fetched when'
+        ' running from the Colab UI.'
+    )
+
+
 _userdata_lock = threading.Lock()
 
 
@@ -35,6 +46,8 @@ def get(key):
     Stored secret
 
   Raises:
+    TimeoutException: If the request times out, usually due to being run from an
+    export where the Colab UI is not available.
     NotebookAccessError: If the notebook does not have access to the requested
     secret.
     SecretNotFoundError: If the requested secret is not found.
@@ -47,8 +60,10 @@ def get(key):
   # thread-safe.
   with _userdata_lock:
     resp = _message.blocking_request(
-        'GetSecret', request={'key': key}, timeout_sec=None
+        'GetSecret', request={'key': key}, timeout_sec=10
     )
+  if not resp:
+    raise TimeoutException(key)
   if not resp.get('exists', False):
     raise SecretNotFoundError(key)
   if not resp.get('access', False):
