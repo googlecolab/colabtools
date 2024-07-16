@@ -6,10 +6,30 @@ import google.auth
 from google.colab import auth
 import gspread
 import IPython
+import numpy as np
 import pandas as pd
 
 
 _gspread_client = None
+
+
+def _clean_val(val):
+  if isinstance(val, pd.Timestamp):
+    return val.isoformat()
+  if isinstance(val, np.longdouble):
+    return float(val)
+  if isinstance(val, list):
+    return str(val)
+  return val
+
+
+def _to_frame(index):
+  if isinstance(index, pd.MultiIndex):
+    frame = index.to_frame(index=False)
+  else:
+    # workaround for https://github.com/pandas-dev/pandas/issues/25809
+    frame = pd.DataFrame(index)
+  return frame.map(_clean_val).replace({np.nan: None})
 
 
 def _generate_creds(unused_credentials=None):
@@ -154,7 +174,7 @@ class InteractiveSheet:
     """
     self._ensure_gspread_client()
     self.worksheet.clear()
-    self.storage_strategy.write(self.worksheet, df)
+    self.storage_strategy.write(self.worksheet, _to_frame(df))
 
   def display(self, height=600):
     """Display the embedded sheet in Colab.
