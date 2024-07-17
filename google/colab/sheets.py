@@ -55,7 +55,8 @@ class InteractiveSheet:
       worksheet_id=-1,
       worksheet_name='',
       credentials=None,
-      include_column_headers=False,
+      include_column_headers=True,
+      display=True,
   ):
     """Initialize a new InteractiveSheet.
 
@@ -79,6 +80,7 @@ class InteractiveSheet:
       credentials: If provided, use these oauth credentials.
       include_column_headers: If True, assume the first row of the sheet is a
         header column for both reads and writes.
+      display: If True, displays the embedded sheet in the cell output.
     """
     if sum([bool(url), bool(sheet_id), bool(title)]) > 1:
       raise ValueError(
@@ -117,7 +119,8 @@ class InteractiveSheet:
 
     if df is not None:
       self.update(df=df)
-    self.display()
+    if display:
+      self.display()
 
   def _load_or_create_sheet(self, url='', title=''):
     """A helper function to load a sheet.
