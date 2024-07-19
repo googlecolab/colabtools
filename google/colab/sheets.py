@@ -29,7 +29,7 @@ def _to_frame(index):
   else:
     # workaround for https://github.com/pandas-dev/pandas/issues/25809
     frame = pd.DataFrame(index)
-  return frame.map(_clean_val).replace({np.nan: None})
+  return frame.applymap(_clean_val).replace({np.nan: None})
 
 
 def _generate_creds(unused_credentials=None):
