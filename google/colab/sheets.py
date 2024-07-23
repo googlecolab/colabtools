@@ -2,12 +2,16 @@
 
 import abc
 import datetime
+import warnings
 import google.auth
 from google.colab import auth
 import gspread
 import IPython
 import numpy as np
 import pandas as pd
+
+# TODO: b/354217704 - remove warning once external pandas is upgraded
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 _gspread_client = None
