@@ -206,6 +206,34 @@ def _summarize_dataframe(df, variable_name):
   )
 
 
+def enable_pandas_series_repr():
+  """Enables pandas Series representation in HTML display formatting."""
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+
+  def _pandas_series_to_html(series):
+    """Renders a pandas Series as a DataFrame HTML table with a dtype label."""
+    series_as_table_html = series.to_frame().to_html()
+    series_as_table_html += f'<br><label><b>dtype:</b> {series.dtype}</label>'
+    return series_as_table_html
+
+  html_formatter = shell.display_formatter.formatters['text/html']
+  html_formatter.for_type_by_name(
+      'pandas.core.series', 'Series', _pandas_series_to_html
+  )
+
+
+def disable_pandas_series_repr():
+  """Disables pandas Series representation in HTML display formatting."""
+  shell = IPython.get_ipython()
+  if not shell:
+    return
+
+  html_formatter = shell.display_formatter.formatters['text/html']
+  html_formatter.pop('pandas.core.series.Series', default=None)
+
+
 def _fullname(obj):
   module = obj.__module__
   if module == 'builtins' or module == '__main__':

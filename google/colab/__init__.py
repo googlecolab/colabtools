@@ -67,4 +67,5 @@ def load_ipython_extension(ipython):
   _reprs.enable_string_repr()
   # TODO(b/203704905): remove workaround when pandas fixes this issue.
   _reprs.enable_df_style_formatter()
+  _reprs.enable_pandas_series_repr()
   _interactive_table_hint_button._enable_df_interactive_hint_formatter()  # pylint:disable=protected-access
