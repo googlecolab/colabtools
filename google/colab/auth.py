@@ -261,6 +261,12 @@ def authenticate_user(clear_output=True, project_id=None):
   Raises:
     errors.AuthorizationError: If authorization fails.
   """
+  if _os.environ.get('VERTEX_PRODUCT') == 'COLAB_ENTERPRISE':
+    print(
+        'WARNING: google.colab.auth.authenticate_user() is not supported in'
+        ' Colab Enterprise.'
+    )
+    return
   use_auth_ephem = _os.environ.get('USE_AUTH_EPHEM', '0') == '1'
   colab_tpu_addr = _os.environ.get('COLAB_TPU_ADDR', '')
   configure_tpu_auth = (
