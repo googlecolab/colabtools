@@ -2,17 +2,12 @@
 
 import abc
 import datetime
-import warnings
 import google.auth
 from google.colab import auth
 import gspread
 import IPython
 import numpy as np
 import pandas as pd
-
-# TODO: b/354217704 - remove warning once external pandas is upgraded
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 
 _gspread_client = None
 
@@ -47,7 +42,21 @@ def _generate_creds(unused_credentials=None):
 
 
 class InteractiveSheet:
-  """A lightweight wrapper to embed interactive sheets in Colab iframes."""
+  """A lightweight wrapper to embed interactive sheets in Colab iframes.
+
+  Public methods:
+    as_df: fetches the data in the current worksheet and returns a new dataframe
+    update: clears the sheet and replaces it with the provided dataframe
+    display: displays the embedded sheet in Colab
+
+  Attributes:
+    sheet: a gspread.models.Spreadsheet that contains the worksheet
+    worksheet: a gspread.models.Worksheet that contains the data for this
+      InteractiveSheet
+    url: a string with the url to the sheet
+    embedded_url: a string with the url to the embedded sheet
+    storage_strategy: an instance of InteractiveSheetStorageStrategy
+  """
 
   def __init__(
       self,
