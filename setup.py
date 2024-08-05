@@ -26,7 +26,7 @@ DEPENDENCIES = (
     'notebook==6.5.5',
     'pandas==2.1.4',
     'portpicker==1.5.2',
-    'requests==2.31.0',
+    'requests==2.32.3',
     'tornado==6.3.3',
 )
 
@@ -40,7 +40,6 @@ setup(
     url='https://colaboratory.research.google.com/',
     packages=find_packages(exclude=('tests*',)),
     install_requires=DEPENDENCIES,
-    namespace_packages=('google',),
     license='Apache 2.0',
     keywords='google colab ipython jupyter',
     classifiers=(
