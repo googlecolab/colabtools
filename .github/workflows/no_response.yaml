@@ -23,7 +23,7 @@ jobs:
       - uses: godofredoc/no-response@0ce2dc0e63e1c7d2b87752ceed091f6d32c9df09
         with:
           responseRequiredLabel: "reply-needed"
-          responseRequiredColor: 8a9113
+          responseRequiredColor: 8b9213
           closeComment: >
             Without additional information we're not able to resolve this issue,
             so it will be closed at this time. You're still free to add more
