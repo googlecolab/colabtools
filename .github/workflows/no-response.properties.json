@@ -1,8 +1,0 @@
-{
-    "name": "A 'reply-needed' bot (colabtools)",
-    "description": "Automation to close 'reply-needed' labelled issues after 21 days of no response",
-    "iconName": "colab",
-    "categories": [
-        "Colab"
-    ]
-}
