@@ -135,15 +135,12 @@ def _getargspec(obj):
 
 
 def _getargspec_dict(obj):
-  """Py2/Py3 compability wrapper for _getargspec.
+  """Wrap oinspect.getargspec, which in turns wraps inspect.getfullargspec.
 
-  Python's `inspect.getargspec` returns different types in python2 and python3,
-  and this function exists to paper over the difference: we always move
-  `spec.keywords` to `spec.varkw`; in order to make this possible, we return a
-  dict instead of a namedtuple.
+  For historical Py2 compabality this returns a dict instead of a namedtuple.
 
-  We also call `_safe_repr` on all values in `defaults`, to avoid potentially
-  expensive computation of string representations.
+  Calls `_safe_repr` on all values in `defaults` to avoid potentially expensive
+  computation of string representations.
 
   Args:
     obj: object whose argspec we return
@@ -154,8 +151,6 @@ def _getargspec_dict(obj):
   argspec = _getargspec(obj)
   if argspec is None:
     return None
-  # We need to avoid potentially computing expensive string representations, so
-  # we proactively call _safe_repr ourselves.
   if argspec.defaults:
     argspec = argspec._replace(
         defaults=[_safe_repr(val) for val in argspec.defaults]
