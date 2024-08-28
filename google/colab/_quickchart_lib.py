@@ -32,7 +32,7 @@ class MplChart:
     plt.savefig(
         f,
         bbox_inches='tight',
-        # TODO(b/210783561): Remove when internal version is updated.
+        # TODO: Remove when internal version is updated.
         transparent=False,
         edgecolor='white',
         facecolor='white',

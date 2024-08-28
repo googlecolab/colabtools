@@ -71,7 +71,7 @@ class Shell(zmqshell.ZMQInteractiveShell):
     self.configurables.append(self.history_manager)
 
   def _should_use_native_system_methods(self):
-    # TODO(b/277214888): Update to match intended values, as appropriate.
+    # TODO: Update to match intended values, as appropriate.
     return bool(os.getenv('USE_NATIVE_IPYTHON_SYSTEM_COMMANDS'))
 
   def getoutput(self, *args, **kwargs):

@@ -525,7 +525,7 @@ class ColabInspector(oinspect.Inspector):
     # * ismagic
     # * namespace
     #
-    # TODO(b/138128444): Handle class_docstring and call_def, or determine that
+    # TODO: Handle class_docstring and call_def, or determine that
     # we're safe ignoring them.
 
     obj_type = type(obj)
@@ -566,7 +566,7 @@ class ColabInspector(oinspect.Inspector):
     if detail_level == 1:
       # This should only ever happen if the user has asked for source (eg via
       # `obj??`), so we're OK with potentially calling repr for now.
-      # TODO(b/138128444): Ensure we don't call str() or repr().
+      # TODO: Ensure we don't call str() or repr().
       source = _getsource(obj)
       if source is None and hasattr(obj, '__class__'):
         source = _getsource(obj.__class__)

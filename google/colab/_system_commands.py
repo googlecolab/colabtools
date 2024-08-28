@@ -187,7 +187,7 @@ def _run_command(cmd, clear_streamed_output):
     with temporary_clearer(), _display_stdin_widget(
         delay_millis=500
     ) as update_stdin_widget:
-      # TODO(b/115531839): Ensure that subprocesses are terminated upon
+      # TODO: Ensure that subprocesses are terminated upon
       # interrupt.
       p = subprocess.Popen(
           cmd,
@@ -332,7 +332,7 @@ def _poll_process(parent_pty, epoll, p, cmd, decoder, state):
     # process.
     # Skip this delay if we read output in the previous loop so that a partial
     # read doesn't unnecessarily sleep before reading more output.
-    # TODO(b/115527726): Rather than sleep, poll for incoming messages from
+    # TODO: Rather than sleep, poll for incoming messages from
     # the frontend in the same poll as for the output.
     time.sleep(0.1)
 

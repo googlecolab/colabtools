@@ -81,7 +81,7 @@ def get_gpu_stats():
   except (OSError, IOError, subprocess.CalledProcessError):
     # If timeout or nvidia-smi don't exist or the call errors, don't report on
     # any GPUs.
-    # TODO(b/139691280): Add internal GPU memory monitoring. Install nvidia-smi.
+    # TODO: Add internal GPU memory monitoring. Install nvidia-smi.
     pass
   else:
     try:
@@ -125,13 +125,13 @@ def get_ram_usage(kernel_manager):
   """
   pids_to_kernel_ids = {}
   if not os.path.exists('/var/colab/hostname'):
-    # TODO(b/265583495): Consider extending reporting per-kernel usage to
+    # TODO: Consider extending reporting per-kernel usage to
     # all environments for consistency. This was removed in cl/337174714. Its 1)
     # is better performed in the frontend presentation layer. 2) was only a
     # requirement for the split (KMC/K) container, a feature that was dropped
     # (cl/470476143).
     def get_pid(kernel):
-      # TODO(b/264409633): Eliminate this function after migration to
+      # TODO: Eliminate this function after migration to
       # jupyter-client 7.x is complete.
       try:
         pid = kernel.provisioner.pid

@@ -95,7 +95,7 @@ class Kernel(ipkernel.IPythonKernel):
         }
       matches = jsonutil.json_clean(matches)
     except BaseException as e:  # pylint: disable=broad-except
-      # TODO(b/124400682): Return an error here and ensure it's threaded through
+      # TODO: Return an error here and ensure it's threaded through
       # to the completion failure dialog.
       self.log.info('Error caught during completion: %s', e)
       matches = '{"status":"ok"}'
@@ -103,7 +103,7 @@ class Kernel(ipkernel.IPythonKernel):
     self.session.send(stream, 'complete_reply', matches, parent, ident)
 
   def inspect_request(self, stream, ident, parent):
-    # TODO(b/207773817): Consider reverting to a `super()` call here once we
+    # TODO: Consider reverting to a `super()` call here once we
     # support async.
     try:
       content = parent['content']
@@ -112,7 +112,7 @@ class Kernel(ipkernel.IPythonKernel):
       )
       reply_content = jsonutil.json_clean(reply_content)
     except BaseException as e:  # pylint: disable=broad-except
-      # TODO(b/124400682): Consider returning an error here.
+      # TODO: Consider returning an error here.
       self.log.info('Error caught during object inspection: %s', e)
       reply_content = '{"status":"ok","found":false}'
     msg = self.session.send(

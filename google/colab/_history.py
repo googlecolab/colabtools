@@ -79,14 +79,12 @@ class ColabHistoryManager(history.HistoryManager):
     cells = dict()
     for i, cell in enumerate(self._input_hist_cells):
       if include_source_hash:
-        # LINT.IfChange(execution_count)
         cells[cell['cell_id']] = {
             'executionCount': i,
             'sourceHash': hashlib.md5(cell['code'].encode('utf8')).hexdigest()[
                 :10
             ],
         }
-        # LINT.ThenChange()
       else:
         cells[cell['cell_id']] = i
     # To be able to access the raw string as an expression we need to transfer

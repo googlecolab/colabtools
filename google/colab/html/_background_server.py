@@ -98,7 +98,7 @@ class _BackgroundServer:
     self._ioloop = tornado.ioloop.IOLoop()
 
     def start_server(httpd, ioloop, port):
-      # TODO(b/147233568): Restrict this to local connections.
+      # TODO: Restrict this to local connections.
       host = ''  # Bind to all
       ioloop.make_current()
       httpd.listen(port=port, address=host)

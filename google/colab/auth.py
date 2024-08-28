@@ -13,7 +13,7 @@
 # limitations under the License.
 """Colab-specific authentication helpers."""
 
-# TODO(b/113878301): Test that imported modules do not appear in autocomplete.
+# TODO: Test that imported modules do not appear in autocomplete.
 import contextlib as _contextlib
 import enum as _enum
 import json as _json
@@ -117,7 +117,7 @@ def _check_adc(credential_type=_CredentialType.NO_CHECK):
   from google.oauth2.service_account import Credentials as _ServiceAccountCredentials  # pylint: disable=g-import-not-at-top
 
   if credential_type == _CredentialType.SERVICE_ACCOUNT:
-    # TODO(b/224641665) We should call refresh() on service account credentials
+    # TODO We should call refresh() on service account credentials
     # as well.
     return isinstance(creds, _ServiceAccountCredentials)
   try:
@@ -162,7 +162,7 @@ def _gcloud_login():
     # https://github.com/jupyter/notebook/issues/3159
     prompt = prompt.rstrip()
     # Suppress the --launch-browser deprecation warning.
-    # TODO(b/218377323): Remove this.
+    # TODO: Remove this.
     prompt = '\n'.join(
         [line for line in prompt.splitlines() if 'launch-browser' not in line]
     )
@@ -195,7 +195,7 @@ def _install_adc():
     f.write(ls[0][1])
 
 
-# TODO(b/218377323): Remove.
+# TODO: Remove.
 def _enable_metadata_server_for_gcloud():
   with _output.temporary():
     _subprocess.run(
@@ -333,7 +333,7 @@ def authenticate_service_account(clear_output=True):
           ' for help.\n\n'
       )
       adc_path = _get_adc_path()
-      # TODO(b/226659795): Offer programmatic option, https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-gcloud
+      # TODO: Offer programmatic option, https://cloud.google.com/iam/docs/creating-managing-service-account-keys#iam-service-account-keys-create-gcloud
       for _ in range(3):
         uploaded_file = _files._upload_file(adc_path)  # pylint: disable=protected-access
         if not uploaded_file:
