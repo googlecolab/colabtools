@@ -474,7 +474,6 @@ class ColabInspector(oinspect.Inspector):
       return f'{oname}{new_sig}'
     except:  # pylint: disable=bare-except
       logging.exception('Exception raised in ColabInspector._getdef')
-
   def info(self, obj, oname='', formatter=None, info=None, detail_level=0):
     """Compute a dict with detailed information about an object.
 
@@ -513,7 +512,7 @@ class ColabInspector(oinspect.Inspector):
     # * source_definition
     #
     # For detail_level 1, we include:
-    # * file
+    # * source
     # This can be expensive, as the stdlib mechanisms for looking up the file
     # containing obj may call repr(obj).
     #
