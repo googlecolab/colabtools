@@ -96,4 +96,4 @@ def _declare_cell_magic(name, module, magic_module_loader):
 
 def _declare_colabx_magics():
   if get_ipython():
-    _declare_cell_magic('bigquery', 'google.cloud.bigquery', _load_extension)
+    _declare_cell_magic('bigquery', 'bigquery_magics', _load_extension)
