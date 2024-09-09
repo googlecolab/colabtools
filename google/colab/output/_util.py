@@ -15,7 +15,6 @@
 
 import json
 import sys
-import warnings
 # pytype: disable=import-error
 from IPython import display
 
@@ -93,7 +92,9 @@ def serve_kernel_port_as_iframe(
   display.display(display.Javascript(code))
 
 
-def serve_kernel_port_as_window(port, path='/', anchor_text=None):
+def serve_kernel_port_as_window(
+    port, path='/', anchor_text=None, skip_warning=False
+):
   """Displays a link in the output to open a browser tab to a port on the kernel.
 
   DEPRECATED; Browser security updates have broken this feature. Use
@@ -110,12 +111,14 @@ def serve_kernel_port_as_window(port, path='/', anchor_text=None):
     port: The kernel port to be exposed to the client.
     path: The path to be navigated to.
     anchor_text: Text content of the anchor link.
+    skip_warning: If True, don't print a warning about this function sometimes
+      not working.
   """
-  warnings.warn(
-      'This has been deprecated due to changes in browser security. Use'
-      ' `serve_kernel_port_as_iframe` instead.',
-      DeprecationWarning,
-  )
+  if not skip_warning:
+    print(
+        '\x1b[31mWarning: This function may stop working due to changes in'
+        ' browser security.\nTry `serve_kernel_port_as_iframe` instead. \x1b[0m'
+    )
 
   if not anchor_text:
     anchor_text = 'https://localhost:{port}{path}'.format(port=port, path=path)
