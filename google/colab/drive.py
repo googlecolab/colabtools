@@ -124,6 +124,10 @@ def _mount(
   if ' ' in mountpoint:
     raise ValueError('Mountpoint must not contain a space.')
 
+  if _os.environ.get('VERTEX_PRODUCT') == 'COLAB_ENTERPRISE':
+    raise NotImplementedError(
+        'google.colab.drive.mount is not supported in Colab Enterprise.'
+    )
   metadata_server_addr = (
       _os.environ['TBE_EPHEM_CREDS_ADDR']
       if ephemeral
