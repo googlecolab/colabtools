@@ -305,7 +305,7 @@ def _mount(
   d.expect(prompt)
   if 'ENABLE_DIRECTORYPREFETCHER' in _os.environ:
     d.sendline(
-        """nohup bash -c '{d}/directoryprefetcher_binary -v=1 -mountpoint={mnt}' """
+        """nohup bash -c '{d}/directoryprefetcher_binary -mountpoint={mnt}' """
         """>> {log} 2>&1 &""".format(
             d=drive_dir,
             mnt=mountpoint,
