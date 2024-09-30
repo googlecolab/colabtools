@@ -220,41 +220,31 @@ def _mount(
       'Drive File Stream encountered a problem and has stopped'
   )
   drive_exited = 'drive EXITED'
-  metadata_auth_arg = (
-      f'--metadata_server_auth_uri={metadata_server_addr}/computeMetadata/v1 '
-  )
 
   d.sendline(
-      (
-          '( {d}/drive --features='
-          + ','.join([
-              'crash_throttle_percentage:100',
-              'fuse_max_background:1000',
-              'max_read_qps:1000',
-              'max_write_qps:1000',
-              'max_operation_batch_size:15',
-              'max_parallel_push_task_instances:10',
-              'opendir_timeout_ms:{timeout_ms}',
-              'virtual_folders_omit_spaces:true',
-              'read_only_mode:{readonly}',
-          ])
-          + ' --inet_family='
-          + inet_family
-          + ' '
-          + metadata_auth_arg
-          + '--preferences=trusted_root_certs_file_path:{d}/roots.pem,mount_point_path:{mnt}'
-          ' 2>&1 | grep --line-buffered -E'
-          ' "{problem_and_stopped}|{domain_disabled_drivefs}"; echo'
-          ' "{drive_exited}"; ) &'
-      ).format(
-          d=drive_dir,
-          timeout_ms=timeout_ms,
-          mnt=mountpoint,
-          domain_disabled_drivefs=domain_disabled_drivefs,
-          problem_and_stopped=problem_and_stopped,
-          drive_exited=drive_exited,
-          readonly='true' if readonly else 'false',
-      )
+      '('
+      f' {drive_dir}/drive'
+      ' --features='
+      'crash_throttle_percentage:100,'
+      'fuse_max_background:1000,'
+      'max_read_qps:1000,'
+      'max_write_qps:1000,'
+      'max_operation_batch_size:15,'
+      'max_parallel_push_task_instances:10,'
+      f'opendir_timeout_ms:{timeout_ms},'
+      'virtual_folders_omit_spaces:true,'
+      f'read_only_mode:{str(readonly).lower()}'
+      f' --inet_family={inet_family}'
+      f' --metadata_server_auth_uri={metadata_server_addr}/computeMetadata/v1'
+      ' --preferences='
+      f'trusted_root_certs_file_path:{drive_dir}/roots.pem,'
+      'feature_flag_restart_seconds:129600,'
+      f'mount_point_path:{mountpoint}'
+      ' 2>&1 |'
+      ' grep --line-buffered -E'
+      f' "{problem_and_stopped}|{domain_disabled_drivefs}";'
+      f' echo "{drive_exited}";'
+      ') &'
   )
   d.expect(prompt)
   timeout_pattern = 'QueryManager timed out'
