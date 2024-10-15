@@ -51,7 +51,7 @@ function dotAccess(target, accessor) {
 }
 
 async function initialize(config) {
-  el = document.getElementById(config.guid);
+  const el = document.getElementById(config.guid);
   if (!el) {
     throw new Error(`No element found with id: ${guid}`);
   }
