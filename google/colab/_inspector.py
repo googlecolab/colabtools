@@ -467,7 +467,7 @@ class ColabInspector(oinspect.Inspector):
       new_params = []
       for v in sig.parameters.values():
         new_default = v.default
-        if v.default != v.empty:
+        if v.default is not v.empty:
           new_default = _SafeReprParam(v.default)
         new_params.append(v.replace(default=new_default))
       new_sig = sig.replace(parameters=new_params)
