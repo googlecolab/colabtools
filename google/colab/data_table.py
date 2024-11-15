@@ -54,7 +54,7 @@ __all__ = [
 ]
 
 # For details on updating gviz js, refer to: <internal>/gviz/update_data_table
-_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/54ded79905fc55e4/data_table.js'
+_GVIZ_JS = 'https://ssl.gstatic.com/colaboratory/data_table/e523c247d1e24a05/data_table.js'
 
 _DATA_TABLE_HELP_URL = (
     'https://colab.research.google.com/notebooks/data_table.ipynb'
