@@ -182,15 +182,16 @@ class InteractiveSheet:
     data = self.storage_strategy.read(self.worksheet)
     return pd.DataFrame(data)
 
-  def update(self, df):
+  def update(self, df, **kwargs):
     """Update clears the sheet and replaces it with the provided dataframe.
 
     Args:
       df: the source data
+      **kwargs: additional arguments to pass to the gspread update method
     """
     self._ensure_gspread_client()
     self.worksheet.clear()
-    self.storage_strategy.write(self.worksheet, _to_frame(df))
+    self.storage_strategy.write(self.worksheet, _to_frame(df), **kwargs)
 
   def display(self, height=600):
     """Display the embedded sheet in Colab.
@@ -211,7 +212,7 @@ class InteractiveSheetStorageStrategy(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def write(self, worksheet, df):
+  def write(self, worksheet, df, **kwargs):
     pass
 
 
@@ -222,9 +223,9 @@ class HeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
     data = worksheet.get_values()
     return pd.DataFrame(data)
 
-  def write(self, worksheet, df):
+  def write(self, worksheet, df, **kwargs):
     data = [list(r) for _, r in df.iterrows()]
-    worksheet.update('', data)
+    worksheet.update('', data, **kwargs)
 
 
 class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
@@ -234,6 +235,6 @@ class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
     data = worksheet.get_all_records()
     return pd.DataFrame(data)
 
-  def write(self, worksheet, df):
+  def write(self, worksheet, df, **kwargs):
     data = [list(df.columns)] + [list(r) for _, r in df.iterrows()]
-    worksheet.update('', data)
+    worksheet.update('', data, **kwargs)
