@@ -27,6 +27,7 @@ class _AltairImportHook:
         'altair.vegalite.v2',
         'altair.vegalite.v3',
         'altair.vegalite.v4',
+        'altair.vegalite.v5',
     ]:
       return None
     self.module_info = imp.find_module(fullname.split('.')[-1], path)
