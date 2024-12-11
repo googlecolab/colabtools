@@ -27,7 +27,7 @@ DEPENDENCIES = (
     'pandas==2.2.2',
     'portpicker==1.5.2',
     'requests==2.32.3',
-    'tornado==6.3.3',
+    'tornado==6.4.2',
 )
 
 setup(
