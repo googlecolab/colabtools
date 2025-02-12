@@ -32,6 +32,10 @@ class Kernel(ipkernel.IPythonKernel):
 
     data = {}
     if info['found']:
+      info_text = self.shell.object_inspect_text(
+          name, detail_level=detail_level
+      )
+      data['text/plain'] = info_text
       # Provide the structured inspection information to allow the frontend to
       # format as desired.
       argspec = info.get('argspec')
