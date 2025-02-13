@@ -26,7 +26,7 @@ class Kernel(ipkernel.IPythonKernel):
   def _shell_class_default(self):
     return _shell.Shell
 
-  def do_inspect(self, code, cursor_pos, detail_level=0):
+  def do_inspect(self, code, cursor_pos, detail_level=0, *args, **kwargs):
     name = tokenutil.token_at_cursor(code, cursor_pos)
     info = self.shell.object_inspect(name)
 
@@ -106,23 +106,17 @@ class Kernel(ipkernel.IPythonKernel):
 
     self.session.send(stream, 'complete_reply', matches, parent, ident)
 
-  def inspect_request(self, stream, ident, parent):
-    # TODO: Consider reverting to a `super()` call here once we
-    # support async.
+  async def inspect_request(self, stream, ident, parent):
     try:
-      content = parent['content']
-      reply_content = self.do_inspect(
-          content['code'], content['cursor_pos'], content.get('detail_level', 0)
-      )
-      reply_content = jsonutil.json_clean(reply_content)
+      await super().inspect_request(stream, ident, parent)
     except BaseException as e:  # pylint: disable=broad-except
       # TODO: Consider returning an error here.
-      self.log.info('Error caught during object inspection: %s', e)
+      self.log.warning('Error caught during object inspection: %s', e)
       reply_content = '{"status":"ok","found":false}'
-    msg = self.session.send(
-        stream, 'inspect_reply', reply_content, parent, ident
-    )
-    self.log.debug('%s', msg)
+      msg = self.session.send(
+          stream, 'inspect_reply', reply_content, parent, ident
+      )
+      self.log.debug('%s', msg)
 
 
 def _to_primitive(o):

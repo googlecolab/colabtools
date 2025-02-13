@@ -26,6 +26,7 @@ from google.colab import _system_commands
 from ipykernel import jsonutil
 from ipykernel import zmqshell
 from IPython.core import alias
+from IPython.core import compilerop
 from IPython.core import inputsplitter
 from IPython.core import interactiveshell
 from IPython.core import oinspect
@@ -69,6 +70,29 @@ class Shell(zmqshell.ZMQInteractiveShell):
     """Initialize colab's custom history manager."""
     self.history_manager = _history.ColabHistoryManager(shell=self, parent=self)
     self.configurables.append(self.history_manager)
+
+  def init_instance_attrs(self):
+    """Initialize instance attributes.
+
+    For enhanced debugging, ipykernel compiler defines a new XCachingCompiler:
+    https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/compiler.py#L91
+
+    It's used as the default IPythonKernel shell_class' compiler_class:
+    https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/ipkernel.py#L96
+
+    This means, functionally, the `code_name` has changed to
+    something like /tmp/ipykernel_{pid}/{murmurhash}.py, rather than
+    <ipython-N-XXXXX.py>.
+    https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/compiler.py#L75
+
+    Since we implement our own Shell which inherits from
+    `zmqshell.ZMQInteractiveShell`, which inherits from
+    `IPython.core.interactiveshell.InteractiveShell`, we pick up this change.
+    The old code_name (e.g. `ipython-N-XXXXX.py`) is widely used and parsed.
+    We therefore update our shell to pull in the old behavior.
+    """
+    self.compiler_class = compilerop.CachingCompiler
+    super().init_instance_attrs()
 
   def _should_use_native_system_methods(self):
     # TODO: Update to match intended values, as appropriate.
