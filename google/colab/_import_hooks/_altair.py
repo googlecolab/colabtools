@@ -13,16 +13,19 @@
 # limitations under the License.
 """Import hook for ensuring that Altair's Colab renderer is registered."""
 
-import imp  # pylint: disable=deprecated-module
+import importlib
 import logging
 import os
 import sys
 
+from google.colab._import_hooks._hook_injector import HookInjectorLoader
 
-class _AltairImportHook:
+
+class _AltairImportHook(importlib.abc.MetaPathFinder):
   """Enables Altair's Colab renderer upon import."""
 
-  def find_module(self, fullname, path=None):
+  def find_spec(self, fullname, path=None, target=None):
+    """Detects if altair.vegalite.* is being imported and enables the renderer."""
     if fullname not in [
         'altair.vegalite.v2',
         'altair.vegalite.v3',
@@ -30,22 +33,23 @@ class _AltairImportHook:
         'altair.vegalite.v5',
     ]:
       return None
-    self.module_info = imp.find_module(fullname.split('.')[-1], path)
-    return self
 
-  def load_module(self, fullname):
-    """Loads Altair normally and runs pre-initialization code."""
-    previously_loaded = fullname in sys.modules
-    altair_module = imp.load_module(fullname, *self.module_info)
+    def init_code_callback(module, previously_loaded):
+      if not previously_loaded:
+        try:
+          module.renderers.enable('colab')
+        except:  # pylint: disable=bare-except
+          logging.exception('Error enabling Altair Colab renderer.')
+          os.environ['COLAB_ALTAIR_IMPORT_HOOK_EXCEPTION'] = '1'
 
-    if not previously_loaded:
-      try:
-        altair_module.renderers.enable('colab')
-      except:  # pylint: disable=bare-except
-        logging.exception('Error enabling Altair Colab renderer.')
-        os.environ['COLAB_ALTAIR_IMPORT_HOOK_EXCEPTION'] = '1'
-
-    return altair_module
+    loader = HookInjectorLoader(
+        fullname,
+        path,
+        target,
+        type(self),
+        init_code_callback,
+    )
+    return importlib.util.spec_from_loader(fullname, loader)
 
 
 def _register_hook():

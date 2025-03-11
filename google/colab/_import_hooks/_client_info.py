@@ -13,24 +13,20 @@
 # limitations under the License.
 """Import hook to add colab specific user agent."""
 
-import imp  # pylint:disable=deprecated-module
+import importlib
 import logging
 import os
 import sys
 
+from google.colab._import_hooks._hook_injector import HookInjectorLoader
+
 APPLICATION_NAME = 'google-colab'
 
 
-class APICoreClientInfoImportHook:
+class APICoreClientInfoImportHook(importlib.abc.MetaPathFinder):
   """Add Colab specific user agent for API analysis."""
 
-  def find_module(self, fullname, path=None):
-    if fullname not in ['google.api_core.client_info']:
-      return None
-    self.module_info = imp.find_module(fullname.split('.')[-1], path)
-    return self
-
-  def load_module(self, fullname):
+  def find_spec(self, fullname, path=None, target=None):
     """Loads google.api_core.client_info and runs pre-initialization code.
 
     It loads google.api_core.client_info normally and modifies the to_user_agent
@@ -38,28 +34,37 @@ class APICoreClientInfoImportHook:
 
     Args:
       fullname: fullname of the module
+      path: path to the module
+      target: target of the module
 
     Returns:
-      A modified google.api_core.client_info module.
+      A ModuleSpec for google.api_core.client_info.
     """
+    if fullname not in ['google.api_core.client_info']:
+      return None
 
-    previously_loaded = fullname in sys.modules
-    client_info_module = imp.load_module(fullname, *self.module_info)
+    def init_code_callback(module, previously_loaded):
+      if not previously_loaded:
+        try:
+          old_to_user_agent = module.ClientInfo.to_user_agent
 
-    if not previously_loaded:
-      try:
-        old_to_user_agent = client_info_module.ClientInfo.to_user_agent
+          def to_user_agent(self):
+            return f'{APPLICATION_NAME} {old_to_user_agent(self)}'
 
-        def to_user_agent(self):
-          return f'{APPLICATION_NAME} {old_to_user_agent(self)}'
+          module.ClientInfo.to_user_agent = to_user_agent
 
-        client_info_module.ClientInfo.to_user_agent = to_user_agent
+        except:  # pylint: disable=bare-except
+          logging.exception('Error user agent in google.api_core.client_info')
+          os.environ['COLAB_BIGQUERY_CLIENT_IMPORT_HOOK_EXCEPTION'] = '1'
 
-      except:  # pylint: disable=bare-except
-        logging.exception('Error user agent in google.api_core.client_info')
-        os.environ['COLAB_BIGQUERY_CLIENT_IMPORT_HOOK_EXCEPTION'] = '1'
-
-    return client_info_module
+    loader = HookInjectorLoader(
+        fullname,
+        path,
+        target,
+        type(self),
+        init_code_callback,
+    )
+    return importlib.util.spec_from_loader(fullname, loader)
 
 
 def _register_hook():
