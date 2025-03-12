@@ -172,14 +172,17 @@ class InteractiveSheet:
   def generate_creds(cls, credentials=None):
     return _generate_creds(credentials)
 
-  def as_df(self):
+  def as_df(self, range_name=None):
     """as_df fetches the data in the current worksheet and returns a new dataframe.
+
+    Args:
+      range_name: the range of data to fetch, defaults to the entire worksheet
 
     Returns:
       a pandas Dataframe with the latest data from the current worksheet
     """
     self._ensure_gspread_client()
-    data = self.storage_strategy.read(self.worksheet)
+    data = self.storage_strategy.read(self.worksheet, range_name)
     return pd.DataFrame(data)
 
   def update(self, df, **kwargs):
@@ -219,8 +222,8 @@ class InteractiveSheetStorageStrategy(abc.ABC):
 class HeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
   """Read and write operations for sheets with a header row."""
 
-  def read(self, worksheet):
-    data = worksheet.get_values()
+  def read(self, worksheet, range_name=None):
+    data = worksheet.get_values(range_name)
     return pd.DataFrame(data)
 
   def write(self, worksheet, df, **kwargs):
@@ -231,9 +234,15 @@ class HeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
 class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
   """Read and write operations for sheets without a header row."""
 
-  def read(self, worksheet):
-    data = worksheet.get_all_records()
-    return pd.DataFrame(data)
+  def read(self, worksheet, range_name=None):
+    data = worksheet.get_values(range_name)
+    if not data:
+      return pd.DataFrame()
+    # Data is a list of lists, i.e. [[col1, col2], [row1, row2], ...], where
+    # the first element is the column names, the rest are the rows.
+    columns = data[0]
+    rows = data[1:]
+    return pd.DataFrame(rows, columns=columns)
 
   def write(self, worksheet, df, **kwargs):
     data = [list(df.columns)] + [list(r) for _, r in df.iterrows()]
