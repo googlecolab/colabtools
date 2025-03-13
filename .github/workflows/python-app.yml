@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-       python-version: [3.14]
-       architecture: [x64-freethreaded]
+        python-version: [3.14]
+        architecture: [x64-freethreaded]
 
     steps:
       - name: Check out code
@@ -21,14 +21,20 @@ jobs:
 
       - name: Set up Python 3.14.0
         run: |
-          wget https://github.com/actions/python-versions/releases/download/3.14.0-alpha.5-13438582588/python-3.14.0-alpha.5-linux-20.04-x64-freethreaded.tar.gz
+          wget -q https://github.com/actions/python-versions/releases/download/3.14.0-alpha.5-13438582588/python-3.14.0-alpha.5-linux-20.04-x64-freethreaded.tar.gz
+          if [ ! -f "python-3.14.0-alpha.5-linux-20.04-x64-freethreaded.tar.gz" ]; then
+            echo "Python tarball download failed!" && exit 1
+          fi
           tar -xvzf python-3.14.0-alpha.5-linux-20.04-x64-freethreaded.tar.gz
+          if [ ! -d "python-3.14.0-alpha.5" ]; then
+            echo "Python extraction failed!" && exit 1
+          fi
           sudo mv python-3.14.0-alpha.5 /usr/local/bin/python3.14
           sudo ln -s /usr/local/bin/python3.14/bin/python3 /usr/local/bin/python3
           sudo ln -s /usr/local/bin/python3.14/bin/pip3 /usr/local/bin/pip3
 
       - name: Verify Python Version
-        run: python --version  # Should return Python 3.14.x
+        run: python --version
 
       - name: Install dependencies
         run: |
@@ -37,23 +43,23 @@ jobs:
 
       - name: Install the package in development mode
         run: |
-          pip install -e .  
+          pip install -e .
 
       - name: Run tests
         run: |
-          python -m unittest discover -s tests 
+          python -m unittest discover -s tests
 
       - name: Lint code
         run: |
           pip install flake8
-          flake8 .  # Adjust the directory if needed
+          flake8 .
 
       - name: Check code formatting
         run: |
           pip install black
-          black --check . 
+          black --check .
 
       - name: Check for security vulnerabilities
         run: |
           pip install safety
-          safety check 
+          safety check
