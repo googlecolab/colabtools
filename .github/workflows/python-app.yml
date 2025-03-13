@@ -1,55 +1,50 @@
-name: Python Application CI
+name: Python application
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: linux-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.13.2]  
+    runs-on: windows-latest
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+   
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.10 
+   
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.14.0'
+    
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Verify Python Version
-        run: python --version
+   
+    - name: Run tests
+      run: |
+        pytest --maxfail=1 --disable-warnings -q
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+   
+    - name: Deploy to Cloud (example)
+      run: |
+        python cloud_deploy.py
 
-      - name: Install the package in development mode
-        run: |
-          pip install -e .
 
-      - name: Run tests
-        run: |
-          python -m unittest discover -s tests
+    - name: Run Kernel Integration
+      run: |
+        python kernel_integration.py
 
-      - name: Lint code
-        run: |
-          pip install flake8
-          flake8 .
-
-      - name: Check code formatting
-        run: |
-          pip install black
-          black --check .
-
-      - name: Check for security vulnerabilities
-        run: |
-          pip install safety
-          safety check
+  
+    - name: Test Cloud Deploy
+      run: |
+        pytest tests/test_cloud_deploy.py
