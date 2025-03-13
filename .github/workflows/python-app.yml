@@ -37,11 +37,11 @@ jobs:
 
       - name: Install the package in development mode
         run: |
-          pip install -e .  # Installs the package under test in development mode
+          pip install -e .  
 
       - name: Run tests
         run: |
-          python -m unittest discover -s tests  # Adjust the test directory if needed
+          python -m unittest discover -s tests 
 
       - name: Lint code
         run: |
@@ -51,9 +51,9 @@ jobs:
       - name: Check code formatting
         run: |
           pip install black
-          black --check .  # Checks code formatting without making changes
+          black --check . 
 
       - name: Check for security vulnerabilities
         run: |
           pip install safety
-          safety check  # Scans for known security issues in dependencies
+          safety check 
