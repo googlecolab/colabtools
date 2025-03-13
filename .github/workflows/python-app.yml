@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.14]
-        architecture: x64-freethreaded 
+       python-version: [3.14]
+       architecture: [x64-freethreaded]
 
     steps:
       - name: Check out code
