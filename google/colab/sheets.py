@@ -65,7 +65,7 @@ class InteractiveSheet:
       url='',
       sheet_id='',
       df=None,
-      worksheet_id=-1,
+      worksheet_id=None,
       worksheet_name='',
       credentials=None,
       include_column_headers=True,
@@ -83,12 +83,12 @@ class InteractiveSheet:
       url: If provided, use this sheets URL to source the data
       sheet_id: If provided, use this sheet id to source the data. Note -
         sheet_id is the Drive ID from the sheets URL, i.e.
-        https://docs.google.com/spreadsheets/d/{sheet_id}.
+        https://docs.google.com/spreadsheets/d/{sheet_id}/edit.
       df: If provided, populate the sheet with this data
       worksheet_id: If provided, load data from this worksheet_id. Note -
         worksheet_id indicates which worksheet (tab) to use. Worksheet_id is the
         optional query param, `gid` in the sheets URL i.e.
-        https://docs.google.com/spreadsheets/d/{sheet_id}?gid={worksheet_id}.
+        https://docs.google.com/spreadsheets/d/{sheet_id}/edit?gid={worksheet_id}.
       worksheet_name: If provided, load data from this worksheet_name
       credentials: If provided, use these oauth credentials.
       include_column_headers: If True, assume the first row of the sheet is a
@@ -101,10 +101,8 @@ class InteractiveSheet:
           ' one.'
       )
 
-    if worksheet_id >= 0 and worksheet_name:
+    if worksheet_id is not None and worksheet_name:
       raise ValueError('Expected `worksheet_id` or `worksheet_name` got both.')
-    if worksheet_id < 0 and not worksheet_name:
-      worksheet_id = 0
 
     if sheet_id:
       url = f'https://docs.google.com/spreadsheets/d/{sheet_id}'
@@ -115,14 +113,17 @@ class InteractiveSheet:
 
     if worksheet_name:
       self.worksheet = self.sheet.worksheet(worksheet_name)
+    elif worksheet_id is not None:
+      self.worksheet = self.sheet.get_worksheet_by_id(worksheet_id)
     else:
-      self.worksheet = self.sheet.get_worksheet(worksheet_id)
+      # Default to the first worksheet.
+      self.worksheet = self.sheet.get_worksheet(0)
 
-    self.url = f'{self.sheet.url}#gid={self.worksheet.id}'
+    self.url = f'{self.sheet.url}/edit#gid={self.worksheet.id}'
     # Printing the URL gives the user a convenient handle to the pointer page.
     print(self.url)
     self.embedded_url = (
-        f'{self.url}/edit?rm=embedded?usp=sharing?widget=true&amp;headers=false'
+        f'{self.sheet.url}/edit?rm=embedded#gid={self.worksheet.id}'
     )
 
     if include_column_headers:
