@@ -23,7 +23,7 @@ DEPENDENCIES = (
     'ipykernel==6.17.1',
     'ipyparallel==8.8.0',
     'ipython==7.34.0',
-    'notebook==6.5.5',
+    'notebook==6.5.7',
     'pandas==2.2.2',
     'portpicker==1.5.2',
     'requests==2.32.3',
@@ -44,7 +44,6 @@ setup(
     keywords='google colab ipython jupyter',
     classifiers=(
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
