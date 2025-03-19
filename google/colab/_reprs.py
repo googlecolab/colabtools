@@ -18,7 +18,10 @@ with warnings.catch_warnings():
   # Importing via IPython raises a spurious warning, but avoids a version
   # mismatch internally.
   warnings.simplefilter('ignore')
-  from IPython.utils import traitlets
+  try:
+    import traitlets as _traitlets
+  except ImportError:
+    from IPython.utils import traitlets as _traitlets
 
 
 _original_string_formatters = {}
@@ -36,8 +39,8 @@ _INTRINSIC_MIME_TYPE = 'application/vnd.google.colaboratory.intrinsic+json'
 
 
 class _IntrinsicTypeFormatter(IPython.core.formatters.BaseFormatter):
-  format_type = traitlets.Unicode(_INTRINSIC_MIME_TYPE)
-  print_method = traitlets.ObjectName('_repr_intrinsic_type_')
+  format_type = _traitlets.Unicode(_INTRINSIC_MIME_TYPE)
+  print_method = _traitlets.ObjectName('_repr_intrinsic_type_')
   _return_type = dict
 
 
