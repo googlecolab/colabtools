@@ -2,6 +2,8 @@
 
 import abc
 import datetime
+import importlib
+import operator
 import google.auth
 from google.colab import auth
 import gspread
@@ -10,6 +12,10 @@ import numpy as np
 import pandas as pd
 
 _gspread_client = None
+
+
+_PANDAS = 'pandas'
+_POLARS = 'polars'
 
 
 def _clean_val(val):
@@ -56,6 +62,7 @@ class InteractiveSheet:
     url: a string with the url to the sheet
     embedded_url: a string with the url to the embedded sheet
     storage_strategy: an instance of InteractiveSheetStorageStrategy
+    backend: A string indicating the backend the interactive sheet uses
   """
 
   def __init__(
@@ -70,6 +77,7 @@ class InteractiveSheet:
       credentials=None,
       include_column_headers=True,
       display=True,
+      backend=_PANDAS,
   ):
     """Initialize a new InteractiveSheet.
 
@@ -94,6 +102,12 @@ class InteractiveSheet:
       include_column_headers: If True, assume the first row of the sheet is a
         header column for both reads and writes.
       display: If True, displays the embedded sheet in the cell output.
+      backend: The dataframe lbrary to use, must be one of `'pandas'` or
+        `'polars'`. To use polars it must actually be installed.
+
+    Raises:
+      ValueError: When an incompatible `backend` is supplied.
+      ModuleNotFoundError: When `backend='polars'` but polars is not installed.
     """
     if sum([bool(url), bool(sheet_id), bool(title)]) > 1:
       raise ValueError(
@@ -125,12 +139,23 @@ class InteractiveSheet:
     self.embedded_url = (
         f'{self.sheet.url}/edit?rm=embedded#gid={self.worksheet.id}'
     )
-
-    if include_column_headers:
-      self.storage_strategy = HeaderStorageStrategy()
+    self.backend = backend
+    if backend == _POLARS:
+      self.storage_strategy = (
+          PolarsHeaderStorageStrategy()
+          if include_column_headers
+          else PolarsHeaderlessStorageStrategy()
+      )
+    elif backend == _PANDAS:
+      self.storage_strategy = (
+          HeaderStorageStrategy()
+          if include_column_headers
+          else HeaderlessStorageStrategy()
+      )
     else:
-      self.storage_strategy = HeaderlessStorageStrategy()
-
+      raise ValueError(
+          f"Unrecognized backend '{backend}', use one of 'polars' or 'pandas'."
+      )
     if df is not None:
       self.update(df=df)
     if display:
@@ -183,8 +208,7 @@ class InteractiveSheet:
       a pandas Dataframe with the latest data from the current worksheet
     """
     self._ensure_gspread_client()
-    data = self.storage_strategy.read(self.worksheet, range_name)
-    return pd.DataFrame(data)
+    return self.storage_strategy.read(self.worksheet, range_name)
 
   def update(self, df, **kwargs):
     """Update clears the sheet and replaces it with the provided dataframe.
@@ -192,10 +216,27 @@ class InteractiveSheet:
     Args:
       df: the source data
       **kwargs: additional arguments to pass to the gspread update method
+
+    Raises:
+      ValueError: When a pandas dataframe is passed to an instance with
+      `backend='polars'` or vice versa.
     """
+    if self.backend == _POLARS and isinstance(df, pd.DataFrame):
+      raise ValueError(
+          'Unexpected DataFrame. Got: pandas, want: polars. To use a pandas'
+          " dataframe with InteractiveSheet you must set backend='pandas' when"
+          ' creating the sheet'
+      )
+    if self.backend == _PANDAS and not isinstance(df, pd.DataFrame):
+      raise ValueError(
+          'Unexpected DataFrame. Got: polars, want: pandas. To use a polars'
+          " dataframe with InteractiveSheet you must set backend='polars' when"
+          ' creating the sheet'
+      )
     self._ensure_gspread_client()
     self.worksheet.clear()
-    self.storage_strategy.write(self.worksheet, _to_frame(df), **kwargs)
+    frame = df if (self.backend == _POLARS) else _to_frame(df)
+    self.storage_strategy.write(self.worksheet, frame, **kwargs)
 
   def display(self, height=600):
     """Display the embedded sheet in Colab.
@@ -239,12 +280,63 @@ class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
     data = worksheet.get_values(range_name)
     if not data:
       return pd.DataFrame()
-    # Data is a list of lists, i.e. [[col1, col2], [row1, row2], ...], where
-    # the first element is the column names, the rest are the rows.
+    # Data is a list of lists, i.e.
+    # [[header1, header2], [row1col1, row1col2], ...], where the first element
+    # is the column names, the rest are the rows.
     columns = data[0]
     rows = data[1:]
     return pd.DataFrame(rows, columns=columns)
 
   def write(self, worksheet, df, **kwargs):
     data = [list(df.columns)] + [list(r) for _, r in df.iterrows()]
+    worksheet.update('', data, **kwargs)
+
+
+class PolarsHeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
+  """Read and write operations for sheets with a header row."""
+
+  def __init__(self):
+    try:
+      self._pl = importlib.import_module('polars')
+    except ModuleNotFoundError as e:
+      raise ModuleNotFoundError(
+          'Polars is not installed. Please install it with `pip install polars`'
+      ) from e
+
+  def read(self, worksheet, range_name=None):
+    data = worksheet.get_values(range_name)
+    return self._pl.DataFrame(data, orient='row')
+
+  def write(self, worksheet, df, **kwargs):
+    data = [list(r) for r in df.iter_rows()]
+    worksheet.update('', data, **kwargs)
+
+
+class PolarsHeaderStorageStrategy(InteractiveSheetStorageStrategy):
+  """Read and write operations for sheets without a header row."""
+
+  def __init__(self):
+    try:
+      self._pl = importlib.import_module('polars')
+    except ModuleNotFoundError as e:
+      raise ModuleNotFoundError(
+          'Polars is not installed. Please install it with `pip install polars`'
+      ) from e
+
+  def read(self, worksheet, range_name=None):
+    data = worksheet.get_values(range_name)
+    if not data:
+      return self._pl.DataFrame()
+    # Data is a list of lists, i.e.
+    # [[header1, header2], [row1col1, row1col2], ...], where the first element
+    # is the column names, the rest are the rows.
+    columns = data[0]
+    rows = data[1:]
+    return self._pl.DataFrame(rows, schema=columns, orient='row')
+
+  def write(self, worksheet, df, **kwargs):
+    # gspread json.dumps every cell and doesn't support polars' dates, etc.
+    # As a result we cast everything that is not a number to a string first.
+    formatted = df.cast({operator.invert(self._pl.selectors.numeric()): str})
+    data = [df.columns] + [list(r) for r in formatted.iter_rows()]
     worksheet.update('', data, **kwargs)
