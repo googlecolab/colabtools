@@ -7,6 +7,7 @@ import operator
 import google.auth
 from google.colab import auth
 import gspread
+from gspread import utils as gspread_utils
 import IPython
 import numpy as np
 import pandas as pd
@@ -45,6 +46,30 @@ def _generate_creds(unused_credentials=None):
   )
   creds, _ = google.auth.default(scopes=scopes)
   return creds
+
+
+def _standardize_location(loc: str | tuple[int, int]) -> str:
+  """Returns the location standardized to "A1" format.
+
+  Args:
+    loc: The location either in A1 notation (e.g. A1, C8 or DA3) or as 1-based
+      (row, column) tuples (e.g. (1, 1), (8, 3) or (3, 105)).
+
+  Returns:
+    The location standardized to A1 format if it wasn't already in that format.
+  """
+  match loc:
+    case '':
+      return loc
+    case str() if gspread_utils.CELL_ADDR_RE.match(loc) is not None:
+      return loc
+    case (row, col) if row > 0 and col > 0:
+      return gspread_utils.rowcol_to_a1(row, col)
+    case _:
+      raise ValueError(
+          f'{loc} is not a valid location, provide either A1 notation or a'
+          ' 1-based (row, column) tuple.'
+      )
 
 
 class InteractiveSheet:
@@ -210,11 +235,19 @@ class InteractiveSheet:
     self._ensure_gspread_client()
     return self.storage_strategy.read(self.worksheet, range_name)
 
-  def update(self, df, **kwargs):
+  def update(self, df, location='', clear=True, **kwargs):
     """Update clears the sheet and replaces it with the provided dataframe.
 
     Args:
       df: the source data
+      location: The top left most cell in the worksheet to write data in. Can be
+        provided either in A1 notation or as a 1-based (row, column) tuple. An
+        empty string defaults to A1.
+      clear: Whether to clear other content before writing data to the sheet.
+        This is useful when you want to update a worksheet with a dataframe that
+        may have fewer rows than before but needs to be disabled when you are
+        writing successive dataframes in other locations to keep previously
+        written data.
       **kwargs: additional arguments to pass to the gspread update method
 
     Raises:
@@ -234,9 +267,12 @@ class InteractiveSheet:
           ' creating the sheet'
       )
     self._ensure_gspread_client()
-    self.worksheet.clear()
+    if clear:
+      self.worksheet.clear()
     frame = df if (self.backend == _POLARS) else _to_frame(df)
-    self.storage_strategy.write(self.worksheet, frame, **kwargs)
+    self.storage_strategy.write(
+        self.worksheet, frame, _standardize_location(location), **kwargs
+    )
 
   def display(self, height=600):
     """Display the embedded sheet in Colab.
@@ -257,7 +293,7 @@ class InteractiveSheetStorageStrategy(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def write(self, worksheet, df, **kwargs):
+  def write(self, worksheet, df, location, **kwargs):
     pass
 
 
@@ -268,9 +304,9 @@ class HeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
     data = worksheet.get_values(range_name)
     return pd.DataFrame(data)
 
-  def write(self, worksheet, df, **kwargs):
+  def write(self, worksheet, df, location, **kwargs):
     data = [list(r) for _, r in df.iterrows()]
-    worksheet.update('', data, **kwargs)
+    worksheet.update(location, data, **kwargs)
 
 
 class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
@@ -287,9 +323,9 @@ class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
     rows = data[1:]
     return pd.DataFrame(rows, columns=columns)
 
-  def write(self, worksheet, df, **kwargs):
+  def write(self, worksheet, df, location, **kwargs):
     data = [list(df.columns)] + [list(r) for _, r in df.iterrows()]
-    worksheet.update('', data, **kwargs)
+    worksheet.update(location, data, **kwargs)
 
 
 class PolarsHeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
@@ -307,9 +343,9 @@ class PolarsHeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
     data = worksheet.get_values(range_name)
     return self._pl.DataFrame(data, orient='row')
 
-  def write(self, worksheet, df, **kwargs):
+  def write(self, worksheet, df, location, **kwargs):
     data = [list(r) for r in df.iter_rows()]
-    worksheet.update('', data, **kwargs)
+    worksheet.update(location, data, **kwargs)
 
 
 class PolarsHeaderStorageStrategy(InteractiveSheetStorageStrategy):
@@ -334,9 +370,9 @@ class PolarsHeaderStorageStrategy(InteractiveSheetStorageStrategy):
     rows = data[1:]
     return self._pl.DataFrame(rows, schema=columns, orient='row')
 
-  def write(self, worksheet, df, **kwargs):
+  def write(self, worksheet, df, location, **kwargs):
     # gspread json.dumps every cell and doesn't support polars' dates, etc.
     # As a result we cast everything that is not a number to a string first.
     formatted = df.cast({operator.invert(self._pl.selectors.numeric()): str})
     data = [df.columns] + [list(r) for r in formatted.iter_rows()]
-    worksheet.update('', data, **kwargs)
+    worksheet.update(location, data, **kwargs)
