@@ -254,6 +254,9 @@ class InteractiveSheet:
       ValueError: When a pandas dataframe is passed to an instance with
       `backend='polars'` or vice versa.
     """
+    if df is None:
+      raise ValueError('df must be a non-empty dataframe')
+
     if self.backend == _POLARS and isinstance(df, pd.DataFrame):
       raise ValueError(
           'Unexpected DataFrame. Got: pandas, want: polars. To use a pandas'
