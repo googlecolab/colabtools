@@ -19,11 +19,30 @@ import importlib
 import os
 import sys
 import unittest
-
+from absl.testing import parameterized
 from google.colab._import_hooks import _cv2
 
 
-class OpenCVImportHookTest(unittest.TestCase):
+class DisableFunctionTest(unittest.TestCase):
+
+  def testDisableFunction(self):
+    def a_very_bad_func():
+      return "did a bad thing"
+
+    reason = "You should not do this."
+    env_var = "ENABLE_BAD_FUNC"
+    disabled_func = _cv2.disable_function(a_very_bad_func, reason, env_var)
+
+    with self.assertRaises(_cv2.DisabledFunctionError) as err:
+      disabled_func()
+    self.assertIn(reason, str(err.exception))
+    self.assertIn(reason, str(err.exception))
+
+    os.environ[env_var] = "true"
+    self.assertEqual(disabled_func(), a_very_bad_func())
+
+
+class OpenCVImportHookTest(parameterized.TestCase):
 
   @classmethod
   def setUpClass(cls):
@@ -85,58 +104,25 @@ class OpenCVImportHookTest(unittest.TestCase):
 
     sys.modules.pop("cv2", None)
 
-  def testDisableFunction(self):
-    def a_very_bad_func():
-      return "did a bad thing"
-
-    reason = "You should not do this."
-    env_var = "ENABLE_BAD_FUNC"
-    disabled_func = _cv2.disable_function(a_very_bad_func, reason, env_var)
-
-    with self.assertRaises(_cv2.DisabledFunctionError) as err:
-      disabled_func()
-    self.assertIn(reason, str(err.exception))
-    self.assertIn(reason, str(err.exception))
-
-    os.environ[env_var] = "true"
-    self.assertEqual(disabled_func(), a_very_bad_func())
-
-  def testCVImshowDisabled(self):
+  @parameterized.named_parameters(
+      ("CV", "cv"),
+      ("CV2", "cv2"),
+  )
+  def testImshowDisabled_(self, module):
     _cv2._register_hook()
-
-    cv = importlib.import_module("cv")
+    cv = importlib.import_module(module)
 
     self.assertNotIn("COLAB_CV2_IMPORT_HOOK_EXCEPTION", os.environ)
-    self.assertIn("cv", sys.modules)
+    self.assertIn(module, sys.modules)
 
     # Calling the function leads to the custom error.
     with self.assertRaises(_cv2.DisabledFunctionError) as err:
       cv.imshow()
     self.assertEqual(
-        _cv2._OpenCVImportHook.message.format("cv"), str(err.exception)
+        _cv2._OpenCVImportHook.message.format(module), str(err.exception)
     )
 
-    # After Enabling, we get a TypeError (because we pass no arguments).
     os.environ[_cv2._OpenCVImportHook.env_var] = "true"
-    with self.assertRaises(TypeError) as err:
+    # After enabling, should raises an error because wrong number of arguments.
+    with self.assertRaises((TypeError, cv.error)):
       cv.imshow()
-
-  def testCV2ImshowDisabled(self):
-    _cv2._register_hook()
-
-    cv2 = importlib.import_module("cv2")
-
-    self.assertNotIn("COLAB_CV2_IMPORT_HOOK_EXCEPTION", os.environ)
-    self.assertIn("cv2", sys.modules)
-
-    # Calling the function leads to the custom error.
-    with self.assertRaises(_cv2.DisabledFunctionError) as err:
-      cv2.imshow()
-    self.assertEqual(
-        _cv2._OpenCVImportHook.message.format("cv2"), str(err.exception)
-    )
-
-    # After Enabling, we get a TypeError (because we pass no arguments).
-    os.environ[_cv2._OpenCVImportHook.env_var] = "true"
-    with self.assertRaises(cv2.error) as err:
-      cv2.imshow()
