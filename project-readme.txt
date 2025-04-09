@@ -81,7 +81,7 @@ Complete documentation is provided:
 
 ## Screenshots
 
-[not available yet]
+[Screenshots would be included here in the actual PR]
 
 ## Future Enhancements
 
