@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Import hook for ensuring that Altair's Colab renderer is registered."""
+"""Import hook for ensuring that Bokeh's output_notebook() works in Colab."""
 
-import imp  # pylint: disable=deprecated-module
+import importlib
 import logging
 import os
 import sys
 
+from google.colab._import_hooks._hook_injector import HookInjectorLoader
 import IPython
 
 # Keeps track of the current cell status. It is set to true
@@ -28,36 +29,42 @@ _bokeh_resources = None
 _bokeh_io_module = None
 
 
-class _BokehImportHook:
+class _BokehImportHook(importlib.abc.MetaPathFinder):
   """Configures Bokeh's renderer to support Colab upon import."""
 
-  def find_module(self, fullname, path=None):
+  def find_spec(self, fullname, path=None, target=None):
+    """Try to find a spec for bokeh and hook the module loader."""
     if fullname not in ['bokeh.io']:
       return None
-    self.module_info = imp.find_module(fullname.split('.')[-1], path)
-    return self
 
-  def load_module(self, name):
-    """Loads Bokeh normally and runs pre-initialization code."""
-    global _bokeh_io_module
+    def init_code_callback(module, previously_loaded):
+      global _bokeh_io_module
+      _bokeh_io_module = module
+      if not previously_loaded:
+        try:
+          # Overwrite the default 'jupyter' so sample code which uses
+          #     from bokeh.io import output_notebook
+          #     output_notebook()
+          # just works without modification.
+          _bokeh_io_module.notebook.install_notebook_hook(
+              'jupyter', _load_notebook, _show_doc, _show_app, overwrite=True
+          )
+        except:  # pylint: disable=bare-except
+          logging.exception('Error enabling Bokeh Colab rendering.')
+          os.environ['COLAB_BOKEH_IMPORT_HOOK_EXCEPTION'] = '1'
 
-    previously_loaded = name in sys.modules
-    _bokeh_io_module = imp.load_module(name, *self.module_info)
-
-    if not previously_loaded:
-      try:
-        # Overwrite the default 'jupyter' so sample code which uses
-        #     from bokeh.io import output_notebook
-        #     output_notebook()
-        # just works without modification.
-        _bokeh_io_module.notebook.install_notebook_hook(
-            'jupyter', _load_notebook, _show_doc, _show_app, overwrite=True
-        )
-      except:  # pylint: disable=bare-except
-        logging.exception('Error enabling Bokeh Colab rendering.')
-        os.environ['COLAB_BOKEH_IMPORT_HOOK_EXCEPTION'] = '1'
-
-    return _bokeh_io_module
+    loader = HookInjectorLoader(
+        fullname,
+        path,
+        target,
+        type(self),
+        init_code_callback,
+    )
+    # If the module can't be found returning a loader will cause `import cv2` to
+    # succeed but with an empty module. Avoid that case by returning None.
+    if not loader.find_spec():
+      return None
+    return importlib.util.spec_from_loader(fullname, loader)
 
 
 def _register_hook():
