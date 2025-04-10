@@ -49,6 +49,10 @@ class _AltairImportHook(importlib.abc.MetaPathFinder):
         type(self),
         init_code_callback,
     )
+    # If the module can't be found returning a loader will cause `import altair`
+    # to succeed but with an empty module. Avoid that case by returning None.
+    if not loader.find_spec():
+      return None
     return importlib.util.spec_from_loader(fullname, loader)
 
 

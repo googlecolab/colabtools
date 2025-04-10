@@ -14,10 +14,12 @@
 """Import hook to disable cv.imshow() and cv2.imshow() within Colab."""
 
 import functools
-import imp  # pylint: disable=deprecated-module
+import importlib
 import logging
 import os
 import sys
+
+from google.colab._import_hooks._hook_injector import HookInjectorLoader
 
 
 class DisabledFunctionError(ValueError):
@@ -53,7 +55,7 @@ def disable_function(func, message, env_var, name=None):
   return wrapped
 
 
-class _OpenCVImportHook:
+class _OpenCVImportHook(importlib.abc.MetaPathFinder):
   """Disables cv.imshow() and cv2.imshow() on import of cv or cv2."""
 
   message = (
@@ -64,32 +66,36 @@ class _OpenCVImportHook:
   )
   env_var = 'ENABLE_CV2_IMSHOW'
 
-  def find_module(self, fullname, path=None):
+  def find_spec(self, fullname, path=None, target=None):
+    """Try to find a spec for cv or cv2 and hook the module loader."""
     if fullname not in ['cv', 'cv2']:
       return None
-    self.path = path
-    return self
 
-  def load_module(self, name):
-    """Loads cv/cv2 normally and runs pre-initialization code."""
-    previously_loaded = name in sys.modules
+    def init_code_callback(module, previously_loaded):
+      if not previously_loaded:
+        try:
+          module.imshow = disable_function(
+              module.imshow,
+              message=self.message.format(fullname),
+              env_var=self.env_var,
+              name='{}.imshow'.format(fullname),
+          )
+        except:  # pylint: disable=bare-except
+          logging.exception('Error disabling %s.imshow().', fullname)
+          os.environ['COLAB_CV2_IMPORT_HOOK_EXCEPTION'] = '1'
 
-    module_info = imp.find_module(name, self.path)
-    cv_module = imp.load_module(name, *module_info)
-
-    if not previously_loaded:
-      try:
-        cv_module.imshow = disable_function(
-            cv_module.imshow,
-            message=self.message.format(name),
-            env_var=self.env_var,
-            name='{}.imshow'.format(name),
-        )
-      except:  # pylint: disable=bare-except
-        logging.exception('Error disabling %s.imshow().', name)
-        os.environ['COLAB_CV2_IMPORT_HOOK_EXCEPTION'] = '1'
-
-    return cv_module
+    loader = HookInjectorLoader(
+        fullname,
+        path,
+        target,
+        type(self),
+        init_code_callback,
+    )
+    # If the module can't be found returning a loader will cause `import cv2` to
+    # succeed but with an empty module. Avoid that case by returning None.
+    if not loader.find_spec():
+      return None
+    return importlib.util.spec_from_loader(fullname, loader)
 
 
 def _register_hook():

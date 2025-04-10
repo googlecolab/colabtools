@@ -13,12 +13,11 @@
 # limitations under the License.
 """Tests for _OpenCVImportHook."""
 
-import functools
-import imp
 import importlib
 import os
 import sys
 import unittest
+from unittest import mock
 from absl.testing import parameterized
 from google.colab._import_hooks import _cv2
 
@@ -46,63 +45,21 @@ class OpenCVImportHookTest(parameterized.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    super(OpenCVImportHookTest, cls).setUpClass()
+    super().setUpClass()
     cls.orig_meta_path = sys.meta_path
     cls.orig_env = dict(os.environ)
 
-    # Mock the cv amd cv2 imshow function for testing in environments where
-    # the modules are not installed.
-    class MockCV:
-      """Simple mock of the cv2 module's imshow function."""
-
-      error = TypeError
-
-      @staticmethod
-      def imshow(name=None, im=None):
-        raise MockCV.error()
-
-    cls.find_module = imp.find_module
-    cls.load_module = imp.load_module
-    cls.cv_fake = False
-    cls.cv2_fake = False
-
-    @functools.wraps(imp.find_module)
-    def find_module_mock(name, path):
-      try:
-        return cls.find_module(name, path)
-      except ImportError:
-        if name == "cv2":
-          cls.cv2_fake = True
-          return (None, "/path/to/fake/cv2", ("", "", 5))
-        if name == "cv":
-          cls.cv_fake = True
-          return (None, "/path/to/fake/cv", ("", "", 5))
-        raise
-
-    @functools.wraps(imp.load_module)
-    def load_module_mock(name, *module_info):
-      if (name == "cv" and cls.cv_fake) or (name == "cv2" and cls.cv2_fake):
-        sys.modules[name] = MockCV()
-        return sys.modules[name]
-      return cls.load_module(name, *module_info)
-
-    imp.find_module = find_module_mock
-    imp.load_module = load_module_mock
-
-  @classmethod
-  def tearDownClass(cls):
-    super(OpenCVImportHookTest, cls).tearDownClass()
-    imp.find_module = cls.find_module
-    imp.load_module = cls.load_module
-
   def setUp(self):
-    super(OpenCVImportHookTest, self).setUp()
+    super().setUp()
     sys.meta_path = self.orig_meta_path
 
     os.environ.clear()
     os.environ.update(self.orig_env)
 
+    sys.modules.pop("cv", None)
     sys.modules.pop("cv2", None)
+
+    self.addCleanup(mock.patch.stopall)
 
   @parameterized.named_parameters(
       ("CV", "cv"),
@@ -110,7 +67,7 @@ class OpenCVImportHookTest(parameterized.TestCase):
   )
   def testImshowDisabled_(self, module):
     _cv2._register_hook()
-    cv = importlib.import_module(module)
+    cv = _import_or_mock_module(module, _MockCV)
 
     self.assertNotIn("COLAB_CV2_IMPORT_HOOK_EXCEPTION", os.environ)
     self.assertIn(module, sys.modules)
@@ -126,3 +83,52 @@ class OpenCVImportHookTest(parameterized.TestCase):
     # After enabling, should raises an error because wrong number of arguments.
     with self.assertRaises((TypeError, cv.error)):
       cv.imshow()
+
+
+# Mock the cv amd cv2 imshow function for testing in environments where
+# the modules are not installed.
+class _MockCV:
+  """Simple mock of the cv2 module's imshow function."""
+
+  error = TypeError
+
+  @staticmethod
+  def imshow(name=None, im=None):
+    raise _MockCV.error()
+
+
+def _import_or_mock_module(module, module_mock):
+  try:
+    return importlib.import_module(module)
+  except ImportError:
+    # We'll setup a mock for the module.
+    pass
+
+  sys.modules.pop(module, None)
+  loader = mock.create_autospec(importlib.abc.Loader, instance=True)
+  # Loader doesn't define exec_module to avoid breaking backwards
+  # compatibility. Use setattr to avoid the attribute error on mock.
+  setattr(loader, "exec_module", lambda module: None)
+  module_spec = mock.create_autospec(
+      importlib.machinery.ModuleSpec, instance=True
+  )
+  module_spec.loader = loader
+
+  # Fake meta_path spec finder.
+  finder = mock.create_autospec(importlib.abc.MetaPathFinder, instance=True)
+  # Finder doesn't define find_spec to avoid breaking backwards compatibility.
+  # Use setattr to avoid the attribute error on mock.
+  setattr(
+      finder,
+      "find_spec",
+      lambda name, path, target: module_spec if name == module else None,
+  )
+  sys.meta_path.append(finder)
+
+  mock_module = module_mock()
+  mock.patch.object(
+      importlib.util, "module_from_spec", return_value=mock_module
+  ).start()
+
+  # Import again which should trigger the import hook.
+  return importlib.import_module(module)

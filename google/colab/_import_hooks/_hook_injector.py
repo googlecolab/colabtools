@@ -34,25 +34,26 @@ class HookInjectorLoader(importlib.abc.Loader):
     self.meta_path_finder_cls = meta_path_finder_cls
     self.init_code_callback = init_code_callback
 
-  def create_module(self, spec):
-    module = None
-    loader = None
+  def find_spec(self):
+    """Check if any MetaPathFinder will find a spec for this module."""
     for meta_path in sys.meta_path:
       if not isinstance(meta_path, self.meta_path_finder_cls) and hasattr(
           meta_path, 'find_spec'
       ):
         spec = meta_path.find_spec(self.fullname, self.path, self.target)
         if spec is not None:
-          loader = spec.loader
-          module = importlib.util.module_from_spec(spec)
-          sys.modules[self.fullname] = module
-          break
+          return spec
 
-    if module is not None and loader is not None:
-      spec.loader.exec_module(module)
-      self.init_code_callback(module, self.previously_loaded)
-
-    return module
+  def create_module(self, spec):
+    spec = self.find_spec()
+    if spec is not None:
+      loader = spec.loader
+      module = importlib.util.module_from_spec(spec)
+      if module is not None and loader is not None:
+        sys.modules[self.fullname] = module
+        loader.exec_module(module)
+        self.init_code_callback(module, self.previously_loaded)
+        return module
 
   def exec_module(self, module):
     pass
