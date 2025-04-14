@@ -13,60 +13,69 @@
 # limitations under the License.
 """Import hook to allow credentials provided by Colab."""
 
-import imp  # pylint: disable=deprecated-module
+import importlib
 import logging
 import os
 import sys
 
+from google.colab._import_hooks._hook_injector import HookInjectorLoader
 
-class _PyDrive2ImportHook:
+
+class _PyDrive2ImportHook(importlib.abc.MetaPathFinder):
   """Patches PyDrive2 to allow credentials provided by Colab."""
 
   env_var = 'DISABLE_COLAB_PYDRIVE2_CREDENTIALS_HOOK'
 
-  def find_module(self, fullname, path=None):
+  def find_spec(self, fullname, path=None, target=None):
+    """
+    Finds a spec for pydrive2.auth and hooks the module loader.
+
+    Returns:
+      A spec for the module if it can be found by another meta path finder,
+      otherwise None to prevent an empty module being loaded.
+    """
     if fullname != 'pydrive2.auth':
       return None
+
     uses_auth_ephem = os.environ.get('USE_AUTH_EPHEM', '0') == '1'
     if not uses_auth_ephem:
       return None
-    self.module_info = imp.find_module(fullname.split('.')[-1], path)
-    return self
 
-  def load_module(self, name):
-    """Loads PyDrive2 normally and runs pre-initialization code."""
-    previously_loaded = name in sys.modules
+    def init_code_callback(module, previously_loaded):
+      """Loads PyDrive2 normally and runs pre-initialization code."""
+      if not previously_loaded:
+        try:
+          import httplib2  # pylint:disable=g-import-not-at-top
+          from oauth2client.contrib.gce import AppAssertionCredentials  # pylint:disable=g-import-not-at-top
 
-    pydrive_auth_module = imp.load_module(name, *self.module_info)
+          orig_local_webserver_auth = module.GoogleAuth.LocalWebserverAuth
 
-    if not previously_loaded:
-      try:
-        import httplib2  # pylint:disable=g-import-not-at-top
-        from oauth2client.contrib.gce import AppAssertionCredentials  # pylint:disable=g-import-not-at-top
+          # Capture the environment variable outside of the patched method since
+          # self will refer to a GoogleAuth object in these cases.
+          env_var = self.env_var
 
-        orig_local_webserver_auth = (
-            pydrive_auth_module.GoogleAuth.LocalWebserverAuth
-        )
+          def PatchedLocalWebServerAuth(self, *args, **kwargs):  # pylint:disable=invalid-name
+            if not os.environ.get(env_var, '') and isinstance(
+                self.credentials, AppAssertionCredentials
+            ):
+              self.credentials.refresh(httplib2.Http())
+              return
+            return orig_local_webserver_auth(self, *args, **kwargs)
 
-        # Capture the environment variable outside of the patched method since
-        # self will refer to a GoogleAuth object in these cases.
-        env_var = self.env_var
+          module.GoogleAuth.LocalWebserverAuth = PatchedLocalWebServerAuth
+        except:  # pylint: disable=bare-except
+          logging.exception('Error patching PyDrive')
 
-        def PatchedLocalWebServerAuth(self, *args, **kwargs):  # pylint:disable=invalid-name
-          if not os.environ.get(env_var, '') and isinstance(
-              self.credentials, AppAssertionCredentials
-          ):
-            self.credentials.refresh(httplib2.Http())
-            return
-          return orig_local_webserver_auth(self, *args, **kwargs)
-
-        pydrive_auth_module.GoogleAuth.LocalWebserverAuth = (
-            PatchedLocalWebServerAuth
-        )
-      except:  # pylint: disable=bare-except
-        logging.exception('Error patching PyDrive')
-
-    return pydrive_auth_module
+    loader = HookInjectorLoader(
+        fullname,
+        path,
+        target,
+        type(self),
+        init_code_callback,
+    )
+    if not loader.find_spec():
+      return None
+    return importlib.util.spec_from_loader(fullname, loader)
 
 
 def _register_hook():
