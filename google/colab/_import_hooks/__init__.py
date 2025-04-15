@@ -18,6 +18,7 @@ from google.colab._import_hooks import _bokeh
 from google.colab._import_hooks import _client_info
 from google.colab._import_hooks import _cv2
 from google.colab._import_hooks import _generativeai
+from google.colab._import_hooks import _pydrive
 from google.colab._import_hooks import _pydrive2
 
 
@@ -27,4 +28,5 @@ def _register_hooks():
   _client_info._register_hook()  # pylint:disable=protected-access
   _cv2._register_hook()  # pylint:disable=protected-access
   _generativeai._register_hook()  # pylint:disable=protected-access
+  _pydrive._register_hook()  # pylint:disable=protected-access
   _pydrive2._register_hook()  # pylint:disable=protected-access
