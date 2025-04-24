@@ -212,39 +212,48 @@ output.register_callback('suggestCharts', _suggest_charts)
 
 
 def register_df_and_get_html(df):
+  """Registers a dataframe and returns HTML with a quickchart button.
+
+  Args:
+    df: (DataFrame) The dataframe to register.
+
+  Returns:
+    (str) The HTML for the quickchart button.
+  """
   df_key = f'df-{str(_uuid.uuid4())}'
   _df_cache[df_key] = df
-  return f"""
-<div id="{df_key}">
-  <button class="colab-df-quickchart" onclick="quickchart('{df_key}')"
-            title="Suggest charts"
-            style="display:none;">
-    {_ICON_SVG}
-  </button>
-  {_HINT_BUTTON_CSS}
-  <script>
-    async function quickchart(key) {{
-      const quickchartButtonEl =
-        document.querySelector('#' + key + ' button');
-      quickchartButtonEl.disabled = true;  // To prevent multiple clicks.
-      quickchartButtonEl.classList.add('colab-df-spinner');
-      try {{
-        const charts = await google.colab.kernel.invokeFunction(
-            'suggestCharts', [key], {{}});
-      }} catch (error) {{
-        console.error('Error during call to suggestCharts:', error);
-      }}
-      quickchartButtonEl.classList.remove('colab-df-spinner');
-      quickchartButtonEl.classList.add('colab-df-quickchart-complete');
-    }}
-    (() => {{
-      let quickchartButtonEl =
-        document.querySelector('#{df_key} button');
-      quickchartButtonEl.style.display =
-        google.colab.kernel.accessAllowed ? 'block' : 'none';
-    }})();
-  </script>
-</div>"""
+  html = textwrap.dedent(f"""
+    <div id="{df_key}">
+      <button class="colab-df-quickchart" onclick="quickchart('{df_key}')"
+                title="Suggest charts"
+                style="display:none;">
+        {_ICON_SVG}
+      </button>
+      {_HINT_BUTTON_CSS}
+      <script>
+        async function quickchart(key) {{
+          const quickchartButtonEl =
+            document.querySelector('#' + key + ' button');
+          quickchartButtonEl.disabled = true;  // To prevent multiple clicks.
+          quickchartButtonEl.classList.add('colab-df-spinner');
+          try {{
+            const charts = await google.colab.kernel.invokeFunction(
+                'suggestCharts', [key], {{}});
+          }} catch (error) {{
+            console.error('Error during call to suggestCharts:', error);
+          }}
+          quickchartButtonEl.classList.remove('colab-df-spinner');
+          quickchartButtonEl.classList.add('colab-df-quickchart-complete');
+        }}
+        (() => {{
+          let quickchartButtonEl =
+            document.querySelector('#{df_key} button');
+          quickchartButtonEl.style.display =
+            google.colab.kernel.accessAllowed ? 'block' : 'none';
+        }})();
+      </script>
+    </div>""")
+  return html
 
 
 def _df_formatter_with_hint_buttons(df):
