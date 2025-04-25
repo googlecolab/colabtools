@@ -304,7 +304,7 @@ class HeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
   """Read and write operations for sheets with a header row."""
 
   def read(self, worksheet, range_name=None):
-    data = worksheet.get_values(range_name)
+    data = worksheet.get_values(range_name=range_name)
     return pd.DataFrame(data)
 
   def write(self, worksheet, df, location, **kwargs):
@@ -316,7 +316,7 @@ class HeaderStorageStrategy(InteractiveSheetStorageStrategy):
   """Read and write operations for sheets without a header row."""
 
   def read(self, worksheet, range_name=None):
-    data = worksheet.get_values(range_name)
+    data = worksheet.get_values(range_name=range_name)
     if not data:
       return pd.DataFrame()
     # Data is a list of lists, i.e.
@@ -343,7 +343,7 @@ class PolarsHeaderlessStorageStrategy(InteractiveSheetStorageStrategy):
       ) from e
 
   def read(self, worksheet, range_name=None):
-    data = worksheet.get_values(range_name)
+    data = worksheet.get_values(range_name=range_name)
     return self._pl.DataFrame(data, orient='row')
 
   def write(self, worksheet, df, location, **kwargs):
@@ -363,7 +363,7 @@ class PolarsHeaderStorageStrategy(InteractiveSheetStorageStrategy):
       ) from e
 
   def read(self, worksheet, range_name=None):
-    data = worksheet.get_values(range_name)
+    data = worksheet.get_values(range_name=range_name)
     if not data:
       return self._pl.DataFrame()
     # Data is a list of lists, i.e.
