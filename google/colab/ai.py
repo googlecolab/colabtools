@@ -1,8 +1,30 @@
 """Colab AI library.
 
-Example:
-  from google.colab import ai
-  ai.generate_text("What is the capital of France?")
+Example Usage:
+
+1.  **Basic Text Generation:**
+    ```
+    from google.colab import ai
+    response = ai.generate_text("What is the capital of France?")
+    print(response)
+    ```
+
+2.  **Streaming Text Generation:**
+    ```
+    from google.colab import ai
+    stream = ai.generate_text("Tell me a short story.", stream=True)
+    for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            print(chunk.choices[0].delta.content, end='')
+    ```
+
+3.  **Using a Different Model:**
+    ```
+    from google.colab import ai
+    response = ai.generate_text("Explain quantum physics.",
+    model_name="google/gemini-1.5-flash")
+    print(response)
+    ```
 """
 
 __all__ = ['generate_text']
@@ -10,35 +32,47 @@ __all__ = ['generate_text']
 import os as _os
 from google.colab import userdata as _userdata
 from openai import OpenAI as _OpenAI  # pytype: disable=import-error
+from openai.types.chat import _ChatCompletionChunk  # pytype: disable=import-error
 
 
-def generate_text(prompt: str, model_name='google/gemini-2.0-flash') -> str:
+def generate_text(
+    prompt: str,
+    model_name: str = 'google/gemini-2.0-flash',
+    stream: bool = False,
+) -> str | _ChatCompletionChunk:
   """Generates text using the given prompt and model.
 
   Args:
-    prompt: The prompt to use for text generation.
-    model_name: The name of the model to use.
+    prompt: The input text or question.
+    model_name: The name of the model to use (e.g., 'google/gemini-2.0-flash').
+    stream: If `True`, the response will be streamed back in chunks. If `False`,
+      the complete generated text will be returned at once.
 
   Returns:
-    The generated text.
+    If `stream` is `True`, an `iterator of ChatCompletionChunk` is returned. If
+    `stream` is `False`, a string containing the complete generated text is
+    returned.
   """
   model_proxy_token = _get_model_proxy_token()
 
   client = _OpenAI(
-      # TODO: b/412340050 - Set _OpenAI_BASE_URL based on environment
-      # prod or staging.
-      base_url='https://mp-staging.kaggle.net/models/openapi',
+      base_url=_os.environ.get('MODEL_PROXY_BASE_URL', ''),
       api_key=model_proxy_token,
   )
 
-  completion = client.chat.completions.create(
-      model=model_name, messages=[{'role': 'user', 'content': prompt}]
+  response = client.chat.completions.create(
+      model=model_name,
+      messages=[{'role': 'user', 'content': prompt}],
+      stream=stream,
   )
-  return completion.choices[0].message.content
+
+  if stream:
+    return response
+  return response.choices[0].message.content
 
 
 def _get_model_proxy_token() -> str:
-  """Gets the model proxy token from user secrets.
+  """Gets the model proxy token from user secrets or environment variables.
 
   Returns:
     The model proxy token.
