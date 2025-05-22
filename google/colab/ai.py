@@ -32,7 +32,7 @@ __all__ = ['generate_text']
 import os as _os
 from google.colab import userdata as _userdata
 from openai import OpenAI as _OpenAI  # pytype: disable=import-error
-from openai.types.chat import _ChatCompletionChunk  # pytype: disable=import-error
+from openai.types.chat import ChatCompletionChunk as _ChatCompletionChunk  # pytype: disable=import-error
 
 
 def generate_text(
