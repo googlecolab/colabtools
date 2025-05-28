@@ -22,7 +22,7 @@ Example Usage:
     ```
     from google.colab import ai
     response = ai.generate_text("Explain quantum physics.",
-    model_name="google/gemini-1.5-flash")
+    model_name="google/gemini-2.5-flash")
     print(response)
     ```
 """
