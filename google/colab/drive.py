@@ -232,8 +232,6 @@ def _mount(
       'max_operation_batch_size:15,'
       'max_parallel_push_task_instances:10,'
       f'opendir_timeout_ms:{timeout_ms},'
-      # TODO: b/409854981 - re-enable Punctual
-      'punctual_poll_for_changes:off,'
       'virtual_folders_omit_spaces:true,'
       f'read_only_mode:{str(readonly).lower()}'
       f' --inet_family={inet_family}'
