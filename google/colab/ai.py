@@ -29,6 +29,8 @@ Example Usage:
 
 import os as _os
 
+from google.colab import errors as _errors
+from google.colab import runtime as _runtime
 from google.colab import userdata as _userdata
 from openai import OpenAI as _OpenAI  # pytype: disable=import-error
 from openai.types.chat import ChatCompletionChunk as _ChatCompletionChunk  # pytype: disable=import-error
@@ -61,6 +63,12 @@ def generate_text(
     `stream` is `False`, a string containing the complete generated text is
     returned.
   """
+
+  if not _runtime.IS_EXTERNAL_COLAB:
+    raise _errors.RuntimeManagementError(
+        'This operation is only supported in external Colab.'
+    )
+
   model_proxy_token = _get_model_proxy_token()
 
   client = _OpenAI(
@@ -100,6 +108,11 @@ def _get_model_proxy_host() -> str:
 
 def get_available_models() -> list[str]:
   """Gets the list of available models."""
+
+  if not _runtime.IS_EXTERNAL_COLAB:
+    raise _errors.RuntimeManagementError(
+        'This operation is only supported in external Colab.'
+    )
 
   try:
     model_proxy_token = _get_model_proxy_token()
