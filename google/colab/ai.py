@@ -27,12 +27,20 @@ Example Usage:
     ```
 """
 
-__all__ = ['generate_text']
-
 import os as _os
+
 from google.colab import userdata as _userdata
 from openai import OpenAI as _OpenAI  # pytype: disable=import-error
 from openai.types.chat import ChatCompletionChunk as _ChatCompletionChunk  # pytype: disable=import-error
+import requests as _requests
+
+__all__ = ['generate_text', 'get_available_models', 'ModelProxyServiceError']
+
+
+class ModelProxyServiceError(Exception):
+  """Custom exception for errors related to the model proxy service."""
+
+  pass
 
 
 def generate_text(
@@ -56,7 +64,7 @@ def generate_text(
   model_proxy_token = _get_model_proxy_token()
 
   client = _OpenAI(
-      base_url=_os.environ.get('MODEL_PROXY_BASE_URL', ''),
+      base_url=f'{_get_model_proxy_host()}/models/openapi',
       api_key=model_proxy_token,
   )
 
@@ -83,3 +91,33 @@ def _get_model_proxy_token() -> str:
   model_proxy_token = _userdata.get('MODEL_PROXY_API_KEY')
   _os.environ['MODEL_PROXY_API_KEY'] = model_proxy_token
   return model_proxy_token
+
+
+def _get_model_proxy_host() -> str:
+  """Gets the model proxy host from environment variable."""
+  return _os.environ.get('MODEL_PROXY_HOST', '')
+
+
+def get_available_models() -> list[str]:
+  """Gets the list of available models."""
+
+  try:
+    model_proxy_token = _get_model_proxy_token()
+    response = _requests.get(
+        f'{_get_model_proxy_host()}/models',
+        headers={
+            'Authorization': f'Bearer {model_proxy_token}',
+        },
+    )
+    return [m['id'] for m in response.json()['data']]
+
+  except _requests.exceptions.JSONDecodeError as json_err:
+    raise ModelProxyServiceError(
+        'Failed to decode JSON response from the model proxy service.'
+    ) from json_err
+
+  except KeyError as key_err:
+    raise ModelProxyServiceError(
+        'API response from the model proxy service is missing expected key:'
+        f' {key_err}'
+    ) from key_err
