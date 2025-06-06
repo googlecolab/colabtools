@@ -292,7 +292,7 @@ def _function_repr(obj):
     )
 
     result += html.escape(docs) + '</pre>'
-    if filename and '<ipython-input' not in filename:
+    if filename and 'ipython-input' not in filename:
       line = oinspect.find_source_lines(obj)
       result += f"""
       <script>

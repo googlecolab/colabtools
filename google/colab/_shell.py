@@ -15,6 +15,7 @@
 
 import datetime
 import os
+import pathlib
 import sys
 import traceback
 
@@ -23,9 +24,9 @@ from google.colab import _inspector
 from google.colab import _pip
 from google.colab import _shell_customizations
 from google.colab import _system_commands
+from ipykernel import compiler
 from ipykernel import jsonutil
 from ipykernel import zmqshell
-from IPython.core import compilerop
 from IPython.core import events
 from IPython.core import interactiveshell
 from IPython.core import oinspect
@@ -45,6 +46,52 @@ _GetsetDescriptorType = type(datetime.datetime.year)
 # SKIP_COLAB_PIP_WARNING environment variable will disable this warning.
 def _show_pip_warning():
   return os.environ.get('SKIP_COLAB_PIP_WARNING', '0') == '0'
+
+
+class _ColabXCachingCompiler(compiler.XCachingCompiler):
+  """An XCachingCompiler that uses some form of the old IPython code_name.
+
+  This is a transitionary class that will be removed once we've fully migrated
+  to the new form of the code_name.
+
+  For enhanced debugging, ipykernel compiler defines a new XCachingCompiler:
+  https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/compiler.py#L91
+
+  It's used as the default IPythonKernel shell_class' compiler_class:
+  https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/ipkernel.py#L96
+
+  This means, functionally, the `code_name` has changed to
+  something like /tmp/ipykernel_{pid}/{murmurhash}.py, rather than
+  <ipython-N-XXXXX.py>.
+  https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/compiler.py#L75
+
+  Since we implement our own Shell which inherits from
+  `zmqshell.ZMQInteractiveShell`, which inherits from
+  `IPython.core.interactiveshell.InteractiveShell`, we pick up this change.
+  The old code_name (e.g. `ipython-N-XXXXX.py`) is widely used and parsed.
+  We therefore update our shell to partially match the old behavior.
+  """
+
+  def get_code_name(self, raw_code, code, number):
+    """Returns a custom code name that mostly matches old behavior.
+
+    This is a transitionary method that will be removed once we've fully
+    migrated to the new form of the code_name. It converts over to use the
+    XCachingCompiler's code_name method and use of murmurhash, but then
+    reformats the code_name to match the old behavior. This will give some
+    incremental insight to goldens and other brittle code that we'll have to
+    update in subsequent steps of the migration.
+
+    Args:
+      raw_code: The raw code.
+      code: The code.
+      number: Treated as the execution count in Colab.
+    """
+    code_name = super().get_code_name(raw_code, code, number)
+    if code_name.endswith('.py'):
+      name = pathlib.Path(code_name).with_suffix('').name
+      code_name = f'<ipython-input-{number}-{name}>'
+    return code_name
 
 
 class Shell(zmqshell.ZMQInteractiveShell):
@@ -69,26 +116,8 @@ class Shell(zmqshell.ZMQInteractiveShell):
     self.configurables.append(self.history_manager)
 
   def init_instance_attrs(self):
-    """Initialize instance attributes.
-
-    For enhanced debugging, ipykernel compiler defines a new XCachingCompiler:
-    https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/compiler.py#L91
-
-    It's used as the default IPythonKernel shell_class' compiler_class:
-    https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/ipkernel.py#L96
-
-    This means, functionally, the `code_name` has changed to
-    something like /tmp/ipykernel_{pid}/{murmurhash}.py, rather than
-    <ipython-N-XXXXX.py>.
-    https://github.com/ipython/ipykernel/blob/v6.17.1/ipykernel/compiler.py#L75
-
-    Since we implement our own Shell which inherits from
-    `zmqshell.ZMQInteractiveShell`, which inherits from
-    `IPython.core.interactiveshell.InteractiveShell`, we pick up this change.
-    The old code_name (e.g. `ipython-N-XXXXX.py`) is widely used and parsed.
-    We therefore update our shell to pull in the old behavior.
-    """
-    self.compiler_class = compilerop.CachingCompiler
+    """Initialize instance attributes."""
+    self.compiler_class = _ColabXCachingCompiler
     super().init_instance_attrs()
 
   def _should_use_native_system_methods(self):
