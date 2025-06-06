@@ -36,7 +36,7 @@ from openai import OpenAI as _OpenAI  # pytype: disable=import-error
 from openai.types.chat import ChatCompletionChunk as _ChatCompletionChunk  # pytype: disable=import-error
 import requests as _requests
 
-__all__ = ['generate_text', 'get_available_models', 'ModelProxyServiceError']
+__all__ = ['generate_text', 'list_models', 'ModelProxyServiceError']
 
 
 class ModelProxyServiceError(Exception):
@@ -106,8 +106,8 @@ def _get_model_proxy_host() -> str:
   return _os.environ.get('MODEL_PROXY_HOST', '')
 
 
-def get_available_models() -> list[str]:
-  """Gets the list of available models."""
+def list_models() -> list[str]:
+  """Lists the available models."""
 
   if not _runtime.IS_EXTERNAL_COLAB:
     raise _errors.RuntimeManagementError(
