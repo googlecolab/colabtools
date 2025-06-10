@@ -89,8 +89,8 @@ class _ColabXCachingCompiler(compiler.XCachingCompiler):
     """
     code_name = super().get_code_name(raw_code, code, number)
     if code_name.endswith('.py'):
-      name = pathlib.Path(code_name).with_suffix('').name
-      code_name = f'<ipython-input-{number}-{name}>'
+      path = pathlib.Path(code_name)
+      code_name = f'ipython-input-{number}-{path.name}'
     return code_name
 
 
