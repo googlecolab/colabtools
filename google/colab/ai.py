@@ -64,7 +64,7 @@ def generate_text(
     returned.
   """
 
-  if not _runtime.IS_EXTERNAL_COLAB:
+  if not _runtime._IS_EXTERNAL_COLAB:  # pylint: disable=protected-access
     raise _errors.RuntimeManagementError(
         'This operation is only supported in external Colab.'
     )
@@ -109,7 +109,7 @@ def _get_model_proxy_host() -> str:
 def list_models() -> list[str]:
   """Lists the available models."""
 
-  if not _runtime.IS_EXTERNAL_COLAB:
+  if not _runtime._IS_EXTERNAL_COLAB:  # pylint: disable=protected-access
     raise _errors.RuntimeManagementError(
         'This operation is only supported in external Colab.'
     )
