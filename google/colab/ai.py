@@ -13,9 +13,8 @@ Example Usage:
     ```
     from google.colab import ai
     stream = ai.generate_text("Tell me a short story.", stream=True)
-    for chunk in stream:
-        if chunk.choices and chunk.choices[0].delta.content:
-            print(chunk.choices[0].delta.content, end='')
+    for text in stream:
+      print(text, end='')
     ```
 
 3.  **Using a Different Model:**
@@ -28,12 +27,11 @@ Example Usage:
 """
 
 import os as _os
-
+from typing import Any, Generator
 from google.colab import errors as _errors
 from google.colab import runtime as _runtime
 from google.colab import userdata as _userdata
 from openai import OpenAI as _OpenAI  # pytype: disable=import-error
-from openai.types.chat import ChatCompletionChunk as _ChatCompletionChunk  # pytype: disable=import-error
 import requests as _requests
 
 __all__ = ['generate_text', 'list_models', 'ModelProxyServiceError']
@@ -49,7 +47,7 @@ def generate_text(
     prompt: str,
     model_name: str = 'google/gemini-2.0-flash',
     stream: bool = False,
-) -> str | _ChatCompletionChunk:
+) -> str | Generator[str, Any, None]:
   """Generates text using the given prompt and model.
 
   Args:
@@ -59,9 +57,8 @@ def generate_text(
       the complete generated text will be returned at once.
 
   Returns:
-    If `stream` is `True`, an `iterator of ChatCompletionChunk` is returned. If
-    `stream` is `False`, a string containing the complete generated text is
-    returned.
+    If `stream` is `True`, a `generator of str` is returned. If `stream` is
+    `False`, a string containing the complete generated text is returned.
   """
 
   if not _runtime._IS_EXTERNAL_COLAB:  # pylint: disable=protected-access
@@ -83,7 +80,13 @@ def generate_text(
   )
 
   if stream:
-    return response
+
+    def stream_text_chunks():
+      for chunk in response:
+        if chunk.choices:
+          yield chunk.choices[0].delta.content
+
+    return stream_text_chunks()
   return response.choices[0].message.content
 
 
