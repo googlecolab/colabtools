@@ -60,6 +60,11 @@ def generate_text(
     If `stream` is `True`, a `generator of str` is returned. If `stream` is
     `False`, a string containing the complete generated text is returned.
   """
+  if not prompt:
+    raise ValueError('Prompt cannot be empty.')
+
+  if not isinstance(prompt, str):
+    raise ValueError('Prompt must be a string.')
 
   if not _runtime._IS_EXTERNAL_COLAB:  # pylint: disable=protected-access
     raise _errors.RuntimeManagementError(
