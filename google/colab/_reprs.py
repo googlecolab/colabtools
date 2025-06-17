@@ -6,20 +6,14 @@ import io
 import json
 import types
 import uuid
-import warnings
 from google.colab import _inspector
 # pytype: disable=import-error
 import IPython
 from IPython.core import oinspect
 import numpy as np
 import PIL as pil
+import traitlets
 # pylint: disable=g-import-not-at-top
-with warnings.catch_warnings():
-  # Importing via IPython raises a spurious warning, but avoids a version
-  # mismatch internally.
-  warnings.simplefilter('ignore')
-  from IPython.utils import traitlets
-
 
 _original_string_formatters = {}
 
