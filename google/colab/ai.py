@@ -26,10 +26,14 @@ Example Usage:
     ```
 """
 
-import os as _os
+from google.colab import runtime as _runtime  # pylint: disable=g-bad-import-order
+
+if not _runtime._IS_EXTERNAL_COLAB:  # pylint: disable=protected-access
+  raise ImportError('google.colab.ai is only supported in external Colab.')
+
+import os as _os  # pylint: disable=g-import-not-at-top
 from typing import Any, Generator
 from google.colab import errors as _errors
-from google.colab import runtime as _runtime
 from google.colab import userdata as _userdata
 from openai import OpenAI as _OpenAI  # pytype: disable=import-error
 import requests as _requests
