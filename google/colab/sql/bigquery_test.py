@@ -26,12 +26,8 @@ class ValidateTest(unittest.TestCase):
     super().setUp()
     bpd.options.bigquery.project = None
     bpd.options.bigquery.credentials = None
-    self.mock_read_gbq_colab = mock.MagicMock()
-    mock_get_global_session = self.enterContext(
-        mock.patch.object(bpd, 'get_global_session')
-    )
-    mock_get_global_session.return_value._read_gbq_colab = (
-        self.mock_read_gbq_colab
+    self.mock_read_gbq_colab = self.enterContext(
+        mock.patch.object(bpd, '_read_gbq_colab')
     )
 
   def test_validate_sql_passes(self):
@@ -388,15 +384,11 @@ class RunTest(unittest.TestCase):
     super().setUp()
     bpd.options.bigquery.project = None
     bpd.options.bigquery.credentials = None
-    self.mock_read_gbq_colab = mock.MagicMock()
+    self.mock_read_gbq_colab = self.enterContext(
+        mock.patch.object(bpd, '_read_gbq_colab')
+    )
     self.mock_bpd_option_context = self.enterContext(
         mock.patch.object(bpd, 'option_context', wraps=bpd.option_context)
-    )
-    mock_get_global_session = self.enterContext(
-        mock.patch.object(bpd, 'get_global_session')
-    )
-    mock_get_global_session.return_value._read_gbq_colab = (
-        self.mock_read_gbq_colab
     )
 
   def test_run(self):
