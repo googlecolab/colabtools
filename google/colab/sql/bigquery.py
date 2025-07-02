@@ -90,7 +90,7 @@ def validate(sql: str) -> ValidationResult:
   """
   try:
     # pylint: disable=protected-access
-    dry_run_series = bpd.get_global_session()._read_gbq_colab(
+    dry_run_series = bpd._read_gbq_colab(
         sql, dry_run=True, pyformat_args=_get_ipython_locals()
     )
     bytes_processed = 0
@@ -140,9 +140,7 @@ def run(sql: str) -> bpd.DataFrame:
   """Executes the SQL and returns the BigQuery DataFrame."""
   with bpd.option_context('display.progress_bar', None):
     # pylint: disable=protected-access
-    return bpd.get_global_session()._read_gbq_colab(
-        sql, pyformat_args=_get_ipython_locals()
-    )
+    return bpd._read_gbq_colab(sql, pyformat_args=_get_ipython_locals())
 
 
 def _get_validation_errors(e: Exception) -> list[ValidationError]:
