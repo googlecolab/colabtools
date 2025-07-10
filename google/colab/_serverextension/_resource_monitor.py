@@ -8,6 +8,7 @@ import shutil
 import subprocess
 
 from google.colab import _serverextension
+from google.colab._serverextension import _ram_utils
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -123,62 +124,35 @@ def get_ram_usage(kernel_manager):
       kernels: A dict mapping kernel UUIDs to ints (memory usage in bytes),
     }
   """
-  pids_to_kernel_ids = {}
-  if not os.path.exists('/var/colab/hostname'):
+  is_test_env = 'TEST_TMPDIR' in os.environ
+  if is_test_env:
+    usage, limit = 1 << 30, 5 << 30
+  else:
+    usage, limit = _ram_utils.get_total_ram()  # pylint: disable=protected-access
+
+  result = {'usage': usage, 'limit': limit}
+
+  is_external_env = os.path.exists('/var/colab/hostname')
+  if is_external_env:
     # TODO: Consider extending reporting per-kernel usage to
     # all environments for consistency. This was removed in cl/337174714. Its 1)
     # is better performed in the frontend presentation layer. 2) was only a
     # requirement for the split (KMC/K) container, a feature that was dropped
     # (cl/470476143).
-    def get_pid(kernel):
-      # TODO: Eliminate this function after migration to
-      # jupyter-client 7.x is complete.
-      try:
-        pid = kernel.provisioner.pid
-      except AttributeError:
-        pid = kernel.kernel.pid
-      return str(pid)
-
-    pids_to_kernel_ids = {
-        get_pid(kernel_manager.get_kernel(kernel_id)): kernel_id
-        for kernel_id in kernel_manager.list_kernel_ids()
-    }
-
-  if 'TEST_TMPDIR' in os.environ:
-    result = {'usage': 1 << 30, 'limit': 5 << 30}
-    if pids_to_kernel_ids:
-      per_kernel = result['usage'] // len(pids_to_kernel_ids)
-      result['kernels'] = {k: per_kernel for k in pids_to_kernel_ids.values()}
     return result
 
-  free, limit = 0, 0
-  with open('/proc/meminfo', 'r') as f:
-    lines = f.readlines()
-    line = [x for x in lines if 'MemAvailable:' in x]
-  if line:
-    free = int(line[0].split()[1]) * 1024
-    line = [x for x in lines if 'MemTotal:' in x]
-  if line:
-    limit = int(line[0].split()[1]) * 1024
-  usage = limit - free
-  result = {'usage': usage, 'limit': limit}
-  if pids_to_kernel_ids:
-    kernels = {}
-    ps = _serverextension._subprocess_check_output([  # pylint: disable=protected-access
-        '/bin/ps',
-        '-q',
-        ','.join(pids_to_kernel_ids.keys()),
-        '-wwo',
-        'pid rss',
-        '--no-header',
-    ]).decode('utf-8')
-    for proc in ps.split('\n')[:-1]:
-      proc = proc.strip().split(' ', 1)
-      if len(proc) != 2:
-        continue
-      kernels[pids_to_kernel_ids[proc[0]]] = int(proc[1]) * 1024
-    result['kernels'] = kernels
+  if is_test_env:
+    kernel_ids = kernel_manager.list_kernel_ids()
+    if not kernel_ids:
+      return result
+    per_kernel = result['usage'] // len(kernel_ids)
+    kernels = {k: per_kernel for k in kernel_ids}
+  else:
+    kernels = _ram_utils.get_per_kernel_ram_usage(  # pylint: disable=protected-access
+        kernel_manager
+    )
 
+  result['kernels'] = kernels
   return result
 
 
