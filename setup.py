@@ -22,7 +22,7 @@ DEPENDENCIES = (
     'google-auth==2.38.0',
     'ipykernel==6.17.1',
     'ipyparallel==8.8.0',
-    'ipython==7.34.0',
+    'ipython==8.15.0',
     'notebook==6.5.7',
     'pandas==2.2.2',
     'portpicker==1.5.2',

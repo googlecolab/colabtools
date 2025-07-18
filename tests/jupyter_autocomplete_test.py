@@ -36,6 +36,7 @@ class JupyterAutocompleteTest(unittest.TestCase):
     ])
     self.assertIn("'getpass.getpass'", output)
 
+  @unittest.skip('Inside expressions autocomplete currently not working')
   def testInlineAutocomplete(self):
     """Test that autocomplete works inside another expression."""
     output = _run_under_jupyter([

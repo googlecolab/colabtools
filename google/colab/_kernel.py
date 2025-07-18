@@ -13,11 +13,23 @@
 # limitations under the License.
 """Colab-specific kernel customizations."""
 
+import inspect
+import warnings
+
 from google.colab import _shell
 from google.colab import _shell_customizations
 from ipykernel import ipkernel
 from ipykernel import jsonutil
 from IPython.utils import tokenutil
+
+_AWAITABLE_MESSAGE: str = (
+    'For consistency across implementations, it is recommended that'
+    ' `{func_name}` either be a coroutine function (`async def`) or return an'
+    ' awaitable object (like an `asyncio.Future`). It might become a'
+    ' requirement in the future. Coroutine functions and awaitables have been'
+    ' supported since ipykernel 6.0 (2021). {target} does not seem to return an'
+    ' awaitable'
+)
 
 
 class Kernel(ipkernel.IPythonKernel):
@@ -54,7 +66,7 @@ class Kernel(ipkernel.IPythonKernel):
 
     return reply_content
 
-  def complete_request(self, stream, ident, parent):
+  async def complete_request(self, stream, ident, parent):
     """Colab-specific complete_request handler.
 
     Overrides the default to allow providing additional metadata in the
@@ -71,6 +83,16 @@ class Kernel(ipkernel.IPythonKernel):
       cursor_pos = content['cursor_pos']
 
       matches = self.do_complete(code, cursor_pos)
+      if inspect.isawaitable(matches):
+        matches = await matches
+      else:
+        warnings.warn(
+            _AWAITABLE_MESSAGE.format(
+                func_name='do_complete', target=self.do_complete
+            ),
+            PendingDeprecationWarning,
+            stacklevel=1,
+        )
       if (
           parent.get('metadata', {})
           .get('colab_options', {})
@@ -82,7 +104,7 @@ class Kernel(ipkernel.IPythonKernel):
         #
         # Note that 100 is an arbitrarily chosen bound for the number of
         # completions to return.
-        matches_incomplete = len(matches['matches']) > 100
+        matches_incomplete = len(matches.get('matches', [])) > 100
         if matches_incomplete:
           matches['matches'] = matches['matches'][:100]
         matches['metadata'] = {
