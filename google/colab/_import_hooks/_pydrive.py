@@ -13,10 +13,13 @@
 # limitations under the License.
 """Import hook to allow credentials provided by Colab."""
 
-import imp  # pylint: disable=deprecated-module
 import logging
 import os
 import sys
+import textwrap
+
+import imp  # pylint: disable=deprecated-module
+from IPython import display
 
 
 class _PyDriveImportHook:
@@ -40,6 +43,17 @@ class _PyDriveImportHook:
     pydrive_auth_module = imp.load_module(name, *self.module_info)
 
     if not previously_loaded:
+      display.display(display.HTML(textwrap.dedent("""
+          <p style="color: red;">
+          pydrive is
+          <a href="https://github.com/googlearchive/PyDrive" target="_blank">deprecated</a>
+          and no longer maintained. Colab will no longer preinstall
+          pydrive on 2025-07-31.
+          <a href="https://pypi.org/project/PyDrive2" target="_blank">pydrive2</a>
+          is a maintained fork of pydrive and we recommend you migrate
+          your code to use pydrive2 to ensure your notebook will continue
+          to function.</p>
+      """)))
       try:
         import httplib2  # pylint:disable=g-import-not-at-top
         from oauth2client.contrib.gce import AppAssertionCredentials  # pylint:disable=g-import-not-at-top
