@@ -116,7 +116,7 @@ def _mount(
   """Internal helper to mount Google Drive."""
   if not _os.path.exists('/var/colab/hostname'):
     raise NotImplementedError(
-        'Mounting drive is unsupported in this environment. Use PyDrive'
+        'Mounting drive is unsupported in this environment. Use PyDrive2'
         ' instead. See examples at'
         ' https://colab.research.google.com/notebooks/io.ipynb#scrollTo=7taylj9wpsA2.'
     )
