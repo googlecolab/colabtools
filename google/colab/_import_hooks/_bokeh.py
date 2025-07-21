@@ -13,51 +13,57 @@
 # limitations under the License.
 """Import hook for ensuring that Altair's Colab renderer is registered."""
 
-import imp  # pylint: disable=deprecated-module
+import importlib
 import logging
 import os
 import sys
 
+from google.colab._import_hooks._hook_injector import HookInjectorLoader
 import IPython
+
 
 # Keeps track of the current cell status. It is set to true
 # first time enable_bokeh is executed in this cell and flipped
 # back to false on post_run_cell.
 _bokeh_loaded_in_this_cell = False
 _bokeh_resources = None
-_bokeh_io_module = None
 
 
-class _BokehImportHook:
-  """Configures Bokeh's renderer to support Colab upon import."""
+class _BokehImportHook(importlib.abc.MetaPathFinder):
+  """Enables Bokeh's Colab renderer upon import."""
 
-  def find_module(self, fullname, path=None):
+  def find_spec(self, fullname, path=None, target=None):
+    """Detects if bokeh.io is being imported and enables the renderer."""
     if fullname not in ['bokeh.io']:
       return None
-    self.module_info = imp.find_module(fullname.split('.')[-1], path)
-    return self
 
-  def load_module(self, name):
-    """Loads Bokeh normally and runs pre-initialization code."""
-    global _bokeh_io_module
+    def init_code_callback(module, previously_loaded):
+      if not previously_loaded:
+        try:
+          module.notebook.install_notebook_hook(
+              'jupyter',
+              _load_notebook,
+              _get_show_doc(module),
+              _show_app,
+              overwrite=True,
+          )
+        except:  # pylint: disable=bare-except
+          logging.exception('Error enabling Bokeh Colab rendering.')
+          os.environ['COLAB_BOKEH_IMPORT_HOOK_EXCEPTION'] = '1'
 
-    previously_loaded = name in sys.modules
-    _bokeh_io_module = imp.load_module(name, *self.module_info)
-
-    if not previously_loaded:
-      try:
-        # Overwrite the default 'jupyter' so sample code which uses
-        #     from bokeh.io import output_notebook
-        #     output_notebook()
-        # just works without modification.
-        _bokeh_io_module.notebook.install_notebook_hook(
-            'jupyter', _load_notebook, _show_doc, _show_app, overwrite=True
-        )
-      except:  # pylint: disable=bare-except
-        logging.exception('Error enabling Bokeh Colab rendering.')
-        os.environ['COLAB_BOKEH_IMPORT_HOOK_EXCEPTION'] = '1'
-
-    return _bokeh_io_module
+    loader = HookInjectorLoader(
+        fullname,
+        path,
+        target,
+        type(self),
+        init_code_callback,
+    )
+    # If the module can't be found returning a loader will cause
+    # `import bokeh.io`` to succeed but with an empty module. Avoid that case by
+    # returning None.
+    if not loader.find_spec():
+      return None
+    return importlib.util.spec_from_loader(fullname, loader)
 
 
 def _register_hook():
@@ -70,19 +76,24 @@ def _post_execute():
   IPython.get_ipython().events.unregister('post_run_cell', _post_execute)  # pylint: disable=undefined-variable
 
 
-def _show_doc(obj, state, notebook_handle):
-  """Show the Bokeh plot."""
-  global _bokeh_loaded_in_this_cell
-  # Load Bokeh into the outputframe if it has not been loaded yet.
-  if not _bokeh_loaded_in_this_cell:
-    _bokeh_loaded_in_this_cell = True
-    IPython.get_ipython().events.register('post_run_cell', _post_execute)  # pylint: disable=undefined-variable
-    _bokeh_io_module.notebook.load_notebook(
-        resources=_bokeh_resources, hide_banner=True
-    )
+def _get_show_doc(module):
+  """Returns a function that shows a Bokeh plot."""
 
-  # Call the default bokeh rendering path.
-  return _bokeh_io_module.notebook.show_doc(obj, state, notebook_handle)
+  def _show_doc(obj, state, notebook_handle):
+    """Show the Bokeh plot."""
+    global _bokeh_loaded_in_this_cell
+    # Load Bokeh into the outputframe if it has not been loaded yet.
+    if not _bokeh_loaded_in_this_cell:
+      _bokeh_loaded_in_this_cell = True
+      IPython.get_ipython().events.register('post_run_cell', _post_execute)  # pylint: disable=undefined-variable
+      module.notebook.load_notebook(
+          resources=_bokeh_resources, hide_banner=True
+      )
+
+    # Call the default bokeh rendering path.
+    return module.notebook.show_doc(obj, state, notebook_handle)
+
+  return _show_doc
 
 
 # pylint: disable=unused-argument
