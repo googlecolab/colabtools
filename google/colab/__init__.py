@@ -35,7 +35,6 @@ from google.colab import output
 from google.colab import runtime
 from google.colab import snippets
 from google.colab import widgets
-from jupyter_server.base import handlers
 
 
 __all__ = [
@@ -73,8 +72,14 @@ def _jupyter_server_extension_points():
 
 def load_jupyter_server_extension(server_app):
   """Called by Jupyter server to handle the static file requests for tabbar."""
+  # We only want to import these modules when setting up a server extension, and
+  # want to avoid raising an exception when the `jupyter_server` package isn't
+  # available.
   # pylint: disable=g-import-not-at-top
+  # pytype: disable=import-error
   from jupyter_server import utils
+  from jupyter_server.base import handlers
+  # pytype: enable=import-error
   # pylint: enable=g-import-not-at-top
 
   # pylint: disable=protected-access
