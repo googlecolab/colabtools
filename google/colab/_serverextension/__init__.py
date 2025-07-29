@@ -59,21 +59,19 @@ def _jupyter_server_extension_paths():
       'module': 'google.colab._serverextension',
   }]
 
-_jupyter_server_extension_points = _jupyter_server_extension_paths
 
-
-def load_jupyter_server_extension(server_app):
+def load_jupyter_server_extension(nb_server_app):
   """Called by Jupyter when starting the notebook manager."""
   # We only want to import these modules when setting up a server extension, and
-  # want to avoid raising an exception when the `jupyter_server` package isn't
+  # want to avoid raising an exception when the `notebook` package isn't
   # available.
   # pylint: disable=g-import-not-at-top
-  from jupyter_server import utils
+  from notebook import utils
   from google.colab._serverextension import _handlers
   # pylint: enable=g-import-not-at-top
 
-  server_app.log.addFilter(_ColabLoggingFilter())
-  app = server_app.web_app
+  nb_server_app.log.addFilter(_ColabLoggingFilter())
+  app = nb_server_app.web_app
 
   url_maker = lambda path: utils.url_path_join(app.settings['base_url'], path)
   monitor_relative_path = '/api/colab/resources'
@@ -90,7 +88,4 @@ def load_jupyter_server_extension(server_app):
           (url_maker('/api/colab/build-info'), _handlers.BuildInfoHandler),
       ],
   )
-  server_app.log.info('google.colab server extension initialized.')
-
-
-_load_jupyter_server_extension_paths = load_jupyter_server_extension
+  nb_server_app.log.info('google.colab serverextension initialized.')

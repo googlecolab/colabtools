@@ -13,7 +13,7 @@
 # limitations under the License.
 """Customized login handler for Colab."""
 
-from jupyter_server.auth import login
+from notebook.auth import login
 
 
 class ColabLoginHandler(login.LoginHandler):

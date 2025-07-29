@@ -30,12 +30,9 @@ class TabBar(_widget.OutputAreaWidget):
      with tab.output_to('morning'):
        print('bye')
   """
-  # Kept to match the path in the extension when it was using notebook instead
-  # of jupyter_server.
-  BASE_PATH = '/nbextensions/google.colab'
 
-  TABBAR_JS = f'{BASE_PATH}/tabbar_main.min.js'
-  TAB_CSS = f'{BASE_PATH}/tabbar.css'
+  TABBAR_JS = '/nbextensions/google.colab/tabbar_main.min.js'
+  TAB_CSS = '/nbextensions/google.colab/tabbar.css'
 
   def __init__(self, tab_names, location='top'):
     """Constructor.

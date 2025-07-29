@@ -13,16 +13,11 @@
 # limitations under the License.
 """Colab Python APIs."""
 
-import logging
-import os
-import pathlib
-
 from google.colab import _import_hooks
 from google.colab import _import_magics
 from google.colab import _installation_commands
 from google.colab import _interactive_table_hint_button
 from google.colab import _reprs
-from google.colab import _serverextension
 from google.colab import _shell_customizations
 from google.colab import _system_commands
 from google.colab import _tensorflow_magics
@@ -35,8 +30,6 @@ from google.colab import output
 from google.colab import runtime
 from google.colab import snippets
 from google.colab import widgets
-from jupyter_server.base import handlers
-
 
 __all__ = [
     'auth',
@@ -61,45 +54,6 @@ def _jupyter_nbextension_paths():
       'section': 'notebook',
       'src': 'resources',
   }]
-
-
-def _jupyter_server_extension_points():
-  return [
-      {
-          'module': 'google.colab',
-      },
-  ]
-
-
-def load_jupyter_server_extension(server_app):
-  """Called by Jupyter server to handle the static file requests for tabbar."""
-  # pylint: disable=g-import-not-at-top
-  from jupyter_server import utils
-  # pylint: enable=g-import-not-at-top
-
-  # pylint: disable=protected-access
-  server_app.log.addFilter(_serverextension._ColabLoggingFilter())
-  # pylint: enable=protected-access
-  resources_path = os.path.join(
-      pathlib.Path(__file__).parent.absolute(), 'resources'
-  )
-  url_maker = lambda path: utils.url_path_join(
-      server_app.web_app.settings['base_url'], path
-  )
-  # For backwards compatibility, we will serve the static files for the
-  # tabbar from the nbextension path.
-  # See google/colab/widgets/_tabbar.py
-  nbextension = url_maker('/nbextensions/google.colab/(.*)')
-  server_app.web_app.add_handlers(
-      '.*$',
-      [
-          (
-              nbextension,
-              handlers.FileFindHandler,
-              {'path': resources_path, 'no_cache_paths': ['/']},
-          ),
-      ],
-  )
 
 
 def load_ipython_extension(ipython):

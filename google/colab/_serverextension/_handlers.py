@@ -20,7 +20,9 @@ import subprocess
 from google.colab import _serverextension
 from google.colab import drive
 from google.colab._serverextension import _resource_monitor
-from jupyter_server.base import handlers
+
+from notebook.base import handlers
+
 import tornado
 
 _XSSI_PREFIX = ")]}'\n"
