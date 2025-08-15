@@ -24,7 +24,7 @@ DEPENDENCIES = (
     'ipyparallel==8.8.0',
     'ipython==7.34.0',
     'pandas==2.2.2',
-    'jupyter-server==1.16.0',
+    'jupyter-server==2.11.2',
     'portpicker==1.5.2',
     'requests==2.32.3',
     'tornado==6.4.2',
