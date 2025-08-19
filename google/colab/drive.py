@@ -31,7 +31,7 @@ __all__ = ['flush_and_unmount', 'mount']
 
 _Environment = _collections.namedtuple(
     '_Environment',
-    ('home', 'root_dir', 'inet_family', 'dev', 'path', 'config_dir'),
+    ('home', 'root_dir', 'dev', 'path', 'config_dir'),
 )
 
 
@@ -41,12 +41,10 @@ def _env():
   root_dir = _os.path.realpath(
       _os.path.join(_os.environ['CLOUDSDK_CONFIG'], '../..')
   )
-  inet_family = 'IPV4_ONLY'
   dev = '/dev/fuse'
   path = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:.'
   if len(root_dir) > 1 and not root_dir.startswith('/usr/local/google/'):
     home = _os.path.join(root_dir, home)
-    inet_family = 'IPV6_ONLY'
     fum = _os.environ['HOME'].split('mount')[0] + '/mount/alloc/fusermount'
     dev = fum + '/dev/fuse'
     path = path + ':' + fum + '/bin'
@@ -54,7 +52,6 @@ def _env():
   return _Environment(
       home=home,
       root_dir=root_dir,
-      inet_family=inet_family,
       dev=dev,
       path=path,
       config_dir=config_dir,
@@ -153,7 +150,6 @@ def _mount(
   env = _env()
   home = env.home
   root_dir = env.root_dir
-  inet_family = env.inet_family
   dev = env.dev
   path = env.path
   config_dir = env.config_dir
@@ -234,7 +230,6 @@ def _mount(
       f'opendir_timeout_ms:{timeout_ms},'
       'virtual_folders_omit_spaces:true,'
       f'read_only_mode:{str(readonly).lower()}'
-      f' --inet_family={inet_family}'
       f' --metadata_server_auth_uri={metadata_server_addr}/computeMetadata/v1'
       ' --preferences='
       f'trusted_root_certs_file_path:{drive_dir}/roots.pem,'
