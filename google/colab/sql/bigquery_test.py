@@ -384,6 +384,7 @@ class RunTest(unittest.TestCase):
     super().setUp()
     bpd.options.bigquery.project = None
     bpd.options.bigquery.credentials = None
+    bpd.options.display.repr_mode = 'head'
     self.mock_read_gbq_colab = self.enterContext(
         mock.patch.object(bpd, '_read_gbq_colab')
     )
@@ -395,12 +396,15 @@ class RunTest(unittest.TestCase):
     expected = mock.Mock(spec=bpd.DataFrame)
     self.mock_read_gbq_colab.return_value = expected
 
+    self.assertEqual(bpd.options.display.repr_mode, 'head')
+
     self.assertEqual(bigquery.run(_QUERY), expected)
 
     self.mock_bpd_option_context.assert_called_once_with(
         'display.progress_bar', None
     )
     self.mock_read_gbq_colab.assert_called_once_with(_QUERY, pyformat_args={})
+    self.assertEqual(bpd.options.display.repr_mode, 'anywidget')
 
   @mock.patch.object(IPython, 'get_ipython')
   def test_run_with_pyformat_args(self, mock_get_ipython):

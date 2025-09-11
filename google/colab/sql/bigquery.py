@@ -138,6 +138,8 @@ def validate(sql: str) -> ValidationResult:
 
 def run(sql: str) -> bpd.DataFrame:
   """Executes the SQL and returns the BigQuery DataFrame."""
+  # repr_mode cannot be set in context manager.
+  bpd.options.display.repr_mode = 'anywidget'
   with bpd.option_context('display.progress_bar', None):
     # pylint: disable=protected-access
     return bpd._read_gbq_colab(sql, pyformat_args=_get_ipython_locals())
