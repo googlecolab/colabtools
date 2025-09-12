@@ -259,8 +259,6 @@ def register_df_and_get_html(df):
 def _df_formatter_with_hint_buttons(df):
   """Alternate df formatter with buttons for interactive and quickchart."""
   buttons = []
-  if len(df) >= _QUICKCHART_BUTTON_MIN_ROW_COUNT:
-    buttons.append(register_df_and_get_html(df))
   if _ENABLE_GENERATE:
     buttons.append(_generate_with_variable.get_html(df))
   # pylint: disable=protected-access
