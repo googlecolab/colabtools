@@ -401,7 +401,10 @@ class RunTest(unittest.TestCase):
     self.assertEqual(bigquery.run(_QUERY), expected)
 
     self.mock_bpd_option_context.assert_called_once_with(
-        'display.progress_bar', None
+        'display.progress_bar',
+        None,
+        'compute.extra_query_labels',
+        {'bigframes-connector': 'sql-cell'},
     )
     self.mock_read_gbq_colab.assert_called_once_with(_QUERY, pyformat_args={})
     self.assertEqual(bpd.options.display.repr_mode, 'anywidget')
@@ -420,7 +423,10 @@ class RunTest(unittest.TestCase):
     self.assertEqual(bigquery.run(query), expected)
 
     self.mock_bpd_option_context.assert_called_once_with(
-        'display.progress_bar', None
+        'display.progress_bar',
+        None,
+        'compute.extra_query_labels',
+        {'bigframes-connector': 'sql-cell'},
     )
     self.mock_read_gbq_colab.assert_called_once_with(
         query, pyformat_args=user_ns
