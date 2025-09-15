@@ -12,6 +12,15 @@ import IPython
 # Extracts the line and column number from a dry-run error message.
 _LINE_COLUMN_REGEX = re.compile(r'\[(\d+):(\d+)\]', re.MULTILINE)
 
+# Option pair to disable the progress bar when running queries.
+_NO_PROGRESS_BAR = ('display.progress_bar', None)
+
+# Option pair to add additional query labels for telemetry purposes.
+_QUERY_LABELS = (
+    'compute.extra_query_labels',
+    {'bigframes-connector': 'sql-cell'},
+)
+
 
 class TableReference(TypedDict):
   """A reference to a BigQuery table."""
@@ -140,7 +149,7 @@ def run(sql: str) -> bpd.DataFrame:
   """Executes the SQL and returns the BigQuery DataFrame."""
   # repr_mode cannot be set in context manager.
   bpd.options.display.repr_mode = 'anywidget'
-  with bpd.option_context('display.progress_bar', None):
+  with bpd.option_context(*_NO_PROGRESS_BAR, *_QUERY_LABELS):
     # pylint: disable=protected-access
     return bpd._read_gbq_colab(sql, pyformat_args=_get_ipython_locals())
 
