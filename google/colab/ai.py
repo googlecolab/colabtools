@@ -49,7 +49,7 @@ class ModelProxyServiceError(Exception):
 
 def generate_text(
     prompt: str,
-    model_name: str = 'google/gemini-2.0-flash',
+    model_name: str = 'google/gemini-2.5-flash',
     stream: bool = False,
 ) -> str | Generator[str, Any, None]:
   """Generates text using the given prompt and model.
