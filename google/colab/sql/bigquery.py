@@ -105,7 +105,7 @@ def validate(sql: str) -> ValidationResult:
     bytes_processed = 0
     try:
       bytes_processed = int(dry_run_series.get('totalBytesProcessed', 0))
-    except ValueError:
+    except (TypeError, ValueError):
       pass
     compiled_sql = dry_run_series.get('dispatchedSql', '')
     referenced_tables = dry_run_series.get('referencedTables', None) or []

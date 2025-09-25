@@ -377,6 +377,24 @@ class ValidateTest(unittest.TestCase):
 
     self.assertEqual(expected, result)
 
+  def test_validate_sql_with_none_bytes_processed(self):
+    dry_run_result = pandas.Series(
+        {'totalBytesProcessed': None, 'dispatchedSql': _QUERY}
+    )
+    self.mock_read_gbq_colab.return_value = dry_run_result
+    expected = bigquery.ValidationSuccess(
+        bytes_processed=0,
+        compiled_sql=_QUERY,
+        tables=[],
+        schema=[],
+    )
+
+    self.assertEqual(expected, bigquery.validate(_QUERY))
+
+    self.mock_read_gbq_colab.assert_called_once_with(
+        _QUERY, dry_run=True, pyformat_args={}
+    )
+
 
 class RunTest(unittest.TestCase):
 
