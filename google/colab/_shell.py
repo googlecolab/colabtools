@@ -17,7 +17,6 @@ import datetime
 import os
 import pathlib
 import sys
-import traceback
 
 from google.colab import _history
 from google.colab import _inspector
@@ -27,7 +26,6 @@ from google.colab import _system_commands
 from ipykernel import compiler
 from ipykernel import jsonutil
 from ipykernel import zmqshell
-from IPython.core import events
 from IPython.core import interactiveshell
 from IPython.core import oinspect
 from IPython.utils import PyColorize
@@ -90,16 +88,12 @@ class _ColabXCachingCompiler(compiler.XCachingCompiler):
     code_name = super().get_code_name(raw_code, code, number)
     if code_name.endswith('.py'):
       path = pathlib.Path(code_name)
-      code_name = f'/tmp/ipython-input-{path.name}'
+      code_name = f'/tmp/ipython-input-{number}-{path.name}'
     return code_name
 
 
 class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
-
-  def init_events(self):
-    self.events = events.EventManager(self, events.available_events)
-    self.events.register('pre_execute', self._clear_warning_registry)
 
   def init_inspector(self):
     """Initialize colab's custom inspector."""
@@ -237,34 +231,6 @@ class Shell(zmqshell.ZMQInteractiveShell):
 
     # Nothing helped, fall back.
     return getattr(obj, attrname)
-
-  def object_inspect(self, oname, detail_level=0):
-    info = self._ofind(oname)
-
-    if info['found']:
-      try:
-        info = self._object_find(oname)
-        # We need to avoid arbitrary python objects remaining in info (and
-        # potentially being serialized below); `obj` itself needs to be
-        # removed, but retained for use below, and `parent` isn't used at all.
-        obj = info.pop('obj', '')
-        info.pop('parent', '')
-        result = self.inspector.info(
-            obj, oname, info=info, detail_level=detail_level
-        )
-      except Exception as e:  # pylint: disable=broad-except
-        self.kernel.log.info(
-            'Exception caught during object inspection: '
-            '{!r}\nTraceback:\n{}'.format(
-                e, ''.join(traceback.format_tb(sys.exc_info()[2]))
-            )
-        )
-        result = oinspect.InfoDict()
-    else:
-      result = super(Shell, self).object_inspect(
-          oname, detail_level=detail_level
-      )
-    return result
 
   def run_cell_magic(self, magic_name, line, cell):
     # We diverge from Jupyter behavior here: we want to allow cell magics with a
