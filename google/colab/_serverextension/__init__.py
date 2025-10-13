@@ -16,6 +16,7 @@
 import logging
 import os
 import shlex
+import socket
 import subprocess
 
 
@@ -90,7 +91,17 @@ def load_jupyter_server_extension(server_app):
           (url_maker('/api/colab/build-info'), _handlers.BuildInfoHandler),
       ],
   )
-  server_app.log.info('google.colab server extension initialized.')
+  try:
+    with open('/var/colab/hostname', 'r') as f:
+      hostname = f.read().strip()
+  except FileNotFoundError:
+    hostname = socket.gethostname()
+  except Exception as e:  # pylint: disable=broad-exception-caught
+    server_app.log.warning(f'could not determine hostname: {e}')
+    hostname = '???'
+  server_app.log.info(
+      f'google.colab server extension initialized on {hostname}.'
+  )
 
 
 _load_jupyter_server_extension_paths = load_jupyter_server_extension
