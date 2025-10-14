@@ -141,6 +141,7 @@ def _gcloud_login():
       '--enable-gdrive-access',
       '--no-launch-browser',
       '--quiet',
+      '--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/calendar.readonly',
   ]
   f, name = _tempfile.mkstemp()
   gcloud_process = _subprocess.Popen(
