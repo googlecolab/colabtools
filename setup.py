@@ -28,6 +28,8 @@ DEPENDENCIES = (
     'portpicker==1.5.2',
     'requests==2.32.4',
     'tornado==6.4.2',
+    'google-auth-oauthlib==1.2.2',
+    'google-api-python-client==2.179.0',
 )
 
 setup(
