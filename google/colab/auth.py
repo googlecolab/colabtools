@@ -29,7 +29,11 @@ from google.colab import errors as _errors
 from google.colab import files as _files
 from google.colab import output as _output
 
-__all__ = ['authenticate_service_account', 'authenticate_user']
+__all__ = [
+    'authenticate_service_account',
+    'authenticate_user',
+    'authenticate_desktop_application',
+]
 
 _LOGGER = _logging.getLogger(__name__)
 
@@ -353,3 +357,24 @@ def authenticate_service_account(clear_output=True):
     print('Successfully saved credentials for', creds.service_account_email)
     return
   raise _errors.AuthorizationError('Failed to fetch user credentials')
+
+
+def authenticate_desktop_application(client_secrets_path, scopes):
+  """Authenticates the user for a desktop application.
+
+  This method uses the OAuth 2.0 flow for installed applications to obtain user
+  credentials. It will use the console strategy to handle the authorization
+  flow.
+
+  Args:
+    client_secrets_path: The path to the client secrets JSON file.
+    scopes: A list of scopes to request during the authorization flow.
+
+  Returns:
+    The user's credentials.
+  """
+  from google_auth_oauthlib.flow import InstalledAppFlow  # pylint: disable=g-import-not-at-top
+
+  flow = InstalledAppFlow.from_client_secrets_file(client_secrets_path, scopes)
+  creds = flow.run_console()
+  return creds
