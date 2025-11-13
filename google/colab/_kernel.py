@@ -13,6 +13,8 @@
 # limitations under the License.
 """Colab-specific kernel customizations."""
 
+import time
+
 from google.colab import _shell
 from google.colab import _shell_customizations
 from ipykernel import ipkernel
@@ -27,6 +29,7 @@ class Kernel(ipkernel.IPythonKernel):
     return _shell.Shell
 
   def do_inspect(self, code, cursor_pos, detail_level=0, *args, **kwargs):
+    start_time = time.perf_counter_ns()
     name = tokenutil.token_at_cursor(code, cursor_pos)
     info = self.shell.object_inspect(name)
 
@@ -50,6 +53,7 @@ class Kernel(ipkernel.IPythonKernel):
         'data': data,
         'metadata': {},
         'found': info['found'],
+        'elapsed_ms': (time.perf_counter_ns() - start_time) / 1000000,
     }
 
     return reply_content
