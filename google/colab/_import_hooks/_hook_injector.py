@@ -13,6 +13,7 @@
 # limitations under the License.
 """Custom loader that calls a callback upon import."""
 import importlib
+import importlib.abc
 import sys
 
 
