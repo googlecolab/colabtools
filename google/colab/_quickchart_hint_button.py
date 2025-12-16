@@ -18,7 +18,6 @@ import textwrap
 import uuid as _uuid
 import weakref as _weakref
 
-from google.colab import _generate_with_variable
 from google.colab import _interactive_table_hint_button
 from google.colab import _quickchart
 from google.colab import output
@@ -27,7 +26,6 @@ import IPython as _IPython
 
 _output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
-_ENABLE_GENERATE = False
 _QUICKCHART_BUTTON_MIN_ROW_COUNT = 2  # Min # rows to enable quickchart button.
 
 _ICON_SVG = textwrap.dedent("""
@@ -261,8 +259,6 @@ def _df_formatter_with_hint_buttons(df):
   buttons = []
   if len(df) >= _QUICKCHART_BUTTON_MIN_ROW_COUNT:
     buttons.append(register_df_and_get_html(df))
-  if _ENABLE_GENERATE:
-    buttons.append(_generate_with_variable.get_html(df))
   # pylint: disable=protected-access
   html = _interactive_table_hint_button._df_formatter_with_interactive_hint(
       df, buttons
