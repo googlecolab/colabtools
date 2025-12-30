@@ -48,13 +48,10 @@ def upload_file(filename):
   if len(uploaded_files) > 1:
     raise ValueError('Multiple files received, please upload a single file')
 
+  first_name, first_data = next(iter(uploaded_files.items()))
   with open(filename, 'wb') as f:
-    f.write(list(uploaded_files.values())[0])
-  print(
-      'Saved {} to {}'.format(
-          list(uploaded_files.keys())[0], _os.getcwd() + '/' + filename
-      )
-  )
+    f.write(first_data)
+  print('Saved {} to {}'.format(first_name, _os.getcwd() + '/' + filename))
 
 
 def upload(target_dir=''):
@@ -117,7 +114,7 @@ def _upload_file(filepath):
   if len(uploaded_file) > 1:
     # Shouldn't happen but check anyways
     raise ValueError('Multiple files received, please upload a single file')
-  filename, data = list(uploaded_file.items())[0]
+  filename, data = next(iter(uploaded_file.items()))
   filename = filepath or _get_unique_filename(filename)
   with open(filename, 'wb') as f:
     f.write(data)
