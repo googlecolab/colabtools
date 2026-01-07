@@ -28,6 +28,7 @@ import IPython as _IPython
 _output_callbacks = {}
 _MAX_CHART_INSTANCES = 4
 _ENABLE_GENERATE = False
+_ENABLE_SUGGEST_PLOTS = False
 _QUICKCHART_BUTTON_MIN_ROW_COUNT = 2  # Min # rows to enable quickchart button.
 
 _ICON_SVG = textwrap.dedent("""
@@ -259,7 +260,7 @@ def register_df_and_get_html(df):
 def _df_formatter_with_hint_buttons(df):
   """Alternate df formatter with buttons for interactive and quickchart."""
   buttons = []
-  if len(df) >= _QUICKCHART_BUTTON_MIN_ROW_COUNT:
+  if _ENABLE_SUGGEST_PLOTS and len(df) >= _QUICKCHART_BUTTON_MIN_ROW_COUNT:
     buttons.append(register_df_and_get_html(df))
   if _ENABLE_GENERATE:
     buttons.append(_generate_with_variable.get_html(df))
