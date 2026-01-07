@@ -13,6 +13,7 @@
 # limitations under the License.
 """Colab-specific shell customizations."""
 
+import os
 import re
 import textwrap
 
@@ -157,6 +158,14 @@ class _CustomErrorHandlers:
           ],
       }
       return msg, details
+
+    if os.environ.get('VERTEX_PRODUCT') == 'COLAB_ENTERPRISE':
+      msg = textwrap.dedent("""\
+        {sep}{green}
+        NOTE: If your import is failing due to a missing package, you can
+        manually install dependencies using either !pip or !apt.
+        {sep}{normal}\n""".format(sep=_SEP, green=_GREEN, normal=_NORMAL))
+      return msg, {}
 
     msg = textwrap.dedent("""\
         {sep}{green}
