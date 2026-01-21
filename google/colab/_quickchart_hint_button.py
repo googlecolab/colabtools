@@ -249,8 +249,10 @@ def register_df_and_get_html(df):
         (() => {{
           let quickchartButtonEl =
             document.querySelector('#{df_key} button');
+          // Check if the suggest_plots experiment flag is enabled in the frontend.
+          const suggestPlotsEnabled = window.colabExperiments && window.colabExperiments.suggest_plots;
           quickchartButtonEl.style.display =
-            google.colab.kernel.accessAllowed ? 'block' : 'none';
+            google.colab.kernel.accessAllowed && suggestPlotsEnabled ? 'block' : 'none';
         }})();
       </script>
     </div>""")
