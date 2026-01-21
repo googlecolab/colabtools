@@ -98,7 +98,7 @@ class Js:
       # This allows us to properly chain function and javascript class
       # (since those are not serializable) and eliminates the need to wait
       # for frontend to return.
-      return lambda x: _js.eval_js('(()=>{' + x + '})()', ignore_result=True)
+      return lambda x: _js.eval_js('(()=>{' + x + '})();', ignore_result=True)
     else:
       raise JsException('Invalid mode: %r.' % mode)
 
