@@ -26,7 +26,6 @@ import json as _json
 import traceback as _traceback
 
 from google.colab import _interactive_table_helper
-from google.colab import _quickchart_hint_button
 from google.colab import autoviz as _autoviz
 from google.colab import widgets as _widgets
 import IPython as _IPython
@@ -137,6 +136,7 @@ class DataTable(_display.DisplayObject):
          shrink down to the minimum of this value and the width needed for the
          content.
     """
+
     def _default(value, default):
       return default if value is None else value
 
@@ -231,9 +231,6 @@ class DataTable(_display.DisplayObject):
           'width': '1px',
           'className': 'index_column',
       }] * self._dataframe.index.nlevels
-    quickchart_button_html = _quickchart_hint_button.register_df_and_get_html(
-        dataframe
-    )
     return """
       import "{gviz_url}";
 
@@ -246,14 +243,6 @@ class DataTable(_display.DisplayObject):
         suppressOutputScrolling: {suppress_output_scrolling},
         minimumWidth: {min_width},
       }});
-
-      function appendQuickchartButton(parentElement) {{
-        let quickchartButtonContainerElement = document.createElement('div');
-        quickchartButtonContainerElement.innerHTML = `{quickchart_button_html}`;
-        parentElement.appendChild(quickchartButtonContainerElement);
-      }}
-
-      appendQuickchartButton(table);
     """.format(
         gviz_url=_GVIZ_JS,
         data=formatted_data['data'],
@@ -265,7 +254,6 @@ class DataTable(_display.DisplayObject):
             _DEFAULT_SUPPRESS_OUTPUT_SCROLLING
         ),
         min_width=f'"{self._min_width}"' if self._min_width else 'undefined',
-        quickchart_button_html=quickchart_button_html,
     )
 
 
