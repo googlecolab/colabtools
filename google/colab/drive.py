@@ -140,12 +140,14 @@ def _mount(
     except Exception as e:
       if 'credential propagation' in str(e).lower():
         raise RuntimeError(
-            'Drive mount failed because your browser is blocking Google credentials. '
-            'Please check your browser settings:\n'
-            '  - If you use Brave: disable "Shields" for colab.research.google.com\n'
-            '  - If you use Chrome: allow third-party cookies for colab.research.google.com\n'
-            '  - If you use Safari: check that cross-site tracking is not disabled for this site\n'
-            'See: https://support.google.com/colab/answer/13112095 for more details.'
+            'Credential propagation was unsuccessful. This may happen if third-party cookies \n'
+'are blocked by your browser or if your account has Advanced Protection enabled.\n\n'
+'Common troubleshooting steps:\n'
+'  - Brave: disable "Shields" for colab.research.google.com\n'
+'  - Chrome: allow third-party cookies for colab.research.google.com\n'
+'  - Safari: disable "Prevent Cross-Site Tracking"\n'
+'  - Account: check if "Advanced Protection" is enabled for your Google Account.\n'
+'See: https://research.google.com/colaboratory/faq.html#drive-timeout for more details.'
         ) from e
       raise
 
