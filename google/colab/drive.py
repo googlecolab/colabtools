@@ -131,11 +131,23 @@ def _mount(
       else _os.environ['TBE_CREDS_ADDR']
   )
   if ephemeral:
-    _message.blocking_request(
-        'request_auth',
-        request={'authType': 'dfs_ephemeral'},
-        timeout_sec=int(timeout_ms / 1000),
-    )
+    try:
+      _message.blocking_request(
+          'request_auth',
+          request={'authType': 'dfs_ephemeral'},
+          timeout_sec=int(timeout_ms / 1000),
+      )
+    except Exception as e:
+      if 'credential propagation' in str(e).lower():
+        raise RuntimeError(
+            'Drive mount failed because your browser is blocking Google credentials. '
+            'Please check your browser settings:\n'
+            '  - If you use Brave: disable "Shields" for colab.research.google.com\n'
+            '  - If you use Chrome: allow third-party cookies for colab.research.google.com\n'
+            '  - If you use Safari: check that cross-site tracking is not disabled for this site\n'
+            'See: https://support.google.com/colab/answer/13112095 for more details.'
+        ) from e
+      raise
 
   mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
