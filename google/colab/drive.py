@@ -137,17 +137,17 @@ def _mount(
           request={'authType': 'dfs_ephemeral'},
           timeout_sec=int(timeout_ms / 1000),
       )
-    except Exception as e:
+   except Exception as e:
       if 'credential propagation' in str(e).lower():
         raise RuntimeError(
             'Credential propagation was unsuccessful. This may happen if third-party cookies \n'
-'are blocked by your browser or if your account has Advanced Protection enabled.\n\n'
-'Common troubleshooting steps:\n'
-'  - Brave: disable "Shields" for colab.research.google.com\n'
-'  - Chrome: allow third-party cookies for colab.research.google.com\n'
-'  - Safari: disable "Prevent Cross-Site Tracking"\n'
-'  - Account: check if "Advanced Protection" is enabled for your Google Account.\n'
-'See: https://research.google.com/colaboratory/faq.html#drive-timeout for more details.'
+            'are blocked by your browser or if your account has Advanced Protection enabled.\n\n'
+            'Common troubleshooting steps:\n'
+            '  - Brave: disable "Shields" for colab.research.google.com\n'
+            '  - Chrome: allow third-party cookies for colab.research.google.com\n'
+            '  - Safari: disable "Prevent Cross-Site Tracking"\n'
+            '  - Account: check if "Advanced Protection" is enabled for your Google Account.\n'
+            'See: https://colab.research.google.com/notebooks/io.ipynb for more details.'
         ) from e
       raise
 
