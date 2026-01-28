@@ -131,11 +131,25 @@ def _mount(
       else _os.environ['TBE_CREDS_ADDR']
   )
   if ephemeral:
-    _message.blocking_request(
-        'request_auth',
-        request={'authType': 'dfs_ephemeral'},
-        timeout_sec=int(timeout_ms / 1000),
-    )
+    try:
+      _message.blocking_request(
+          'request_auth',
+          request={'authType': 'dfs_ephemeral'},
+          timeout_sec=int(timeout_ms / 1000),
+      )
+   except Exception as e:
+      if 'credential propagation' in str(e).lower():
+        raise RuntimeError(
+            'Credential propagation was unsuccessful. This may happen if third-party cookies \n'
+            'are blocked by your browser or if your account has Advanced Protection enabled.\n\n'
+            'Common troubleshooting steps:\n'
+            '  - Brave: disable "Shields" for colab.research.google.com\n'
+            '  - Chrome: allow third-party cookies for colab.research.google.com\n'
+            '  - Safari: disable "Prevent Cross-Site Tracking"\n'
+            '  - Account: check if "Advanced Protection" is enabled for your Google Account.\n'
+            'See: https://colab.research.google.com/notebooks/io.ipynb for more details.'
+        ) from e
+      raise
 
   mountpoint = _os.path.expanduser(mountpoint)
   # If we've already mounted drive at the specified mountpoint, exit now.
