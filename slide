@@ -1,0 +1,85 @@
+from pptx import Presentation
+from docx import Document
+
+# === Criação da Apresentação PowerPoint ===
+prs = Presentation()
+title_slide_layout = prs.slide_layouts[0]
+slide = prs.slides.add_slide(title_slide_layout)
+slide.shapes.title.text = "Anatomia do Sistema de Condução Cardíaca,\nImplicações em Arritmias e Eletrocardiograma"
+slide.placeholders[1].text = "Workshop acadêmico para estudantes de graduação\nProfessor especialista em Cardiologia e Fisioterapia\n"
+
+def add_slide(title, content):
+    slide_layout = prs.slide_layouts[1]
+    slide = prs.slides.add_slide(slide_layout)
+    slide.shapes.title.text = title
+    slide.placeholders[1].text = content
+    return slide
+
+# === Conteúdo dos módulos ===
+add_slide("Módulo 1 – Anatomia e Fisiologia do Sistema de Condução Cardíaca",
+           "• Estrutura: Nó SA, vias internodais, nó AV, feixe de His, ramos e fibras de Purkinje.\n"
+           "• Funções: automaticidade, cronotropismo, dromotropismo, batmotropismo.\n"
+           "• Irrigação coronariana e relevância clínica.\n"
+           "• Potencial de ação cardíaco e fases da despolarização.\n"
+           "• Importância fisioterapêutica no entendimento do ritmo cardíaco.")
+
+add_slide("Módulo 2 – Implicações Anatômicas em Arritmias e ECG",
+           "• Bloqueios de condução (SA, AV e de ramos).\n"
+           "• Arritmias: fibrilação e flutter atrial, taquicardias, extrassístoles, FV e TV.\n"
+           "• Lesões anatômicas e padrões eletrocardiográficos.\n"
+           "• Diagnóstico topográfico pelo ECG.\n"
+           "• Discussão de traçados e correlação clínica.")
+
+add_slide("Módulo 3 – Farmacologia Aplicada às Arritmias",
+           "• Classificação de Vaughan Williams (Classes I–IV e outros).\n"
+           "• Mecanismos de ação e efeitos no potencial de ação.\n"
+           "• Interações medicamentosas e efeitos adversos.\n"
+           "• Papel do farmacêutico na orientação e adesão terapêutica.\n"
+           "• Casos clínicos de escolha racional de antiarrítmicos.")
+
+add_slide("Módulo 4 – Integração Clínica e RCP",
+           "• Morte súbita cardíaca e fibrilação ventricular.\n"
+           "• Cadeia de sobrevivência (AHA).\n"
+           "• Etapas da RCP e uso do DEA.\n"
+           "• Fisiopatologia da parada cardiorrespiratória.\n"
+           "• Treino prático em manequim e feedback hemodinâmico.")
+
+add_slide("Encerramento e Avaliação",
+           "• Avaliação formativa e somativa.\n"
+           "• Discussão de caso integrando ECG + farmacologia + conduta.\n"
+           "• Síntese dos aprendizados.\n"
+           "• Entrega de certificado e espaço para dúvidas.")
+
+# Salvar PowerPoint
+prs.save("Workshop_Sistema_Conducao_Cardiaca.pptx")
+
+# === Criação do Documento Word ===
+doc = Document()
+doc.add_heading("Roteiro do Instrutor – Workshop: Sistema de Condução Cardíaca", level=1)
+
+sections = [
+    ("Módulo 1", 
+     "Explicar o trajeto do estímulo elétrico cardíaco e sua base anatômica. "
+     "Usar modelos ou animações 3D. Relacionar automaticidade e condução com fisiologia muscular cardíaca."),
+    ("Módulo 2", 
+     "Relacionar bloqueios e arritmias com achados no ECG. Mostrar exemplos práticos. "
+     "Enfatizar diagnóstico diferencial e interpretação de traçados."),
+    ("Módulo 3", 
+     "Apresentar a classificação de Vaughan Williams. Discutir efeitos no potencial de ação e implicações clínicas. "
+     "Orientar o papel do farmacêutico em interações e adesão."),
+    ("Módulo 4", 
+     "Contextualizar a importância da RCP no cenário das arritmias fatais. "
+     "Simular situações de emergência e reforçar o trabalho multiprofissional."),
+    ("Encerramento", 
+     "Realizar síntese dos conteúdos, revisar pontos críticos e avaliar o aprendizado com casos clínicos integrados.")
+]
+
+for title, content in sections:
+    doc.add_heading(title, level=2)
+    doc.add_paragraph(content)
+
+doc.save("Roteiro_Instrutor_Sistema_Conducao_Cardiaca.docx")
+
+print("✅ Arquivos criados com sucesso:")
+print(" - Workshop_Sistema_Conducao_Cardiaca.pptx")
+print(" - Roteiro_Instrutor_Sistema_Conducao_Cardiaca.docx")
