@@ -20,4 +20,5 @@ that are not even aware of the widget's existence.
 """
 from google.colab.widgets._grid import create_grid
 from google.colab.widgets._grid import Grid
+from google.colab.widgets._interactive_table import InteractiveTable
 from google.colab.widgets._tabbar import TabBar

@@ -1,0 +1,124 @@
+.custom-table-widget {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    color: #1f1f1f;
+}
+.table-container {
+    border: 1px solid #c4c7c5;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+th, td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e1e3e1;
+    text-align: left;
+}
+th {
+    background-color: #f8fafd;
+    color: #1f1f1f;
+    font-weight: 600;
+    user-select: none;
+}
+th:hover {
+    background-color: rgba(31, 31, 31, 0.08);
+}
+tr:hover td {
+    background-color: rgba(31, 31, 31, 0.08);
+}
+.controls {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    color: #1f1f1f;
+}
+.page-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+button {
+    padding: 6px 12px;
+    border: 1px solid #c4c7c5;
+    background-color: #fff;
+    color: #1f1f1f;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+button:hover:not(:disabled) {
+    background-color: rgba(31, 31, 31, 0.08);
+    border-color: #747775;
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #fff;
+    color: rgba(31, 31, 31, 0.38);
+}
+
+select {
+    background-color: #fff;
+    color: #1f1f1f;
+    border: 1px solid #c4c7c5;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+/* Dark mode support */
+html[theme=dark] {
+    & .custom-table-widget {
+        color: #e3e3e3;
+    }
+    & .table-container {
+        border-color: #444746;
+    }
+    & th, td {
+        border-bottom-color: #444746;
+    }
+    & th {
+        background-color: #131314;
+        color: #e3e3e3;
+    }
+    & th:hover {
+        background-color: #444746;
+    }
+    & tr:hover td {
+        background-color: #131314;
+    }
+
+    & .controls {
+        color: #e3e3e3;
+    }
+
+    & button {
+        background-color: #131314;
+        border-color: #444746;
+        color: #e3e3e3;
+    }
+    & button:hover:not(:disabled) {
+        background-color: #444746;
+        border-color: #747775;
+    }
+    & button:disabled {
+        background-color: #131314;
+        color: #8e918f;
+        opacity: 0.5;
+    }
+    & select {
+        background-color: #131314;
+        color: #e3e3e3;
+        border: 1px solid #444746;
+        padding: 4px;
+        border-radius: 4px;
+    }
+}
