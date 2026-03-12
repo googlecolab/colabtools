@@ -27,7 +27,7 @@ DEPENDENCIES = (
     'jupyter-server==2.14.0',
     'portpicker==1.5.2',
     'requests==2.32.4',
-    'tornado==6.5.1',
+    'tornado==6.5.5',
 )
 
 setup(
