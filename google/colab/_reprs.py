@@ -286,8 +286,7 @@ def _function_repr(obj):
     )
 
     result += html.escape(docs) + '</pre>'
-    jupyter_paths = ('ipython-input', 'ipykernel_')
-    if filename and all(path not in filename for path in jupyter_paths):
+    if filename and 'ipykernel_' not in filename:
       line = oinspect.find_source_lines(obj)
       result += f"""
       <script>
