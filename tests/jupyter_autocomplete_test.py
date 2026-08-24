@@ -1,9 +1,24 @@
-"""Smoke tests for autocomplete customizations."""
+"""Smoke tests for autocomplete customizations.
+
+IPython changed and these tests are reading IPython directly: they call the
+completer rather than Colab's `complete_request` handler, so they track
+IPython's own output shape. Fuller end-to-end coverage of user-visible
+autocomplete lives in the Google-internal integration notebooks.
+"""
 
 import os
 import subprocess
 import sys
 import unittest
+
+
+def _splice_expr(code, cursor_pos):
+  """Returns an expr splicing completions of `code` at `cursor_pos`."""
+  # One line because `jupyter console` reads stdin line-by-line.
+  return (
+      'print([{code!r}[:c.start] + c.text + {code!r}[c.end:] '
+      'for c in get_ipython().Completer.completions({code!r}, {pos})])'
+  ).format(code=code, pos=cursor_pos)
 
 
 def _run_under_jupyter(code_lines):
@@ -30,9 +45,13 @@ class JupyterAutocompleteTest(unittest.TestCase):
 
   def testBasicAutocompletions(self):
     """Test that autocomplete works for a top-level definition."""
+    # Splices matches; see `requalify_attribute_matches` in _completion.py.
     output = _run_under_jupyter([
         'import getpass',
-        'print(get_ipython().complete("", "getpass.getp", 12)[1])',
+        'import warnings',
+        # IPython filters ProvisionalCompleterWarning to "error" at import.
+        'warnings.simplefilter("ignore")',
+        _splice_expr('getpass.getp', 12),
     ])
     self.assertIn("'getpass.getpass'", output)
 
@@ -40,9 +59,11 @@ class JupyterAutocompleteTest(unittest.TestCase):
     """Test that autocomplete works inside another expression."""
     output = _run_under_jupyter([
         'import os',
-        'print(get_ipython().complete("", "help(os.)", 8)[1])',
+        'import warnings',
+        'warnings.simplefilter("ignore")',
+        _splice_expr('help(os.)', 8),
     ])
-    self.assertIn("'os.abort'", output)
+    self.assertIn("'help(os.abort)'", output)
 
   def testDictAutocomplete(self):
     output = _run_under_jupyter([

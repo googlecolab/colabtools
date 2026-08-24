@@ -62,6 +62,28 @@ _APPROVED_REPRS = (
 _UNAVAILABLE_MODULE_NAME = '<unknown>'
 
 
+def _ipython_info_fields():
+  """Returns the field names IPython's own inspector guarantees are present.
+
+  `oinspect.Inspector._make_info_unformatted` and `_append_info_field` subscript
+  the info dict directly (`info['isclass']`, `field = info[key]`), so any field
+  IPython knows about must exist on the dict `ColabInspector.info` returns, even
+  when Colab has no value for it.
+
+  Returns:
+    A tuple of field names.
+  """
+  # IPython 8.x moved the list into an `InfoDict` TypedDict and made the
+  # module-level `info_fields` alias emit a DeprecationWarning.
+  info_dict = getattr(oinspect, 'InfoDict', None)
+  if info_dict is not None:
+    return tuple(info_dict.__annotations__)
+  return tuple(oinspect.info_fields)
+
+
+_IPYTHON_INFO_FIELDS = _ipython_info_fields()
+
+
 def getdoc(obj):
   """Custom wrapper for inspect.getdoc.
 
@@ -528,10 +550,11 @@ class ColabInspector(oinspect.Inspector):
     # we're safe ignoring them.
 
     obj_type = type(obj)
-    out = {
+    out = dict.fromkeys(_IPYTHON_INFO_FIELDS)
+    out.update({
         'name': oname,
         'found': True,
-        'is_class': inspect.isclass(obj),
+        'isclass': inspect.isclass(obj),
         'string_form': None,
         # Fill in empty values.
         'docstring': None,
@@ -539,7 +562,7 @@ class ColabInspector(oinspect.Inspector):
         'isalias': False,
         'ismagic': info.ismagic if info else False,
         'namespace': info.namespace if info else '',
-    }
+    })
     if detail_level >= self.str_detail_level:
       out['string_form'] = _safe_repr(obj)
 
@@ -571,7 +594,7 @@ class ColabInspector(oinspect.Inspector):
         source = _getsource(obj.__class__)
       if source is not None:
         out['source'] = source
-    if 'source' not in out:
+    if out.get('source') is None:
       formatter = formatter or (lambda x: x)
       docstring = formatter(getdoc(obj) or '<no docstring>')
       if docstring:
@@ -626,7 +649,9 @@ class ColabInspector(oinspect.Inspector):
 
       out['argspec'] = _getargspec_dict(obj)
 
-    return oinspect.object_info(**out)
+    # We return `out` directly: as of IPython 8.39 `oinspect.object_info(**out)`
+    # keeps only its explicit name/found/isclass/isalias/ismagic params.
+    return out
 
 
 def _iscallable(obj):
