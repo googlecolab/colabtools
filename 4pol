@@ -1,0 +1,28 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+# --- Configurações principais ---
+frequencia = np.logspace(np.log10(20), np.log10(20000), 1000)
+# Simulação genérica de resposta da caixa (realista e suave)
+# Pico na sintonia e queda natural nas extremidades
+resposta = 92 + 3 * np.exp(-0.5 * ((np.log10(frequencia) - np.log10(68)) / 0.1)**2) - 0.002*(frequencia/100)
+
+# --- Geração do PDF ---
+with PdfPages("Resposta_Caixa_4pol_68Hz.pdf") as pdf:
+    plt.figure(figsize=(11.7, 8.3))  # A4 horizontal em polegadas
+    plt.semilogx(frequencia, resposta, color='black', linewidth=2)
+    
+    # Marca da sintonia
+    plt.axvline(68, color='gray', linestyle='--', linewidth=1)
+    
+    # Legenda discreta
+    plt.text(100, 102, "Resposta da Caixa Completa – Sintonia 68 Hz", fontsize=10, color='gray')
+    
+    # Curva limpa (sem grid e eixos)
+    plt.axis('off')
+    
+    pdf.savefig(bbox_inches='tight')
+    plt.close()
+
+print("✅ PDF gerado com sucesso: Resposta_Caixa_4pol_68Hz.pdf")
