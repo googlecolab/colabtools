@@ -16,20 +16,18 @@
 import datetime
 import os
 import sys
-import traceback
 
 from google.colab import _history
 from google.colab import _inspector
 from google.colab import _pip
 from google.colab import _shell_customizations
 from google.colab import _system_commands
+from ipykernel import compiler
 from ipykernel import jsonutil
 from ipykernel import zmqshell
-from IPython.core import events
 from IPython.core import interactiveshell
 from IPython.core import oinspect
 from IPython.utils import PyColorize
-from ipython_genutils import py3compat
 
 # Python doesn't expose a name in builtins for a getset descriptor attached to a
 # python class implemented in C, eg an entry in this array:
@@ -46,12 +44,21 @@ def _show_pip_warning():
   return os.environ.get('SKIP_COLAB_PIP_WARNING', '0') == '0'
 
 
+class CellPathCompiler(compiler.XCachingCompiler):
+  """Caching compiler that keeps cell filenames in traceback frame headers.
+
+  Subclasses ipykernel's compiler rather than IPython's so that cells keep
+  being compiled to `/tmp/ipykernel_<pid>/<hash>.py`; that filename is what
+  carries the hash the frame header needs to expose.
+  """
+
+  def format_code_name(self, name):
+    del name  # Unused; opts out of IPython 8.x's `Cell In[N]` label.
+    return None
+
+
 class Shell(zmqshell.ZMQInteractiveShell):
   """Shell with additional Colab-specific features."""
-
-  def init_events(self):
-    self.events = events.EventManager(self, events.available_events)
-    self.events.register('pre_execute', self._clear_warning_registry)
 
   def init_inspector(self):
     """Initialize colab's custom inspector."""
@@ -127,8 +134,8 @@ class Shell(zmqshell.ZMQInteractiveShell):
 
     exc_content = {
         'traceback': stb,
-        'ename': py3compat.unicode_type(etype.__name__),
-        'evalue': py3compat.safe_unicode(evalue),
+        'ename': str(etype.__name__),
+        'evalue': str(evalue),
     }
 
     if error_details:
@@ -186,32 +193,32 @@ class Shell(zmqshell.ZMQInteractiveShell):
     return getattr(obj, attrname)
 
   def object_inspect(self, oname, detail_level=0):
-    info = self._ofind(oname)
+    """Returns information about the named object.
 
-    if info['found']:
+    Differs from the base implementation only in degrading a raising inspection
+    into a not-found result rather than propagating out of the kernel handler.
+
+    Args:
+      oname: name of the object to inspect.
+      detail_level: 0 or 1; 1 means "include more detail".
+
+    Returns:
+      A dict with information about the named object, as built by
+      `_inspector.ColabInspector.info`.
+    """
+    with self.builtin_trap:
+      info = self._object_find(oname)
+      if not info.found:
+        return oinspect.object_info(name=oname, found=False)
       try:
-        info = self._object_find(oname)
-        # We need to avoid arbitrary python objects remaining in info (and
-        # potentially being serialized below); `obj` itself needs to be
-        # removed, but retained for use below, and `parent` isn't used at all.
-        obj = info.pop('obj', '')
-        info.pop('parent', '')
-        result = self.inspector.info(
-            obj, oname, info=info, detail_level=detail_level
+        return self.inspector.info(
+            info.obj, oname, info=info, detail_level=detail_level
         )
-      except Exception as e:  # pylint: disable=broad-except
+      except Exception:  # pylint: disable=broad-except
         self.kernel.log.info(
-            'Exception caught during object inspection: '
-            '{!r}\nTraceback:\n{}'.format(
-                e, ''.join(traceback.format_tb(sys.exc_info()[2]))
-            )
+            'Exception caught during object inspection', exc_info=True
         )
-        result = oinspect.InfoDict()
-    else:
-      result = super(Shell, self).object_inspect(
-          oname, detail_level=detail_level
-      )
-    return result
+        return oinspect.object_info(name=oname, found=False)
 
   def run_cell_magic(self, magic_name, line, cell):
     # We diverge from Jupyter behavior here: we want to allow cell magics with a
