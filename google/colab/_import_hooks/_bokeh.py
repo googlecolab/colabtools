@@ -70,7 +70,9 @@ def _register_hook():
   sys.meta_path = [_BokehImportHook()] + sys.meta_path
 
 
-def _post_execute():
+def _post_execute(*args, **kwargs):
+  # IPython 8.x dropped backcall from EventManager.register; accept args here.
+  del args, kwargs
   global _bokeh_loaded_in_this_cell
   _bokeh_loaded_in_this_cell = False
   IPython.get_ipython().events.unregister('post_run_cell', _post_execute)  # pylint: disable=undefined-variable
