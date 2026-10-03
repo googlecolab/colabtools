@@ -31,6 +31,7 @@ class _AltairImportHook(importlib.abc.MetaPathFinder):
         'altair.vegalite.v3',
         'altair.vegalite.v4',
         'altair.vegalite.v5',
+        'altair.vegalite.v6',
     ]:
       return None
 
