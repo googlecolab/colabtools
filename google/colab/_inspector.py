@@ -23,6 +23,7 @@ import logging
 import math
 import re
 import types
+import warnings
 
 from IPython.core import oinspect
 from IPython.utils import dir2
@@ -475,6 +476,17 @@ class ColabInspector(oinspect.Inspector):
     except:  # pylint: disable=bare-except
       logging.exception('Exception raised in ColabInspector._getdef')
   def info(self, obj, oname='', formatter=None, info=None, detail_level=0):
+    """Compute a dict with detailed information about an object."""
+    if formatter is not None:
+      warnings.warn(
+          'The `formatter` keyword argument to `Inspector.info`'
+          'is deprecated as of IPython 5.0 and will have no effects.',
+          DeprecationWarning,
+          stacklevel=2,
+      )
+    return self._info(obj, oname=oname, info=info, detail_level=detail_level)
+
+  def _info(self, obj, oname='', info=None, detail_level=0):
     """Compute a dict with detailed information about an object.
 
     This overrides the superclass method for two main purposes:
@@ -484,7 +496,6 @@ class ColabInspector(oinspect.Inspector):
     Args:
       obj: object to inspect.
       oname: (optional) string reference to this object
-      formatter: (optional) custom docstring formatter
       info: (optional) previously computed information about obj
       detail_level: (optional) 0 or 1; 1 means "include more detail"
 
@@ -572,8 +583,7 @@ class ColabInspector(oinspect.Inspector):
       if source is not None:
         out['source'] = source
     if 'source' not in out:
-      formatter = formatter or (lambda x: x)
-      docstring = formatter(getdoc(obj) or '<no docstring>')
+      docstring = getdoc(obj) or '<no docstring>'
       if docstring:
         out['docstring'] = docstring
 
