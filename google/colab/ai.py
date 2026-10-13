@@ -50,7 +50,7 @@ class ModelProxyServiceError(Exception):
 
 def generate_text(
     prompt: str,
-    model_name: str = 'google/gemini-3.5-flash',
+    model_name: str = 'google/gemini-3.7-flash',
     stream: bool = False,
 ) -> str | Generator[str, Any, None]:
   """Generates text using the given prompt and model.
@@ -58,7 +58,7 @@ def generate_text(
   Args:
     prompt: The input text or question.
     model_name: The name of the model to use (currently defaults to
-      'google/gemini-3.5-flash').
+      'google/gemini-3.7-flash').
     stream: If `True`, the response will be streamed back in chunks. If `False`,
       the complete generated text will be returned at once.
 
