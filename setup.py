@@ -25,7 +25,7 @@ DEPENDENCIES = (
     'ipython==7.34.0',
     'pandas==2.2.3',
     'jupyter-server==2.20.0',
-    'portpicker==1.5.2',
+    'portpicker==1.6.0',
     'requests==2.32.4',
     'tornado==6.5.7',
 )
