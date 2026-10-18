@@ -13,8 +13,10 @@
 # limitations under the License.
 """Colab-specific kernel customizations."""
 
+import inspect
 import time
 
+from google.colab import _completion
 from google.colab import _shell
 from google.colab import _shell_customizations
 from ipykernel import ipkernel
@@ -27,6 +29,16 @@ class Kernel(ipkernel.IPythonKernel):
 
   def _shell_class_default(self):
     return _shell.Shell
+
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+    # ipykernel constructs the shell with an explicit
+    # `compiler_class=XCachingCompiler` argument, which takes precedence over
+    # any default the shell class declares for that trait. Swap the compiler in
+    # after the shell exists so that Colab's traceback frame headers keep
+    # naming the cell file. See CellPathCompiler for why that matters.
+    self.shell.compiler_class = _shell.CellPathCompiler
+    self.shell.compile = self.shell.compiler_class()
 
   def do_inspect(self, code, cursor_pos, detail_level=0, *args, **kwargs):
     start_time = time.perf_counter_ns()
@@ -58,7 +70,7 @@ class Kernel(ipkernel.IPythonKernel):
 
     return reply_content
 
-  def complete_request(self, stream, ident, parent):
+  async def complete_request(self, stream, ident, parent):
     """Colab-specific complete_request handler.
 
     Overrides the default to allow providing additional metadata in the
@@ -75,6 +87,12 @@ class Kernel(ipkernel.IPythonKernel):
       cursor_pos = content['cursor_pos']
 
       matches = self.do_complete(code, cursor_pos)
+      # `do_complete` is sync in ipykernel today, but the base handler awaits
+      # it if it is awaitable. Mirror that so a future async implementation
+      # keeps working.
+      if inspect.isawaitable(matches):
+        matches = await matches
+      matches = _completion.requalify_attribute_matches(code, matches)
       if (
           parent.get('metadata', {})
           .get('colab_options', {})
