@@ -21,6 +21,11 @@ from ipykernel import ipkernel
 from ipykernel import jsonutil
 from IPython.utils import tokenutil
 
+# Only include info_text if less than 2 MiB. We have seen frontend lockup
+# issues when this is very large. See b/401357469 for more details.
+# 2 MiB is chosen as an arbitrary starting point.
+_MAX_INSPECT_TEXT_SIZE = 2**20  # 2 MiB
+
 
 class Kernel(ipkernel.IPythonKernel):
   """Kernel with additional Colab-specific features."""
@@ -34,7 +39,19 @@ class Kernel(ipkernel.IPythonKernel):
     info = self.shell.object_inspect(name)
 
     data = {}
-    if info['found']:
+    if info.get('found'):
+      info_text = self.shell.object_inspect_text(
+          name, detail_level=detail_level
+      )
+      if len(info_text) < _MAX_INSPECT_TEXT_SIZE:
+        data['text/plain'] = info_text
+      else:
+        self.log.warning(
+            'do_inspect text/plain output omitted as it was too large:'
+            ' size %d bytes',
+            len(info_text),
+        )
+
       # Provide the structured inspection information to allow the frontend to
       # format as desired.
       argspec = info.get('argspec')
@@ -55,7 +72,6 @@ class Kernel(ipkernel.IPythonKernel):
         'found': info['found'],
         'elapsed_ms': (time.perf_counter_ns() - start_time) / 1000000,
     }
-
     return reply_content
 
   def complete_request(self, stream, ident, parent):
