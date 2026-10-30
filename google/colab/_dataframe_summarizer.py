@@ -49,7 +49,7 @@ def _summarize_columns(df: pd.DataFrame, n_samples: int = 3):
 
     elif dtype == bool:
       properties["dtype"] = "boolean"
-    elif dtype == object:
+    elif dtype == object or isinstance(dtype, pd.StringDtype):
       # Check if the string column can be cast to a valid datetime
       try:
         with warnings.catch_warnings():

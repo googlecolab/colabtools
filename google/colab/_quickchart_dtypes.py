@@ -24,9 +24,16 @@ _EXPECTED_DTYPES = _CATEGORICAL_DTYPES + _DATETIME_DTYPES
 _CATEGORICAL_LARGE_SIZE_THRESHOLD = 8  # Facet-friendly size limit.
 
 
+def _is_categorical_dtype(dtype, categorical_dtypes=_CATEGORICAL_DTYPES):
+  # Lazy import to avoid loading pandas and transitive deps on kernel init.
+  import pandas as pd  # pylint: disable=g-import-not-at-top
+
+  return dtype in categorical_dtypes or isinstance(dtype, pd.StringDtype)
+
+
 def is_categorical(series):
   return (
-      series.dtype in _CATEGORICAL_DTYPES
+      _is_categorical_dtype(series.dtype)
       and len(series.unique()) <= _CATEGORICAL_LARGE_SIZE_THRESHOLD
   )
 
@@ -42,7 +49,8 @@ def classify_dtypes(
 
   Args:
     df: (pd.DataFrame) A dataframe.
-    categorical_dtypes: (iterable<str>) Categorical data types.
+    categorical_dtypes: (iterable<str>) Categorical data types. String extension
+      dtypes (pd.StringDtype) are always treated as categorical.
     datetime_dtypes: (iterable<str>) Datetime data types.
     datetime_dtype_kinds: (iterable<str>) Datetime dtype.kind values.
     categorical_size_threshold: (int) The max number of unique values for a
@@ -73,7 +81,7 @@ def classify_dtypes(
       filtered_cols.append(colname)
     elif len(df[colname].unique()) <= 1:
       singleton_cols.append(colname)
-    elif colname_dtype in categorical_dtypes:
+    elif _is_categorical_dtype(colname_dtype, categorical_dtypes):
       cat_cols.append(colname)
     elif (colname_dtype in datetime_dtypes) or (
         colname_dtype.kind in datetime_dtype_kinds
