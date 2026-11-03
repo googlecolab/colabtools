@@ -63,7 +63,6 @@ class InteractiveTable(anywidget.AnyWidget):
           inplace=True,
       )
 
-    # TODO: not sure if I need to heal nan here.
     # Convert DataFrame to a list of records (dicts) for JSON serialization
     self.active_data = self.data[start_row:end_row].to_dict(orient="records")
 
