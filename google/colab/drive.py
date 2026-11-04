@@ -222,6 +222,7 @@ def _mount(
       f' {drive_dir}/drive'
       ' --features='
       'crash_throttle_percentage:100,'
+      'decore_authoritative_global_fetcher:true,'
       'fuse_max_background:1000,'
       'max_read_qps:1000,'
       'max_write_qps:1000,'
