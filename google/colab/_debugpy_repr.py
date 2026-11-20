@@ -16,18 +16,21 @@ import logging
 # Fork of
 # debugpy/third_party/pydevd/_pydevd_bundle/pydevd_suspended_frames.py
 # to add shape to custom types.
-def _get_var_data(self, fmt=None):
+def _get_var_data(self, *args, **kwargs):
   """Gets the debug adapter protocol variable representation.
+
+  Forwards all arguments to the original get_var_data.
 
   Args:
     self: The AbstractVariable
-    fmt: Optional formatting params from the request.
+    *args: Positional arguments for the original get_var_data.
+    **kwargs: Keyword arguments for the original get_var_data.
 
   Returns:
     Dict representing the debug adapter protocol variable.
   """
 
-  var_data = _original_get_var_data(self, fmt)
+  var_data = _original_get_var_data(self, *args, **kwargs)
   shape = get_shape(self.value)
   if shape:
     presentation_hint = var_data.get('presentationHint', {})
